@@ -1,228 +1,5 @@
-#include <botan/rng.h>
-#include <botan/auto_rng.h>
-#include <botan/cipher_mode.h>
-#include <botan/sha2_32.h>
-#include <botan/hex.h>
-#include <botan/secmem.h>
-#include <experimental/filesystem>
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <ios>
-#include <iterator>
-#include <curses.h>
-#include <sqlite3.h>
-#include <termios.h>
-#include <unistd.h>
+#include "db.h"
 
-std::ofstream pdb;
-std::string path;
-std::string stList = "";
-termios tty;
-
-sqlite3* db;
-int rc = sqlite3_open(":memory:", &db);
-
-bool exists(sqlite3* db, std::string cmd) {
-    int ar;
-    sqlite3_stmt *stmt;
-    sqlite3_prepare_v2(db, cmd.c_str(), -1, &stmt, NULL);
-    ar = sqlite3_step(stmt);
-    return (ar == 100);
-}
-
-void echoOff()
-{
-    tcgetattr(STDIN_FILENO, &tty);
-    tty.c_lflag &= ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
-}
-
-void echoOn()
-{
-    tcgetattr(STDIN_FILENO, &tty);
-    tty.c_lflag |= ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
-}
-
-std::string getpass(std::string prompt)
-{
-    std::cout << prompt;
-    echoOff();
-    std::string buff;
-    std::getline(std::cin, buff);
-    echoOn();
-    std::cout << std::endl;
-
-    return buff;
-}
-
-std::string addPass() {
-    std::string choice, passw;
-    while (1) {
-        std::cout << "Do you want to input your own password? ";
-        std::getline(std::cin, choice);
-        if (choice == "yes") {
-            while(1) {
-                passw = getpass("Please enter a password. This must be unique and at least 8 characters: ");
-                if (passw.length() < 8) {
-                    std::cout << "Your password must be at least 8 characters. Anything less is prone to bruteforcing, and 8 characters is generally the minimum password length for sites." << std::endl;
-                    continue;
-                }
-                if (exists(db, "SELECT * FROM data WHERE password=\"" + passw + "\"")) {
-                    std::cout << "This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!" << std::endl;
-                    continue;
-                }
-                break;
-            }
-            break;
-        } else if (choice == "no") {
-            int length = 0;
-            while(1) {
-                std::string slen;
-                std::cout << "How long should this be? Must be at least 8: ";
-                std::stringstream ss;
-                std::getline(std::cin, slen);
-                ss.str(slen);
-
-                if (ss >> length) {
-                    if (length < 8) {
-                        std::cout << "Your password must be at least 8 characters. Anything less is prone to bruteforcing, and 8 is generally the minimum password length for sites." << std::endl;
-                        continue;
-                    }
-                    break;
-                }
-                std::cout << "Please use a number." << std::endl;
-            }
-            std::cout << "Okay, generating a random password." << std::endl;
-            std::string charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-_=+[{]},<.>/?";
-            while (passw.length() < length)
-                passw += charset[rand() % charset.length()];
-            break;
-        }
-    }
-    return passw;
-}
-
-void replaceAll(std::string& str, const std::string& from, const std::string& to) {
-    if (from.empty())
-        return;
-    size_t start_pos = 0;
-    while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-        str.replace(start_pos, from.length(), to);
-        start_pos += to.length();
-    }
-}
-
-std::string trim(const std::string& line)
-{
-    const char* whiteSpace = " \t\v\r\n";
-    std::size_t start = line.find_first_not_of(whiteSpace);
-    std::size_t end = line.find_last_not_of(whiteSpace);
-    return start == end ? std::string() : line.substr(start, end - start + 1);
-}
-
-std::string getNotes() {
-    std::string notes, line;
-    while (std::getline(std::cin, line)) {
-        if (line.empty())
-            break;
-        notes += "\"" + line + "\"\n";
-    }
-    std::string trnotes = trim(notes);
-    replaceAll(trnotes, "\n", " || char(10) || ");
-    return trnotes;
-}
-
-
-static int showNames(void *list, int count, char **data, char **columns) {
-    std::cout << data[0] << std::endl;
-    return 0;
-}
-static int showData(void *list, int count, char **data, char **cols) {
-    for (int i = 0; i < count; ++i) {
-        std::string di = data[i];
-        replaceAll(di, " || char(10) || ", "\n");
-        std::cout << cols[i] << ": " << (data[i] ? di : "none") << std::endl;
-    }
-    return 0;
-}
-
-static int _saveSt(void *list, int count, char **data, char **cols) {
-    std::string datad, colsd;
-    for (int i = 0; i < count; ++i) {
-        std::string di = data[i];
-        replaceAll(di, "\n", " || char(10) || ");
-        datad += std::string(i == 0 ? "" : ", ") + "\"" + di + "\"";
-        colsd += std::string(i == 0 ? "" : ", ") + "\"" + cols[i] + "\"";
-    }
-    stList += "\nINSERT INTO data (" + colsd + ") VALUES (" + datad + ")";
-}
-
-void saveSt() {
-    stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
-    sqlite3_exec(db, "SELECT * FROM data ORDER BY name", _saveSt, 0, nullptr);
-}
-
-void exec(std::string cmd, bool save = true) {
-    char* err = 0;
-    int arc = sqlite3_exec(db, cmd.c_str(), nullptr, 0, &err);
-    if (arc != SQLITE_OK)
-        std::cout << "Warning: SQL execution error: " << std::string(err) << std::endl;
-    if (save) saveSt();
-}
-
-void encrypt(std::string akey, Botan::secure_vector<uint8_t> iv) {
-    std::ofstream pdbp(path, std::ios_base::binary);
-    Botan::AutoSeeded_RNG rng;
-    Botan::SHA_256 sha;
-    Botan::secure_vector<uint8_t> pr = sha.process(akey);
-    std::string skey(pr.begin(), pr.end());
-
-    std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create("AES-256/GCM", Botan::ENCRYPTION);
-
-    enc->set_key(pr);
-    saveSt();
-
-    Botan::secure_vector<uint8_t> pt(stList.data(), stList.data() + stList.length());
-    enc->start(iv);
-    enc->finish(pt);
-    std::string pts(pt.begin(), pt.end());
-
-    std::string towrite = Botan::hex_encode(iv) + "\n" + pts;
-    pdbp << towrite;
-    pdbp.close();
-}
-
-std::vector<std::string> getmpass(std::string txt = "") {
-    std::ifstream pdpp(path, std::ios_base::binary);
-    std::string ivh, line, mpass;
-    std::getline(pdpp, ivh);
-    std::vector<uint8_t> ivc = Botan::hex_decode(ivh);
-    std::string iv(ivc.begin(), ivc.end());
-    std::string r(std::istreambuf_iterator<char>{pdpp}, {});
-    Botan::secure_vector<uint8_t> rp;
-    
-    while(1) {
-        rp = Botan::secure_vector<uint8_t>(r.begin(), r.end());
-        mpass = getpass("Please enter your master password" + txt + ": ");
-        Botan::SHA_256 sha;
-        std::unique_ptr<Botan::Cipher_Mode> decr = Botan::Cipher_Mode::create("AES-256/GCM", Botan::DECRYPTION);
-        Botan::secure_vector<uint8_t> pkey = sha.process(mpass);
-
-        decr->set_key(pkey);
-        decr->start(ivc);
-        try {
-            decr->finish(rp);
-        } catch (...) {
-            std::cout << "Wrong password, please try again." << std::endl;
-            continue;
-        }
-        break;
-    }
-    std::string rpr(rp.begin(), rp.end());
-    return {rpr, mpass, iv};
-}
 int main(int argc,  char** argv) {
     srand(time(0));
     Botan::AutoSeeded_RNG rng;
@@ -287,7 +64,7 @@ int main(int argc,  char** argv) {
 
         std::getline(std::cin, choice);
         if (choice == "help")
-            std::cout << "add: add a password\ndelete: delete a password\nedit: edit an entry\nview: view a password\ntips: tips for password management\ninfo: some info on passman\nexit: exit out of the program" << std::endl;
+            std::cout << "add: add a password\ndelete: delete a password\nedit: edit an entry\nview: view a password\ntips: tips for password management\ninfo: some info on passman\nsave: save the database\nexit: exit out of the program" << std::endl;
         else if (choice == "add") {
             std::string name, email, url, notes, line, passw;
             while (1) {
@@ -311,8 +88,7 @@ int main(int argc,  char** argv) {
             notes = getNotes();
             passw = addPass();
             exec("INSERT INTO data (name, email, url, notes, password) VALUES (\"" + name + "\", \"" + email + "\", \"" + url + "\", " + notes + ", \"" + passw + "\")");
-            std::vector<std::string> mp = getmpass(" to confirm this");
-            encrypt(mp[1], Botan::secure_vector<uint8_t>(mp[2].begin(), mp[2].end()));
+            modified = true;
             std::cout << "Entry \"" << name << "\" successfully added." << std::endl;
         } else if (choice == "view") {
             while (1) {
@@ -338,8 +114,7 @@ int main(int argc,  char** argv) {
                     continue;
                 }
                 exec("DELETE FROM data WHERE name=\"" + choice + "\"");
-                std::vector<std::string> mp = getmpass(" to confirm this");
-                encrypt(mp[1], Botan::secure_vector<uint8_t>(mp[2].begin(), mp[2].end()));
+                modified = true;
                 std::cout << "Entry \"" << choice << "\" successfully deleted." << std::endl;
                 break;
             }
@@ -383,12 +158,22 @@ int main(int argc,  char** argv) {
             if (notes != "") stmt += ", notes = " + notes;
             stmt += " WHERE name = \"" + name + "\"";
             exec(stmt);
-            std::vector<std::string> mp = getmpass(" to confirm this");
-            encrypt(mp[1], Botan::secure_vector<uint8_t>(mp[2].begin(), mp[2].end()));
+            modified = true;
             std::cout << "Entry \"" << name << "\" successfully edited." << std::endl;
+        } else if (choice == "save") {
+            if (!modified) std::cout << "The database is already up to date." << std::endl;
+            else {
+                std::vector<std::string> mp = getmpass(" to save");
+                encrypt(mp[1], Botan::secure_vector<uint8_t>(mp[2].begin(), mp[2].end()));
+                modified = false;
+            }
         } else if (choice == "exit") {
-            std::cout << "Thanks for using passman++." << std::endl;
-            return 0;
+            if (modified)
+                std::cout << "Please save your work before leaving." << std::endl;
+            else {
+                std::cout << "Thanks for using passman++." << std::endl;
+                return 0;
+            }
         }
     }
 }
