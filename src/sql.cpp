@@ -1,5 +1,12 @@
 #include "sql.h"
 
+std::ofstream pdb;
+std::string stList;
+
+sqlite3* db;
+bool modified;
+int _rc = sqlite3_open(":memory:", &db);
+
 int showNames(void *list, int count, char **data, char **columns) {
     std::cout << data[0] << std::endl;
     return 0;
@@ -25,15 +32,16 @@ int _saveSt(void *list, int count, char **data, char **cols) {
     return 0;
 }
 
-void saveSt() {
-    stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
-    sqlite3_exec(db, "SELECT * FROM data ORDER BY name", _saveSt, 0, nullptr);
-}
-
-void exec(std::string cmd, bool save) {
+int exec(std::string cmd, bool save, int (*callback)(void*, int, char**, char**)) {
     char* err = 0;
-    int arc = sqlite3_exec(db, cmd.c_str(), nullptr, 0, &err);
+    int arc = sqlite3_exec(db, cmd.c_str(), callback, 0, &err);
     if (arc != SQLITE_OK)
         std::cout << "Warning: SQL execution error: " << std::string(err) << std::endl;
     if (save) saveSt();
+    return arc;
+}
+
+void saveSt() {
+    stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
+    exec("SELECT * FROM data ORDER BY name", false, _saveSt);
 }

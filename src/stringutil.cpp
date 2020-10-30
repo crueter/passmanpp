@@ -1,12 +1,9 @@
-#include "string.h"
+#include <unistd.h>
+#include <termios.h>
 
-std::ofstream pdb;
-std::string path, stList;
+#include "stringutil.h"
+
 termios tty;
-
-sqlite3* db;
-int rc = sqlite3_open(":memory:", &db);
-bool modified;
 
 void setEcho(bool echo) {
     tcgetattr(STDIN_FILENO, &tty);
