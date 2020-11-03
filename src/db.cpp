@@ -1,28 +1,10 @@
 #include <sstream>
 #include <ios>
 #include <iterator>
+#include <algorithm>
 #include <sodium.h>
 
 #include "db.h"
-
-unsigned long getPassLength() {
-    unsigned long length = 0;
-    while(1) {
-        std::string slen = input("How long should this be? Must be at least 8: ");
-        std::stringstream ss;
-        ss.str(slen);
-
-        if (ss >> length) {
-            if (length < 8) {
-                std::cout << "Your password must be at least 8 characters. Anything less is prone to bruteforcing, and 8 is generally the minimum password length for sites." << std::endl;
-                continue;
-            }
-            break;
-        }
-        std::cout << "Please use a number." << std::endl;
-    }
-    return length;
-}
 
 uint32_t randomChar() {
     return 0x21U + randombytes_uniform(0x7EU - 0x20U);
@@ -36,19 +18,33 @@ bool exists(std::string cmd) {
     return (ar == 100);
 }
 
-std::string genPass() {
-    std::string passw, csChoice;
+std::string genPass(int length, bool capitals, bool numbers, bool symbols) {
+    std::string passw, csChoice, ssInd;
     uint32_t csInd;
-    std::string ssInd;
-    unsigned long length = getPassLength();
+
     std::cout << "Okay, generating a random password." << std::endl;
-    csInd = randomChar();
-    passw.append(reinterpret_cast<char*>(&csInd));
-    for (unsigned long i = 1; i < length; ++i) {
+
+    std::vector<std::string> capital = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+    std::vector<std::string> number = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+    std::vector<std::string> symbol = {"!", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "]", "^", "_", "`", "{", "|", "}", "~"};
+
+    for (int i = 0; i < length; ++i) {
         csInd = randomChar();
         ssInd = std::to_string(csInd);
-        while (std::to_string(csInd).c_str() == passw[i - 1] || csInd == 0x22U || csInd == 0x5CU)
+        while (1) {
             csInd = randomChar();
+            ssInd = std::to_string(csInd);
+            char* cInd = reinterpret_cast<char*>(&csInd);
+            if ((i != 0 && ssInd == std::to_string(passw[i - 1])) || csInd == 0x22U || csInd == 0x5CU)
+                continue;
+            if (capitals && std::find(capital.begin(), capital.end(), cInd) != capital.end())
+                continue;
+            if (numbers && std::find(number.begin(), number.end(), cInd) != number.end())
+                continue;
+            if (symbols && std::find(symbol.begin(), symbol.end(), cInd) != symbol.end())
+                continue;
+            break;
+        }
         passw.append(reinterpret_cast<char*>(&csInd));
     }
     return passw;
@@ -65,45 +61,6 @@ std::string getpass(std::string prompt)
     std::cout << std::endl;
 
     return buff;
-}
-
-std::string addPass() {
-    std::string choice, passw;
-    while (1) {
-        choice = input("Do you want to input your own password? ");
-        if (choice == "yes") {
-            while(1) {
-                passw = getpass("Please enter a password. This must be unique and at least 8 characters: ");
-                if (passw.length() < 8) {
-                    std::cout << "Your password must be at least 8 characters. Anything less is prone to bruteforcing, and 8 characters is generally the minimum password length for sites." << std::endl;
-                    continue;
-                }
-                replaceAll(passw, "\"", "\\");
-                if (exists("SELECT * FROM data WHERE password=\"" + passw + "\"")) {
-                    std::cout << "This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!" << std::endl;
-                    continue;
-                }
-                break;
-            }
-            break;
-        } else if (choice == "no") {
-            passw = genPass();
-            break;
-        } else std::cout << "Please input yes or no." << std::endl;
-    }
-    return passw;
-}
-
-std::string getNotes() {
-    std::string notes, line;
-    while (std::getline(std::cin, line)) {
-        if (line.empty())
-            break;
-        notes += "\"" + line + "\"\n";
-    }
-    std::string trnotes = trim(notes);
-    replaceAll(trnotes, "\n", " || char(10) || ");
-    return trnotes;
 }
 
 std::string input(std::string prompt) {

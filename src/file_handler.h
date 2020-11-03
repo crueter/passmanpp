@@ -9,7 +9,6 @@ class FileHandler : public QWidget
 {
     Q_OBJECT
 public:
-    FileHandler(QWidget *parent = nullptr);
     int backup(std::string path) {
         QString fileName = QFileDialog::getSaveFileName(this, tr("Backup Location"), "", tr("passman++ Database Files (*.pdpp);;All Files (*)"));
         if (fileName.isEmpty()) return 3;

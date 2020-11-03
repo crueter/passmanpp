@@ -1,5 +1,9 @@
+#include <QMessageBox>
+#include <QListWidgetItem>
+
 #include "sql.h"
 
+std::vector<std::string> names;
 std::ofstream pdb;
 std::string stList;
 
@@ -7,16 +11,24 @@ sqlite3* db;
 bool modified;
 int _rc = sqlite3_open(":memory:", &db);
 
-int showNames(void *list, int count, char **data, char **columns) {
-    std::cout << data[0] << std::endl;
+int _getNames(void *list, int count, char **data, char **columns) {
+    names.push_back(data[0]);
     return 0;
 }
+
 int showData(void *list, int count, char **data, char **cols) {
+    std::string dataStr;
     for (int i = 0; i < count; ++i) {
         std::string di = data[i];
-        replaceAll(di, " || char(10) || ", "\n");
-        std::cout << cols[i] << ": " << (data[i] ? di : "none") << std::endl;
+        replaceAll(di, "char(10)", "\n");
+        replaceAll(di, " || ", "");
+        dataStr += cols[i] + std::string(": ") + (data[i] ? di : "none") + "\n\n";
     }
+    QMessageBox databox;
+    databox.setFont(QFont("Hack"));
+    databox.setTextInteractionFlags(Qt::TextSelectableByMouse);
+    databox.setText(QString::fromStdString(dataStr));
+    databox.exec();
     return 0;
 }
 
@@ -44,4 +56,10 @@ int exec(std::string cmd, bool save, int (*callback)(void*, int, char**, char**)
 void saveSt() {
     stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
     exec("SELECT * FROM data ORDER BY name", false, _saveSt);
+}
+
+std::vector<std::string> getNames() {
+    names = {};
+    exec("SELECT name FROM data ORDER BY name", false, _getNames);
+    return names;
 }

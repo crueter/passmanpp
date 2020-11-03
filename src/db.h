@@ -8,14 +8,11 @@
 
 #include "sql.h"
 
-unsigned long getPassLength();
 uint32_t randomChar();
 bool exists(std::string cmd);
 
-std::string genPass();
+std::string genPass(int length, bool capitals, bool numbers, bool symbols);
 std::string getpass(std::string prompt = " to confirm this");
-std::string addPass();
-std::string getNotes();
 std::string input(std::string prompt);
 
 void encrypt(std::string akey, Botan::secure_vector<uint8_t> iv, std::string apath = "");

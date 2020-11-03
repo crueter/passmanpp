@@ -1,10 +1,10 @@
 # passman++
-An extremely simple and minimal yet just as secure and powerful command-line password manager. Super easy to use, with some GUI implementation for even easier accessing of files.
+An extremely simple and minimal yet just as secure and powerful command-line and GUI password manager. Super easy to use, with a lot of GUI implementation for even easier use.
 
 This uses a format even simpler than the application itself, the `.pdpp` format. More information in #pdpp format.
 
 # Building
-After `git clone`ing:
+After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE! THE MAIN BRANCH MAY BE UNSTABLE!):
 ```bash
 $ cd src
 $ qmake passman.pro
@@ -14,42 +14,46 @@ Optionally:
 ```bash
 # install -m755 passman /usr/bin/passman
 ```
+Or on Arch Linux (with yay):
+```bash
+$ yay -S passman++
+```
 # Contributing
 Feel free to contribute whatever you want. It's currently in an early stage of development, as I have plans to expand this project a lot. So any help is appreciated!
 
 # To Do
 Like I said I've got some huge plans for this project. Here's some of them:
 - Separate users
-- Using Qt for a GUI (partially done)
+- Using Qt for a GUI (basically done)
 - Key files and other forms of extra security
 - My own encryption algorithm
 - pdb-to-pdpp file converter (i.e. converting the old PyPassMan format to this much more secure version)
 - Attachments
-- More advanced password generator
+- More advanced password generator (partially done; will add extended ASCII maybe)
 - Multiple different formats
 - Groups
-- Streamlined way to access your data (aka, the GUI)
 - Maybe... just maybe... KeePass* format integration
 - Password, security, etc. health checker
 - Some sort of vault (like Plasma Vault)
 - Icons and stuff
 - Storing more things than just passwords
 - Transforming data to prevent bruteforcing with standard AES (i.e. bit shifting, slowing down encryption and decryption to make bruteforcing slower)
-- Some configuration (per-DB or per-program?)
+- Some configuration (per-DB probably)
 
 So from all of this you can clearly tell, I've got some fuckin ambitions. In fact, the original inspiration for the passman project was that I wanted a more lightweight version of KeePassXC. 
 
 # Already Done
 Stuff I planned to do and have already done:
 - Backing up databases
-- Using Qt for a GUI (partially done)
-- More error handling (mostly done, will add when needed)
-- Streamlined way to access your data (aka, the GUI) (also partially done)
+- Using Qt for a GUI (basically done)
+- More error handling
+- Streamlined way to access your data (aka, the GUI)
+- More advanced password generator (partially done; will add extended ASCII maybe)
 
 # Relation to PyPassMan
 The original AES Python version works great, however, I quickly realized that if I wanted people to use this, I needed to add more features and make it overall just better. And thus, the idea of a C++ passman rewrite was born sometime late September. And the first release came to be on October 21, 2020.
 
-At the moment, passman++ is much better than the original Python project. Far more secure, more features, easier to use, faster, the list goes on and on. Either way, use this. It's gonna be getting way better, and I'm not developing the Python project anymore because holy FUCK C++ is SO much better than Python. Wow.
+At the moment, passman++ is superior in every way to the original Python project. Far more secure, more features, easier to use, faster, the list goes on and on, plus a large amount of Qt implementations. Either way, use this. It's gonna be getting way better, and I'm not developing the Python project anymore because holy FUCK C++ is SO much better than Python. And WAY more fun. Wow.
 
 The .pdpp format that passman++ uses is **not** compatible with passman's .pdb format. The two have nearly identical bodies but they use different password protection implementations and different headers. Some day I'll write a pdb-to-pdpp converter. I highly doubt it'll be reversible tho.
 
