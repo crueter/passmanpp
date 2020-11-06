@@ -1,8 +1,6 @@
 # passman++
 An extremely simple and minimal yet just as secure and powerful command-line and GUI password manager. Super easy to use, with a lot of GUI implementation for even easier use.
 
-This uses a format even simpler than the application itself, the `.pdpp` format. More information in #pdpp format.
-
 # Building
 After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE! THE MAIN BRANCH MAY BE UNSTABLE!):
 ```bash
@@ -56,11 +54,6 @@ The original AES Python version works great, however, I quickly realized that if
 At the moment, passman++ is superior in every way to the original Python project. Far more secure, more features, easier to use, faster, the list goes on and on, plus a large amount of Qt implementations. Either way, use this. It's gonna be getting way better, and I'm not developing the Python project anymore because holy FUCK C++ is SO much better than Python. And WAY more fun. Wow.
 
 The .pdpp format that passman++ uses is **not** compatible with passman's .pdb format. The two have nearly identical bodies but they use different password protection implementations and different headers. Some day I'll write a pdb-to-pdpp converter. I highly doubt it'll be reversible tho.
-
-# pdpp format
-The .pdpp format only contains a single line of header data, which is the hex-encoded IV to be used with decryption. The rest is the encrypted database and what actually gets you access to your data. Using SHA256-hashed password protection to ensure all keys are the same length, the body contains AES-256/GCM encrypted SQLite3 INSERT data that programmatically restores the database to its last saved state perfectly.
-
-Encryption is done simply by generating a series of CREATE TABLE and INSERT statements, with those INSERT statements containing all stored entries' data. With that generated series of statements, the database's master password is SHA-256 hashed, then used as the AES-256/GCM key, along with a randomly generated IV, to encrypt the series of statements, storing it into a file.
 
 # Security
 Technical side out of the way...

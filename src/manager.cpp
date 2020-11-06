@@ -1,7 +1,6 @@
 #include <QListWidgetItem>
 
-#include "entry_handler.h"
-#include "db.h"
+#include "security.h"
 #include "manager.h"
 
 bool open(std::string path) {
@@ -11,7 +10,7 @@ bool open(std::string path) {
         try {
             r = getmpass(" to login", path)[0];
         } catch (std::exception& e) {
-            std::cout << e.what() << std::endl;
+            displayErr(e.what());
             return false;
         }
         std::string line;
@@ -20,18 +19,16 @@ bool open(std::string path) {
             exec(line);
         return true;
     }
-    std::cout << "Please enter a valid path!" << std::endl;
+    displayErr("Please enter a valid path!");
     return false;
 }
 
 bool create(std::string path) {
     pdb.open(path);
-    Botan::AutoSeeded_RNG rng;
-    std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create("AES-256/GCM", Botan::ENCRYPTION);
-    Botan::secure_vector<uint8_t> iv = rng.random_vec(enc->default_nonce_length());
-    std::string pw = getpass("Welcome! To start, please set a master password: ");
+
+    std::string pw = QInputDialog::getText(nullptr, QTranslator::tr("Create Database"), QTranslator::tr("Welcome! To start, please set a master password: "), QLineEdit::Password).toStdString();
     int arc = exec("CREATE TABLE data (name text, email text, url text, notes text, password text)");
-    encrypt(pw, iv, path);
+    encrypt(pw, path);
     return arc;
 }
 
@@ -42,10 +39,10 @@ bool save(std::string path) {
         try {
             mp = getmpass(" to save", path);
         } catch (std::exception& e) {
-            std::cout << e.what() << std::endl;
+            displayErr(e.what());
             return false;
         }
-        encrypt(mp[1], Botan::secure_vector<uint8_t>(mp[2].begin(), mp[2].end()), path);
+        encrypt(mp[1], path);
         modified = false;
     }
     return true;
