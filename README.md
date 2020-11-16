@@ -7,7 +7,7 @@ While this is happening, no other updates will come out. Occasionally, however, 
 An extremely simple and minimal yet just as secure and powerful command-line and GUI password manager. Super easy to use, with a lot of GUI implementation for even easier use.
 
 # Building
-After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE! THE MAIN BRANCH MAY BE UNSTABLE!):
+After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE! THE MAIN BRANCH MAY BE UNSTABLE!), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](qt.io) installed, and then:
 ```bash
 $ cd src
 $ qmake passman.pro
@@ -21,6 +21,7 @@ Or on Arch Linux (with yay):
 ```bash
 $ yay -S passman++
 ```
+Dependencies will be automatically installed in this case.
 # Contributing
 Feel free to contribute whatever you want. It's currently in an early stage of development, as I have plans to expand this project a lot. So any help is appreciated!
 
