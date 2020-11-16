@@ -77,7 +77,7 @@ shit I need to do for 2.0:
 - Icons and attachments
 - Key file implementation
 - Separate program that encrypts files in the same way the .pdpp files are
-- Allow for more stuff to be stored there, i.e. user-input attributes
+- Allow for more stuff to be stored there, i.e. user-input attributes (how would I even do this tho?)
 - Maybe try and get EASCII to fucking work
 
 # Relation to PyPassMan

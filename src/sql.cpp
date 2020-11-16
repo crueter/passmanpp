@@ -16,22 +16,6 @@ int _getNames(void *list, int count, char **data, char **columns) {
     return 0;
 }
 
-int showData(void *list, int count, char **data, char **cols) {
-    std::string dataStr;
-    for (int i = 0; i < count; ++i) {
-        std::string di = data[i];
-        replaceAll(di, "char(10)", "\n");
-        replaceAll(di, " || ", "");
-        dataStr += cols[i] + std::string(": ") + (data[i] ? di : "none") + "\n\n";
-    }
-    QMessageBox databox;
-    databox.setFont(QFont("Hack"));
-    databox.setTextInteractionFlags(Qt::TextSelectableByMouse);
-    databox.setText(QString::fromStdString(dataStr));
-    databox.exec();
-    return 0;
-}
-
 int _saveSt(void *list, int count, char **data, char **cols) {
     std::string datad, colsd;
     for (int i = 0; i < count; ++i) {

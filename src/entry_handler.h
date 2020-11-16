@@ -10,19 +10,18 @@ class EntryHandler : public QWidget {
     Q_OBJECT
 public:
     int entryInteract();
-    void entryDetails(QString& name, QString& url, QString& email, QString& password, QString& notes);
+    bool entryDetails(QString& name, QString& url, QString& email, QString& password, QString& notes);
 
     QString randomPass();
 
-    int addEntry();
+    int addEntry(QListWidget *list);
+    template <typename Func>
+    QAction *addButton(QIcon icon, QString statusTip, QKeySequence shortcut, Func func);
 
-    int displayData(QListWidgetItem *item);
     int editEntry(QListWidgetItem *item);
     bool deleteEntry(QListWidgetItem *item);
 
-    static int _editData(void *list, int count, char **data, char **cols);
-public slots:
-    static void dispData(QListWidgetItem *item);
+    static int _editData(void *, int, char **data, char **);
 };
 
 #endif // ENTRY_HANDLER_H

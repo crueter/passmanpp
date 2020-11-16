@@ -1,5 +1,5 @@
-#ifndef MISC_UI_H
-#define MISC_UI_H
+#ifndef SECURITY_H
+#define SECURITY_H
 #include <botan/auto_rng.h>
 #include <botan/cipher_mode.h>
 #include <botan/sha2_32.h>
@@ -15,4 +15,4 @@
 void encrypt(std::string akey, std::string apath = "");
 std::vector<std::string> getmpass(std::string txt = "", std::string path = "");
 
-#endif // MISC_UI_H
+#endif

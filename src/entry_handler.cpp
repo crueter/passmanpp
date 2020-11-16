@@ -6,7 +6,8 @@
 #include <QToolButton>
 #include <QFormLayout>
 #include <QTextEdit>
-#include <QMenu>
+#include <QMenuBar>
+#include <QPushButton>
 
 #include "entry_handler.h"
 
@@ -18,58 +19,52 @@ void displayErr(std::string msg) {
 }
 
 int EntryHandler::entryInteract() {
-    QDialog *dialog = new QDialog();
-    QLayout *layout = new QGridLayout(dialog);
+    QDialog *dialog = new QDialog;
+    QGridLayout *layout = new QGridLayout(dialog);
     QListWidget *list = new QListWidget(dialog);
 
+    QToolButton *ok = new QToolButton();
+    ok->setText(tr("OK"));
+    connect(ok, &QToolButton::clicked, dialog, &QDialog::accept);
+
+    QMenuBar *bar = new QMenuBar(dialog);
+
+    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), tr("Add a new entry (Shortcut: Ctrl+N)"), QKeySequence(tr("Ctrl+N")), [=]{
+        addEntry(list);
+    });
+    bar->addAction(addButton);
+
+    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), tr("Delete selected entry (Shortcut: Del)"), QKeySequence::Delete, [=]{
+        bool deleted = deleteEntry(list->currentItem());
+        if (deleted) list->takeItem(list->currentRow());
+    });
+    bar->addAction(delButton);
+
+    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), tr("Edit or view data of selected entry (Shortcut: Ctrl+E)"), QKeySequence(tr("Ctrl+E")), [=]{
+        editEntry(list->currentItem());
+    });
+    bar->addAction(editButton);
+
+    layout->setMenuBar(bar);
     layout->addWidget(list);
 
     dialog->setLayout(layout);
+    layout->addWidget(ok);
+
     list->setWindowTitle(tr("Select an entry"));
-    list->setContextMenuPolicy(Qt::CustomContextMenu);
     for (std::string name : getNames())
         list->addItem(QString::fromStdString(name));
 
-    connect(list, &QListWidget::itemDoubleClicked, this, &EntryHandler::dispData);
-    connect(list, &QListWidget::customContextMenuRequested, [=](const QPoint& pos) {
-        QListWidgetItem *item = list->itemAt(pos);
-        if (item == nullptr) return;
-        QMenu *rcMenu = new QMenu(list);
-
-        auto delFunc = [=]{
-            bool deleted = deleteEntry(item);
-            if (deleted) list->takeItem(list->currentRow());
-        };
-
-        QAction *delAction = rcMenu->addAction(tr("&Delete..."), delFunc, QKeySequence::Delete);
-        delAction->setIcon(QIcon::fromTheme(tr("edit-delete")));
-
-        auto editFunc = [=]{
-            editEntry(item);
-        };
-        QKeySequence editShortcut = QKeySequence(tr("Ctrl+E"));
-
-        QAction *editAction = rcMenu->addAction(tr("&Edit..."), editFunc, editShortcut);
-        editAction->setIcon(QIcon::fromTheme(tr("document-edit")));
-
-        auto viewFunc = [=]{
-            displayData(item);
-        };
-        QKeySequence viewShortcut = QKeySequence(tr("Ctrl+V"));
-
-        QAction *viewAction = rcMenu->addAction(tr("&View..."), viewFunc, viewShortcut);
-        viewAction->setIcon(QIcon::fromTheme(tr("view-visible")));
-
-        QPoint pos2 = QPoint(dialog->x() + pos.x(), dialog->y() + pos.y());
-
-        rcMenu->exec(pos2);
+    connect(list, &QListWidget::itemDoubleClicked, this, [=](QListWidgetItem *item){
+        editEntry(item);
     });
+
     dialog->exec();
 
     return true;
 }
 
-void EntryHandler::entryDetails(QString& name, QString& url, QString& email, QString& password, QString& notes) {
+bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QString& password, QString& notes) {
     QDialog *opt = new QDialog;
 
     QLineEdit *nameEdit = new QLineEdit(name);
@@ -87,7 +82,11 @@ void EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     QToolButton *random = new QToolButton;
     random->setIcon(QIcon::fromTheme(tr("roll")));
     random->setStatusTip(tr("Generate a random password."));
-    connect(random, &QToolButton::clicked, [=]{ passEdit->setText(randomPass()); });
+    connect(random, &QToolButton::clicked, [=]{
+        QString rand = randomPass();
+        if (rand != "")
+            passEdit->setText(rand);
+    });
 
     QToolButton *view = new QToolButton;
     view->setCheckable(true);
@@ -111,25 +110,34 @@ void EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     exit->setText(tr("OK"));
     connect(exit, &QToolButton::clicked, opt, &QDialog::accept);
 
+    QToolButton *cancel = new QToolButton;
+    cancel->setText(tr("Cancel"));
+    connect(cancel, &QToolButton::clicked, opt, &QDialog::reject);
+
     formLayout->addWidget(exit);
+    formLayout->addWidget(cancel);
 
     opt->setLayout(formLayout);
-    opt->exec();
+    int ret = opt->exec();
+
+    if (ret == QDialog::Rejected || (name == nameEdit->text() && url == urlEdit->text() && email == emailEdit->text() && password == passEdit->text() && notes == notesEdit->toPlainText()))
+        return false;
 
     name = nameEdit->text();
     url = urlEdit->text();
     email = emailEdit->text();
     password = passEdit->text();
     notes = notesEdit->toPlainText();
+    return true;
 }
 
 QString EntryHandler::randomPass() {
-    QDialog *opt = new QDialog(nullptr);
+    QDialog *opt = new QDialog;
     opt->setSizePolicy(QSizePolicy());
 
     opt->setWindowTitle(tr("Random Password Options"));
 
-    QGridLayout *layout = new QGridLayout();
+    QGridLayout *layout = new QGridLayout;
 
     QLabel *lengthLabel = new QLabel(tr("Length:"));
     QLineEdit *length = new QLineEdit();
@@ -144,24 +152,31 @@ QString EntryHandler::randomPass() {
     QCheckBox *symbols = new QCheckBox(tr("Symbols"));
     symbols->setCheckState(Qt::CheckState::Checked);
 
-    QToolButton *exit = new QToolButton();
-    exit->setText(tr("OK"));
-    connect(exit, SIGNAL(clicked()), opt, SLOT(accept()));
+    QToolButton *ok = new QToolButton;
+    ok->setText(tr("OK"));
+    connect(ok, &QToolButton::clicked, opt, &QDialog::accept);
+
+    QToolButton *cancel = new QToolButton;
+    cancel->setText(tr("Cancel"));
+    connect(cancel, &QToolButton::clicked, opt, &QDialog::reject);
 
     layout->addWidget(lengthLabel, 0, 0);
     layout->addWidget(length, 0, 1);
     layout->addWidget(capitals, 2, 0, 2, 1);
     layout->addWidget(numbers, 4, 0, 2, 1);
     layout->addWidget(symbols, 6, 0, 2, 1);
-    layout->addWidget(exit, 8, 1, 1, 2, Qt::AlignRight);
+    layout->addWidget(ok, 8, 1, 1, 2, Qt::AlignRight);
 
     opt->setLayout(layout);
-    opt->exec();
+    int ret = opt->exec();
 
-    return QString::fromStdString(genPass(length->text().toInt(), capitals->checkState() != 2, numbers->checkState() != 2, symbols->checkState() != 2));
+    if (ret == QDialog::Accepted)
+        return QString::fromStdString(genPass(length->text().toInt(), capitals->checkState() != 2, numbers->checkState() != 2, symbols->checkState() != 2));
+    else
+        return "";
 }
 
-int EntryHandler::addEntry() {
+int EntryHandler::addEntry(QListWidget *list) {
     QString name, url, email, notes, password;
     while(1) {
         entryDetails(name, email, url, password, notes);
@@ -172,6 +187,8 @@ int EntryHandler::addEntry() {
             displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
         else if (exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\""))
             displayErr("This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!");
+        else if (password.length() < 8)
+            displayErr("Please make your password at least 8 characters. This is the common bare minimum for many websites, and is the shortest password you can have that can't be easily bruteforced.");
         else break;
     }
 
@@ -182,15 +199,19 @@ int EntryHandler::addEntry() {
     int arc = exec("INSERT INTO data (name, email, url, notes, password) VALUES (\"" + name.toStdString() + "\", \"" + email.toStdString() + "\", \"" + url.toStdString() + "\", " + snotes + ", \"" + password.toStdString() + "\")");
     modified = true;
     std::cout << "Entry \"" << name.toStdString() << "\" successfully added." << std::endl;
+    list->addItem(name);
+    list->sortItems();
+
     return arc;
 }
 
-int EntryHandler::displayData(QListWidgetItem *item) {
-    return exec("SELECT * FROM data WHERE name=\"" + item->text().toStdString() + "\"", false, showData);
-}
-
-void EntryHandler::dispData(QListWidgetItem *item) {
-    exec("SELECT * FROM data WHERE name=\"" + item->text().toStdString() + "\"", false, showData);
+template <typename Func>
+QAction *EntryHandler::addButton(QIcon icon, QString statusTip, QKeySequence shortcut, Func func) {
+    QAction *action = new QAction(icon, "");
+    action->setToolTip(statusTip);
+    action->setShortcut(shortcut);
+    connect(action, &QAction::triggered, func);
+    return action;
 }
 
 int EntryHandler::editEntry(QListWidgetItem *item) {
@@ -214,29 +235,37 @@ bool EntryHandler::deleteEntry(QListWidgetItem *item) {
     return false;
 }
 
-int EntryHandler::_editData(void *list, int count, char **data, char **cols) {
+int EntryHandler::_editData(void *, int, char **data, char **) {
     EntryHandler *eh = new EntryHandler;
     QString name = data[0];
     QString origName = name;
     QString email = data[1];
     QString url = data[2];
+
     QString password = data[4];
+    QString origPass = password;
 
     std::string notes = data[3];
     replaceAll(notes, "char(10)", "\n");
     replaceAll(notes, " || ", "");
     QString qnotes = QString::fromStdString(notes);
+
+    bool edited;
     while (1) {
-        eh->entryDetails(name, email, url, password, qnotes);
+        edited = eh->entryDetails(name, email, url, password, qnotes);
+        if (edited == false) break;
 
         if (name == "")
             displayErr("Entry must have a name.");
         else if (name != origName && exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\""))
             displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
-        if (exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\""))
+        if (password != origPass && exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\""))
             displayErr("This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!");
+        else if (password.length() < 8)
+            displayErr("Please make your password at least 8 characters. This is the common bare minimum for many websites, and is the shortest password you can have that can't be easily bruteforced.");
         else break;
     }
+    if (edited == false) return true;
 
     std::string stmt = "UPDATE data SET name = \"" + name.toStdString() + "\", email = \"" + email.toStdString() + "\", url = \"" + url.toStdString() + "\", notes = \"" + qnotes.toStdString() + "\", password = \"" + password.toStdString() + "\" WHERE name = \"" + name.toStdString() + "\"";
 
