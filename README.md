@@ -7,7 +7,7 @@ While this is happening, no other updates will come out. Occasionally, however, 
 An extremely simple and minimal yet just as secure and powerful command-line and GUI password manager. Super easy to use, with a lot of GUI implementation for even easier use.
 
 # Building
-After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE! THE MAIN BRANCH MAY BE UNSTABLE!), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](qt.io) installed, and then:
+After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE! THE MAIN BRANCH MAY BE UNSTABLE!), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) installed, and then:
 ```bash
 $ cd src
 $ qmake passman.pro
@@ -29,14 +29,14 @@ Feel free to contribute whatever you want. It's currently in an early stage of d
 passman++ is made possible by:
 
 - The following FOSS libraries:
- * Botan
- * Qt
- * libsodium
-- The amazing people on the Qt forum for helping me debug many of my internal issues
+ * [Botan](https://github.com/randombit/botan/)
+ * [Qt](https://qt.io)
+ * [libsodium](https://github.com/jedisct1/libsodium)
+- The amazing people on the [Qt forum](https://forum.qt.io) for helping me debug many of my internal issues
 - My friend Lenny for originally helping me create PyPassMan's AES version
-- The Qt devs and docs
-- KeePassXC for the idea
-- And of course, the Botan devs (randombit) and libsodium devs (idk who it was i forgot).
+- The Qt devs and [docs](https://doc.qt.io)
+- [KeePassXC](https://github.com/keepassxreboot/keepassxc) for the idea
+- And of course, the Botan ([randombit](https://github.com/randombit)) and libsodium devs ([jedisctl](https://github.com/jedisct1)).
 
 # To Do
 Like I said I've got some huge plans for this project. Here's some of them:
@@ -77,9 +77,13 @@ shit I need to do for 2.0:
 - Password health/entropy checker
 - Icons and attachments
 - Key file implementation
-- Separate program that encrypts files in the same way the .pdpp files are
-- Allow for more stuff to be stored there, i.e. user-input attributes (how would I even do this tho?)
-- Maybe try and get EASCII to fucking work
+- Separate program that encrypts files in the same way the .pdpp files are (maybe)
+- Allow for more stuff to be stored there, i.e. user-input attributes
+- Maybe try and get EASCII to actually work
+- Create a proper .pdpp file format with a header; docs for header (soon)
+- Allow choosing different checksum, derivation, hashing, and encryption methods
+- Database UUIDs
+- Proper name/description for files in the header
 
 # Relation to PyPassMan
 The original AES Python version works great, however, I quickly realized that if I wanted people to use this, I needed to add more features and make it overall just better. And thus, the idea of a C++ passman rewrite was born sometime late September. And the first release came to be on October 21, 2020.

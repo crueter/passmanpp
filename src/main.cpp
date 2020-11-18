@@ -6,6 +6,9 @@
 #include "security.h"
 #include "manager.h"
 
+std::string PASSMAN_VERSION = "1.3.0";
+std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH);
+
 int main(int argc,  char** argv) {
     QApplication app (argc, argv);
     FileHandler* fh = new FileHandler();
@@ -46,9 +49,29 @@ int main(int argc,  char** argv) {
         else if (choice == "edit")
             eh->entryInteract();
         else if (choice == "tips")
-            std::cout << "A good password contains:\n- At least 8 characters, but more is always preferred\n- No easy-to-guess phrases or common passwords (See https://github.com/danielmiessler/SecLists/tree/master/Passwords/Common-Credentials)\n- At least one each of a lowercase and uppercase letter, a number, and a special character, but more is always preferred\n- A sequence of characters with no observable pattern (example: things like a1b2c3d4 are generally not preferrable to something like d.Y2/90a)\n- Some sort of meaning that you can use to remember it\nA bad password contains:\n- Less than 8 characters\n- Common, easy-to-guess phrases\n- Sequences of repeated characters or obvious patterns\n- Little variety in the characters\nNever, ever share your passwords. Ever. They are the single most important piece of security in almost everything online. A single person getting your password can cause it to be shared all over the internet, potentially leaking sensitive info.\nIf you can't think of a good password, hundreds of tools online can help you with that, including on here.\nChange your password often. Leaks occur often. Remember to occasionally check https://haveibeenpwned.com/ and enter your email to see if your password may have been leaked.\nDo not use the same password for everything. At the very most, use a password on 2 different sites. If someone gets your password and you use the same one for everything, then your accounts will likely be compromised and sensitive info could be leaked.\nDo not store your passwords in an easy-to-find location. Either use a password manager like this one, or store it in a place nobody can find. Never just try to \"remember\" them, either--your memory is volatile. A password manager is far better at remembering things than you ever will be.\nLock your computer and phone when not using them, especially if you store passwords on it." << std::endl;
+            std::cout << "A good password contains:\n"
+                         "- At least 8 characters, but more is always preferred"
+                         "- No easy-to-guess phrases or common passwords (See https://github.com/danielmiessler/SecLists/tree/master/Passwords/Common-Credentials)\n"
+                         "- At least one each of a lowercase and uppercase letter, a number, and a special character, but more is always preferred\n"
+                         "- A sequence of characters with no observable pattern (example: things like a1b2c3d4 are generally not preferrable to something like d.Y2/90a)\n"
+                         "- Some sort of meaning that you can use to remember it\n"
+                         "A bad password contains:\n"
+                         "- Less than 8 characters\n"
+                         "- Common, easy-to-guess phrases\n"
+                         "- Sequences of repeated characters or obvious patterns\n"
+                         "- Little variety in the characters\n"
+                         "Never, ever share your passwords. Ever. They are the single most important piece of security in almost everything online. A single person getting your password can cause it to be shared all over the internet, potentially leaking sensitive info.\n"
+                         "If you can't think of a good password, hundreds of tools online can help you with that, including on here.\n"
+                         "Change your password often. Leaks occur often. Remember to occasionally check https://haveibeenpwned.com/ and enter your email to see if your password may have been leaked.\n"
+                         "Do not use the same password for everything. At the very most, use a password on 2 different sites. If someone gets your password and you use the same one for everything, then your accounts will likely be compromised and sensitive info could be leaked.\n"
+                         "Do not store your passwords in an easy-to-find location. Either use a password manager like this one, or store it in a place nobody can find. Never just try to \"remember\" them, either--your memory is volatile. A password manager is far better at remembering things than you ever will be.\n"
+                         "Lock your computer and phone when not using them, especially if you store passwords on it." << std::endl;
         else if (choice == "info")
-            std::cout << "passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\nProject repository: https://github.com/binex-dsk/passmanpp\nFOSS Libraries used: Botan, Qt, libsodium\nCurrent version: 1.3.0\nPersonal message: Thanks so much for using passman++. This has been possibly the single largest learning experience for me, ever. I've put weeks of work into just the initial release, and even more on the current version. All support is greatly appreciated." << std::endl;
+            std::cout << "passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\n"
+                         "Project repository: https://github.com/binex-dsk/passmanpp\n"
+                         "FOSS Libraries used: Botan, Qt, libsodium\n"
+                         "Botan version: " << BOTAN_VERSION << "\n"
+                         "Current version: " << PASSMAN_VERSION << std::endl;
         else if (choice == "save")
             save(path);
         else if (choice == "backup") {

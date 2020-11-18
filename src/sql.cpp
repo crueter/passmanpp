@@ -11,12 +11,12 @@ sqlite3* db;
 bool modified;
 int _rc = sqlite3_open(":memory:", &db);
 
-int _getNames(void *list, int count, char **data, char **columns) {
+int _getNames(void *, int, char **data, char **) {
     names.push_back(data[0]);
     return 0;
 }
 
-int _saveSt(void *list, int count, char **data, char **cols) {
+int _saveSt(void *, int count, char **data, char **cols) {
     std::string datad, colsd;
     for (int i = 0; i < count; ++i) {
         std::string di = data[i];
@@ -31,7 +31,7 @@ int _saveSt(void *list, int count, char **data, char **cols) {
 int exec(std::string cmd, bool save, int (*callback)(void*, int, char**, char**)) {
     char* err = 0;
     int arc = sqlite3_exec(db, cmd.c_str(), callback, 0, &err);
-    if (arc != SQLITE_OK)
+    if (arc != SQLITE_OK && std::string(err) != "query aborted") // sort of band-aid fix right now; I'll fix later
         std::cout << "Warning: SQL execution error: " << std::string(err) << std::endl;
     if (save) saveSt();
     return arc;

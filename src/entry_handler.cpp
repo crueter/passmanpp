@@ -8,6 +8,7 @@
 #include <QTextEdit>
 #include <QMenuBar>
 #include <QPushButton>
+#include <QDialogButtonBox>
 
 #include "entry_handler.h"
 
@@ -101,21 +102,20 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     });
 
     formLayout->addRow(tr("&Password:"), passEdit);
-    formLayout->addWidget(random);
-    formLayout->addWidget(view);
+    QDialogButtonBox *passButtons = new QDialogButtonBox(opt);
+    passButtons->addButton(random, QDialogButtonBox::ActionRole);
+    passButtons->addButton(view, QDialogButtonBox::ActionRole);
+    formLayout->addWidget(passButtons);
 
     formLayout->addRow(tr("&Notes:"), notesEdit);
 
-    QToolButton *exit = new QToolButton();
-    exit->setText(tr("OK"));
-    connect(exit, &QToolButton::clicked, opt, &QDialog::accept);
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(opt);
+    buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
-    QToolButton *cancel = new QToolButton;
-    cancel->setText(tr("Cancel"));
-    connect(cancel, &QToolButton::clicked, opt, &QDialog::reject);
+    connect(buttonBox, &QDialogButtonBox::accepted, opt, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, opt, &QDialog::reject);
 
-    formLayout->addWidget(exit);
-    formLayout->addWidget(cancel);
+    formLayout->addWidget(buttonBox);
 
     opt->setLayout(formLayout);
     int ret = opt->exec();
@@ -140,8 +140,10 @@ QString EntryHandler::randomPass() {
     QGridLayout *layout = new QGridLayout;
 
     QLabel *lengthLabel = new QLabel(tr("Length:"));
-    QLineEdit *length = new QLineEdit();
+
+    QLineEdit *length = new QLineEdit(opt);
     length->setInputMask("0000");
+    length->setCursorPosition(0);
 
     QCheckBox *capitals = new QCheckBox(tr("Capital Letters"));
     capitals->setCheckState(Qt::CheckState::Checked);
@@ -152,20 +154,18 @@ QString EntryHandler::randomPass() {
     QCheckBox *symbols = new QCheckBox(tr("Symbols"));
     symbols->setCheckState(Qt::CheckState::Checked);
 
-    QToolButton *ok = new QToolButton;
-    ok->setText(tr("OK"));
-    connect(ok, &QToolButton::clicked, opt, &QDialog::accept);
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(opt);
+    buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
-    QToolButton *cancel = new QToolButton;
-    cancel->setText(tr("Cancel"));
-    connect(cancel, &QToolButton::clicked, opt, &QDialog::reject);
+    connect(buttonBox, &QDialogButtonBox::accepted, opt, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, opt, &QDialog::reject);
 
     layout->addWidget(lengthLabel, 0, 0);
     layout->addWidget(length, 0, 1);
     layout->addWidget(capitals, 2, 0, 2, 1);
     layout->addWidget(numbers, 4, 0, 2, 1);
     layout->addWidget(symbols, 6, 0, 2, 1);
-    layout->addWidget(ok, 8, 1, 1, 2, Qt::AlignRight);
+    layout->addWidget(buttonBox);
 
     opt->setLayout(layout);
     int ret = opt->exec();
@@ -197,6 +197,7 @@ int EntryHandler::addEntry(QListWidget *list) {
     replaceAll(snotes, "\n", " || char(10) || ");
     replaceAll(snotes, "||  ||", "||");
     int arc = exec("INSERT INTO data (name, email, url, notes, password) VALUES (\"" + name.toStdString() + "\", \"" + email.toStdString() + "\", \"" + url.toStdString() + "\", " + snotes + ", \"" + password.toStdString() + "\")");
+
     modified = true;
     std::cout << "Entry \"" << name.toStdString() << "\" successfully added." << std::endl;
     list->addItem(name);
