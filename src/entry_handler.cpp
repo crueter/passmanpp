@@ -1,6 +1,5 @@
 #include <QInputDialog>
 #include <QTranslator>
-#include <QMessageBox>
 #include <QCheckBox>
 #include <QLabel>
 #include <QToolButton>
@@ -133,7 +132,6 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
 
 QString EntryHandler::randomPass() {
     QDialog *opt = new QDialog;
-    opt->setSizePolicy(QSizePolicy());
 
     opt->setWindowTitle(tr("Random Password Options"));
 

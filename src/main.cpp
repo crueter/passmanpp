@@ -2,9 +2,9 @@
 #include <QListWidgetItem>
 #include <QMessageBox>
 
-#include "file_handler.h"
-#include "security.h"
 #include "manager.h"
+#include "pdpp_handler.h"
+#include "file_handler.h"
 
 std::string PASSMAN_VERSION = "1.3.0";
 std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH);
@@ -12,12 +12,12 @@ std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_
 int main(int argc,  char** argv) {
     QApplication app (argc, argv);
     FileHandler* fh = new FileHandler();
-    EntryHandler* eh = new EntryHandler();
     std::string choice, path;
-    if (argc == 1)
+    std::cout << "hi" << std::endl;
+    if (argc <= 1) {
         while (1) {
             QMessageBox newChoice;
-            newChoice.setText(QMessageBox::tr("Would you like to create a new database?"));
+            newChoice.setText(QWidget::tr("Would you like to create a new database?"));
             newChoice.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
             int ret = newChoice.exec();
 
@@ -34,11 +34,13 @@ int main(int argc,  char** argv) {
                 break;
             }
         }
-    else {
+    } else {
         bool o = open(argv[1]);
         if (!o) return 1;
         path = std::experimental::filesystem::v1::canonical(argv[1]);
     }
+    EntryHandler* eh = new EntryHandler();
+
     std::cout << "You may find the source code at https://github.com/binex-dsk/passmanpp." << std::endl << "Type help for available commands." << std::endl;
     while (1) {
         std::cout << "passman> ";

@@ -1,8 +1,9 @@
 #ifndef SQL_H
 #define SQL_H
+#include <QMessageBox>
+#include <QListWidgetItem>
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <sqlite3.h>
 
 #include "stringutil.h"

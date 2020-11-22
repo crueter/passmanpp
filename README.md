@@ -70,7 +70,7 @@ Stuff I planned to do and have already done:
 
 # TODO
 shit I need to do for 2.0:
-- Properly align the randomize/view icons for EntryDetails()
+- Properly align the randomize/view icons for EntryDetails() (DONE)
 - Create a full GUI interface
 - Allow users to choose the number of iterations of PBKDF2 hashing (to slow down bruteforcing)
 - Database config

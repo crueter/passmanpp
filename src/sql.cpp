@@ -1,6 +1,3 @@
-#include <QMessageBox>
-#include <QListWidgetItem>
-
 #include "sql.h"
 
 std::vector<std::string> names;

@@ -1,16 +1,4 @@
-#include <unistd.h>
-#include <termios.h>
-
 #include "stringutil.h"
-
-termios tty;
-
-void setEcho(bool echo) {
-    tcgetattr(STDIN_FILENO, &tty);
-    if (echo) tty.c_lflag |= ECHO;
-    else tty.c_lflag &= ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
-}
 
 void replaceAll(std::string& str, const std::string& from, const std::string& to) {
     if (from.empty())
@@ -27,4 +15,26 @@ std::string trim(const std::string& line) {
     std::size_t start = line.find_first_not_of(whiteSpace);
     std::size_t end = line.find_last_not_of(whiteSpace);
     return start == end ? std::string() : line.substr(start, end - start + 1);
+}
+
+std::vector<std::string> split(std::string text, char delim) {
+    std::string tmp;
+    std::vector<std::string> stk;
+    std::stringstream ss(text);
+    while(std::getline(ss, tmp, delim)) {
+        stk.push_back(tmp);
+    }
+    return stk;
+}
+
+std::string atos(int asciiVal) {
+    return std::string(reinterpret_cast<char*>(&asciiVal));
+}
+
+unsigned int toShort(char *a) {
+     return (((short)a[0]) << 8) | a[1];
+}
+
+std::string shortToStr(signed short num) {
+    return atos(num & 0x00FF) + atos((num & 0xFF00) >> 8);
 }
