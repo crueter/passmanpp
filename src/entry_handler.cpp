@@ -1,5 +1,3 @@
-#include <QInputDialog>
-#include <QTranslator>
 #include <QCheckBox>
 #include <QLabel>
 #include <QToolButton>
@@ -8,12 +6,15 @@
 #include <QMenuBar>
 #include <QPushButton>
 #include <QDialogButtonBox>
+#include <QComboBox>
+#include <QStringList>
 
-#include "entry_handler.h"
+#include "pdpp_handler.h"
+#include "file_handler.h"
 
 void displayErr(std::string msg) {
     QMessageBox err;
-    err.setText(QTranslator::tr(msg.c_str()));
+    err.setText(QWidget::tr(msg.c_str()));
     err.setStandardButtons(QMessageBox::Ok);
     err.exec();
 }
@@ -129,6 +130,90 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     notes = notesEdit->toPlainText();
     return true;
 }
+
+bool EntryHandler::create(std::string path) {
+    std::ifstream pd(path, std::ios_base::binary);
+    pd.open(path);
+
+    std::string pw = QInputDialog::getText(nullptr, QWidget::tr("Create Database"), QWidget::tr("Welcome! To start, please set a master password: "), QLineEdit::Password).toStdString();
+    QDialog *di = new QDialog;
+    di->setWindowTitle("Database Options");
+
+    QFormLayout *layout = new QFormLayout;
+
+    auto comboBox = [layout](std::vector<const char *> vec, const char * label) -> QComboBox* {
+        QComboBox *box = new QComboBox;
+        QStringList list = QStringList(vec.begin(), vec.end());
+        box->addItems(list);
+        box->setCurrentIndex(0);
+        layout->addRow(tr(label), box);
+        return box;
+    };
+
+    QLineEdit *name = new QLineEdit;
+    name->setPlaceholderText(tr("Name"));
+    name->setMaxLength(255);
+
+    QLineEdit *desc = new QLineEdit;
+    desc->setPlaceholderText(tr("Description"));
+    desc->setMaxLength(255);
+
+    layout->addRow(tr("Database Name:"), name);
+    layout->addRow(tr("Database Description"), desc);
+
+    QComboBox *checksumBox = comboBox(checksumMatch, "Checksum Function:");
+    QComboBox *derivBox = comboBox(derivMatch, "Key Derivation Function:");
+    QComboBox *hashBox = comboBox(hashMatch, "Password Hashing Function:");
+    QComboBox *encryptionBox = comboBox(encryptionMatch, "Data Encryption Function:");
+
+    QSlider *hashIterSlider = new QSlider(Qt::Horizontal);
+    hashIterSlider->setRange(8, 255);
+    hashIterSlider->setValue(8);
+
+    QLabel *hashIterLabel = new QLabel(tr("Password Hashing Iterations:"));
+    QWidget::connect(hashIterSlider, &QSlider::valueChanged, [hashIterLabel](int value) {
+        hashIterLabel->setText(QString::fromStdString(split(hashIterLabel->text().toStdString(), ':')[0] + ": " + std::to_string(value)));
+    });
+
+    layout->addRow(hashIterLabel, hashIterSlider);
+
+    std::string keyFileName;
+    bool useKeyFile = false;
+
+    QPushButton *keyFile = new QPushButton(tr("Browse..."));
+    QWidget::connect(keyFile, &QPushButton::clicked, [keyFileName, useKeyFile, keyFile]() mutable {
+        FileHandler *fh = new FileHandler;
+        keyFileName = fh->newKeyFile();
+        if (keyFileName != "")
+            useKeyFile = true;
+        keyFile->setText(QString::fromStdString(keyFileName));
+    });
+
+    layout->addRow(tr("Key File:"), keyFile);
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(di);
+    buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+
+    connect(buttonBox, &QDialogButtonBox::accepted, di, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, di, &QDialog::reject);
+
+    layout->addWidget(buttonBox);
+
+    di->setLayout(layout);
+    di->exec();
+
+    int uuidLen = randombytes_uniform(80);
+    Botan::AutoSeeded_RNG rng;
+    Botan::secure_vector<uint8_t> uuid = rng.random_vec(uuidLen);
+
+    int arc = exec("CREATE TABLE data (name text, email text, url text, notes text, password text)");
+    saveSt();
+
+    encryptData(path, checksumBox->currentIndex() + 1, derivBox->currentIndex() + 1, hashBox->currentIndex() + 1, hashIterSlider->value(), useKeyFile, encryptionBox->currentIndex() + 1, uuid, name->text().toStdString(), desc->text().toStdString(), stList, pw, Botan::secure_vector<uint8_t>{});
+
+    return arc;
+}
+
 
 QString EntryHandler::randomPass() {
     QDialog *opt = new QDialog;

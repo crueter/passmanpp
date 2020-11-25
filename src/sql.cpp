@@ -1,7 +1,6 @@
 #include "sql.h"
 
 std::vector<std::string> names;
-std::ofstream pdb;
 std::string stList;
 
 sqlite3* db;

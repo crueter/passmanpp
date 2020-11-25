@@ -1,6 +1,4 @@
 #include <QApplication>
-#include <QListWidgetItem>
-#include <QMessageBox>
 
 #include "manager.h"
 #include "pdpp_handler.h"
@@ -11,7 +9,8 @@ std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_
 
 int main(int argc,  char** argv) {
     QApplication app (argc, argv);
-    FileHandler* fh = new FileHandler();
+    FileHandler* fh = new FileHandler;
+    EntryHandler* eh = new EntryHandler;
     std::string choice, path;
     std::cout << "hi" << std::endl;
     if (argc <= 1) {
@@ -23,7 +22,7 @@ int main(int argc,  char** argv) {
 
             if (ret == QMessageBox::Yes) {
                 path = fh->newLoc();
-                create(path);
+                eh->create(path);
                 break;
             } else if (ret == QMessageBox::No) {
                 path = fh->getDb();
@@ -35,11 +34,12 @@ int main(int argc,  char** argv) {
             }
         }
     } else {
+        std::cout << "ok" << std::endl;
         bool o = open(argv[1]);
+        std::cout << "opened" << std::endl;
         if (!o) return 1;
         path = std::experimental::filesystem::v1::canonical(argv[1]);
     }
-    EntryHandler* eh = new EntryHandler();
 
     std::cout << "You may find the source code at https://github.com/binex-dsk/passmanpp." << std::endl << "Type help for available commands." << std::endl;
     while (1) {
@@ -78,12 +78,13 @@ int main(int argc,  char** argv) {
             save(path);
         else if (choice == "backup") {
             int br = fh->backup(path);
-            if (br == 3)
+            if (br == 3) {
                 displayErr("Invalid backup location.");
-            else if (br == 17)
+            } else if (br == 17) {
                 displayErr("Improper permissions for file. Please select a location where the current user has write permissions.");
-            else
+            } else {
                 displayErr("Database backed up successfully.");
+            }
         }
         else if (choice == "exit") {
             if (modified)

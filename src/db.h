@@ -1,6 +1,7 @@
 #ifndef DB_H
 #define DB_H
 #include <experimental/filesystem>
+#include <sodium.h>
 
 #include "sql.h"
 

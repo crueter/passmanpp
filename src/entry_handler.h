@@ -1,6 +1,6 @@
 #ifndef ENTRY_HANDLER_H
 #define ENTRY_HANDLER_H
-#include <QListWidgetItem>
+#include <QInputDialog>
 
 #include "db.h"
 
@@ -12,6 +12,7 @@ public:
     int entryInteract();
     bool entryDetails(QString& name, QString& url, QString& email, QString& password, QString& notes);
 
+    bool create(std::string path);
     QString randomPass();
 
     int addEntry(QListWidget *list);

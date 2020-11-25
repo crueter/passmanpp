@@ -1,7 +1,6 @@
 #include <ios>
 #include <iterator>
 #include <algorithm>
-#include <sodium.h>
 
 #include "db.h"
 

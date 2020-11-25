@@ -1,8 +1,5 @@
 ﻿#ifndef FILE_HANDLER_H
 #define FILE_HANDLER_H
-#include <QFileDialog>
-#include <QIODevice>
-
 #include "db.h"
 
 class FileHandler : public QWidget
