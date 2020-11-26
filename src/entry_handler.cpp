@@ -9,8 +9,10 @@
 #include <QComboBox>
 #include <QStringList>
 
-#include "pdpp_handler.h"
 #include "file_handler.h"
+#include "entry_handler.h"
+#include "constants.h"
+#include "stringutil.h"
 
 void displayErr(std::string msg) {
     QMessageBox err;
@@ -19,7 +21,7 @@ void displayErr(std::string msg) {
     err.exec();
 }
 
-int EntryHandler::entryInteract() {
+int EntryHandler::entryInteract(Database db) {
     QDialog *dialog = new QDialog;
     QGridLayout *layout = new QGridLayout(dialog);
     QListWidget *list = new QListWidget(dialog);
@@ -31,18 +33,18 @@ int EntryHandler::entryInteract() {
     QMenuBar *bar = new QMenuBar(dialog);
 
     QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), tr("Add a new entry (Shortcut: Ctrl+N)"), QKeySequence(tr("Ctrl+N")), [=]{
-        addEntry(list);
+        addEntry(list, db);
     });
     bar->addAction(addButton);
 
     QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), tr("Delete selected entry (Shortcut: Del)"), QKeySequence::Delete, [=]{
-        bool deleted = deleteEntry(list->currentItem());
+        bool deleted = deleteEntry(list->currentItem(), db);
         if (deleted) list->takeItem(list->currentRow());
     });
     bar->addAction(delButton);
 
     QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), tr("Edit or view data of selected entry (Shortcut: Ctrl+E)"), QKeySequence(tr("Ctrl+E")), [=]{
-        editEntry(list->currentItem());
+        editEntry(list->currentItem(), db);
     });
     bar->addAction(editButton);
 
@@ -53,11 +55,11 @@ int EntryHandler::entryInteract() {
     layout->addWidget(ok);
 
     list->setWindowTitle(tr("Select an entry"));
-    for (std::string name : getNames())
+    for (std::string name : getNames(db))
         list->addItem(QString::fromStdString(name));
 
     connect(list, &QListWidget::itemDoubleClicked, this, [=](QListWidgetItem *item){
-        editEntry(item);
+        editEntry(item, db);
     });
 
     dialog->exec();
@@ -131,10 +133,7 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     return true;
 }
 
-bool EntryHandler::create(std::string path) {
-    std::ifstream pd(path, std::ios_base::binary);
-    pd.open(path);
-
+bool EntryHandler::create(Database db) {
     std::string pw = QInputDialog::getText(nullptr, QWidget::tr("Create Database"), QWidget::tr("Welcome! To start, please set a master password: "), QLineEdit::Password).toStdString();
     QDialog *di = new QDialog;
     di->setWindowTitle("Database Options");
@@ -170,7 +169,7 @@ bool EntryHandler::create(std::string path) {
     hashIterSlider->setRange(8, 255);
     hashIterSlider->setValue(8);
 
-    QLabel *hashIterLabel = new QLabel(tr("Password Hashing Iterations:"));
+    QLabel *hashIterLabel = new QLabel(tr("Password Hashing Iterations: 8"));
     QWidget::connect(hashIterSlider, &QSlider::valueChanged, [hashIterLabel](int value) {
         hashIterLabel->setText(QString::fromStdString(split(hashIterLabel->text().toStdString(), ':')[0] + ": " + std::to_string(value)));
     });
@@ -207,9 +206,19 @@ bool EntryHandler::create(std::string path) {
     Botan::secure_vector<uint8_t> uuid = rng.random_vec(uuidLen);
 
     int arc = exec("CREATE TABLE data (name text, email text, url text, notes text, password text)");
-    saveSt();
 
-    encryptData(path, checksumBox->currentIndex() + 1, derivBox->currentIndex() + 1, hashBox->currentIndex() + 1, hashIterSlider->value(), useKeyFile, encryptionBox->currentIndex() + 1, uuid, name->text().toStdString(), desc->text().toStdString(), stList, pw, Botan::secure_vector<uint8_t>{});
+    db.checksum = checksumBox->currentIndex() + 1;
+    db.deriv = derivBox->currentIndex() + 1;
+    db.hash = hashBox->currentIndex() + 1;
+    db.hashIters = hashIterSlider->value();
+    db.keyFile = useKeyFile;
+    db.encryption = encryptionBox->currentIndex();
+    db.uuid = toStr(uuid);
+    db.name = name->text().toStdString();
+    db.desc = desc->text().toStdString();
+    db.stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
+
+    db.encrypt(pw);
 
     return arc;
 }
@@ -259,7 +268,7 @@ QString EntryHandler::randomPass() {
         return "";
 }
 
-int EntryHandler::addEntry(QListWidget *list) {
+int EntryHandler::addEntry(QListWidget *list, Database db) {
     QString name, url, email, notes, password;
     while(1) {
         entryDetails(name, email, url, password, notes);
@@ -279,9 +288,10 @@ int EntryHandler::addEntry(QListWidget *list) {
 
     replaceAll(snotes, "\n", " || char(10) || ");
     replaceAll(snotes, "||  ||", "||");
-    int arc = exec("INSERT INTO data (name, email, url, notes, password) VALUES (\"" + name.toStdString() + "\", \"" + email.toStdString() + "\", \"" + url.toStdString() + "\", " + snotes + ", \"" + password.toStdString() + "\")");
+    int arc = exec("INSERT INTO data (name, email, url, notes, password) VALUES (\"" + name.toStdString() + "\", \"" + email.toStdString() + "\", \"" + url.toStdString() + "\", " + snotes + ", \"" + password.toStdString() + "\")", db);
+    saveSt(db);
 
-    modified = true;
+    db.modified = true;
     std::cout << "Entry \"" << name.toStdString() << "\" successfully added." << std::endl;
     list->addItem(name);
     list->sortItems();
@@ -298,11 +308,13 @@ QAction *EntryHandler::addButton(QIcon icon, QString statusTip, QKeySequence sho
     return action;
 }
 
-int EntryHandler::editEntry(QListWidgetItem *item) {
-    return exec("SELECT * FROM data WHERE name=\"" + item->text().toStdString() + "\"", false, _editData);
+int EntryHandler::editEntry(QListWidgetItem *item, Database db) {
+    int arc = exec("SELECT * FROM data WHERE name=\"" + item->text().toStdString() + "\"", db, true, _editData);
+    db.modified = true;
+    return arc;
 }
 
-bool EntryHandler::deleteEntry(QListWidgetItem *item) {
+bool EntryHandler::deleteEntry(QListWidgetItem *item, Database db) {
     QMessageBox delChoice;
     delChoice.setText(tr(std::string("Are you sure you want to delete entry \"" + item->text().toStdString() + "\"? This action is IRREVERSIBLE!").c_str()));
     delChoice.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
@@ -310,8 +322,8 @@ bool EntryHandler::deleteEntry(QListWidgetItem *item) {
     int ret = delChoice.exec();
 
     if (ret == QMessageBox::Yes) {
-        exec("DELETE FROM data WHERE name=\"" + item->text().toStdString() + "\"");
-        modified = true;
+        exec("DELETE FROM data WHERE name=\"" + item->text().toStdString() + "\"", db);
+        db.modified = true;
 
         std::cout << "Entry \"" << item->text().toStdString() << "\" successfully deleted." << std::endl;
         return true;
@@ -354,7 +366,6 @@ int EntryHandler::_editData(void *, int, char **data, char **) {
     std::string stmt = "UPDATE data SET name = \"" + name.toStdString() + "\", email = \"" + email.toStdString() + "\", url = \"" + url.toStdString() + "\", notes = \"" + qnotes.toStdString() + "\", password = \"" + password.toStdString() + "\" WHERE name = \"" + name.toStdString() + "\"";
 
     int arc = exec(stmt);
-    modified = true;
     std::cout << "Entry \"" << name.toStdString() << "\" successfully edited." << std::endl;
     return arc;
 }

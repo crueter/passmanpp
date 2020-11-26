@@ -1,7 +1,7 @@
 # 2.0
-passman++ version 2.0 is coming soon. It will feature a massive suite of new security and general features. Please see section "TODO" for more info on what I plan to do.
+passman++ version 2.0 is coming soon. It will feature a massive suite of new security and general features. Please see section "2.0 SHIT" for more info on what I plan to do.
 
-While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any commit to work when directly cloned.
+While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any commits to work when directly cloned.
 
 # passman++
 An extremely simple and minimal yet just as secure and powerful command-line and GUI password manager. Super easy to use, with a lot of GUI implementation for even easier use.
@@ -41,21 +41,12 @@ passman++ is made possible by:
 # To Do
 Like I said I've got some huge plans for this project. Here's some of them:
 - Separate users
-- Using Qt for a GUI (2.0)
-- Key files and other forms of extra security (2.0)
 - My own encryption algorithm
 - pdb-to-pdpp file converter (i.e. converting the old PyPassMan format to this much more secure version)
-- Attachments/Icons (2.0)
-- More advanced password generator (partially done; will add extended ASCII maybe)
 - Multiple different formats
 - Groups (clarify: what does this mean? can't remember but I'll figure it out)
 - Maybe... just maybe... KeePass* format integration
-- Password, security, etc. health checker (2.0 or 2.1)
 - Some sort of vault (like Plasma Vault)
-- Icons and stuff (2.0)
-- Storing more things than just passwords (2.0)
-- Transforming data to prevent bruteforcing with standard AES (i.e. bit shifting, slowing down encryption and decryption to make bruteforcing slower) (2.0)
-- Some configuration (per-DB probably) (2.0)
 
 So from all of this you can clearly tell, I've got some fuckin ambitions. In fact, the original inspiration for the passman project was that I wanted a more lightweight version of KeePassXC. Which should be obvious looking at the amount of overlap between my planned shit and KeePassXC's features. Yeah. 
 
@@ -68,22 +59,27 @@ Stuff I planned to do and have already done:
 - More advanced password generator (partially done; will add extended ASCII maybe)
 - Better entry modification tool
 
-# TODO
+# 2.0 SHIT
 shit I need to do for 2.0:
-- Properly align the randomize/view icons for EntryDetails() (DONE)
 - Create a full GUI interface
-- Allow users to choose the number of iterations of PBKDF2 hashing (to slow down bruteforcing)
-- Database config
 - Password health/entropy checker
 - Icons and attachments
 - Key file implementation
-- Separate program that encrypts files in the same way the .pdpp files are (maybe)
 - Allow for more stuff to be stored there, i.e. user-input attributes
-- Maybe try and get EASCII to actually work
-- Create a proper .pdpp file format with a header; docs for header (soon)
-- Allow choosing different checksum, derivation, hashing, and encryption methods
-- Database UUIDs
-- Proper name/description for files in the header
+- Allow choosing different checksum, derivation, hashing, and encryption methods (mostly done - test out every single combination and ensure they work)
+- More advanced password generator + EASCII
+ * AES-256/GCM, Twofish
+ * Blake2b(256), SHA-3(256), SHAKE-256(256), Skein-512, SHA-256
+ * Argon2id, Bcrypt-PBKDF, or no hashing at all
+ * Potentially see if any more PBKD functions can be used
+- Database config (sort of maybe done but not really?)
+- Create a proper .pdpp file format with a header; docs for header (NEARLY DONE)
+
+# 2.0 SHIT THATS DONE
+- Properly align the randomize/view icons for EntryDetails() (DONE)
+- Allow users to choose the number of iterations of hashing (to slow down bruteforcing) (DONE)
+- Database UUIDs (DONE)
+- Proper name/description for files in the header (DONE)
 
 # Relation to PyPassMan
 The original AES Python version works great, however, I quickly realized that if I wanted people to use this, I needed to add more features and make it overall just better. And thus, the idea of a C++ passman rewrite was born sometime late September. And the first release came to be on October 21, 2020.

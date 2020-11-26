@@ -1,10 +1,9 @@
 #include "sql.h"
 
 std::vector<std::string> names;
-std::string stList;
+std::string glob_stList;
 
 sqlite3* db;
-bool modified;
 int _rc = sqlite3_open(":memory:", &db);
 
 int _getNames(void *, int, char **data, char **) {
@@ -20,26 +19,28 @@ int _saveSt(void *, int count, char **data, char **cols) {
         datad += std::string(i == 0 ? "" : ", ") + "\"" + di + "\"";
         colsd += std::string(i == 0 ? "" : ", ") + "\"" + cols[i] + "\"";
     }
-    stList += "\nINSERT INTO data (" + colsd + ") VALUES (" + datad + ")";
+    glob_stList += "\nINSERT INTO data (" + colsd + ") VALUES (" + datad + ")";
     return 0;
 }
 
-int exec(std::string cmd, bool save, int (*callback)(void*, int, char**, char**)) {
+int exec(std::string cmd, Database tdb, bool save, int (*callback)(void*, int, char**, char**)) {
     char* err = 0;
     int arc = sqlite3_exec(db, cmd.c_str(), callback, 0, &err);
     if (arc != SQLITE_OK && std::string(err) != "query aborted") // sort of band-aid fix right now; I'll fix later
         std::cout << "Warning: SQL execution error: " << std::string(err) << std::endl;
-    if (save) saveSt();
+    if (save) saveSt(tdb);
     return arc;
 }
 
-void saveSt() {
-    stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
-    exec("SELECT * FROM data ORDER BY name", false, _saveSt);
+void saveSt(Database tdb) {
+    glob_stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
+    exec("SELECT * FROM data ORDER BY name", tdb, false, _saveSt);
+    tdb.stList = glob_stList;
+    std::cout << glob_stList << std::endl << std::endl << tdb.stList << std::endl << std::endl;
 }
 
-std::vector<std::string> getNames() {
+std::vector<std::string> getNames(Database tdb) {
     names = {};
-    exec("SELECT name FROM data ORDER BY name", false, _getNames);
+    exec("SELECT name FROM data ORDER BY name", tdb, false, _getNames);
     return names;
 }

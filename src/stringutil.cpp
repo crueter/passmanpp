@@ -1,6 +1,4 @@
 #include "stringutil.h"
-#include <iostream>
-#include <cstring>
 
 void replaceAll(std::string& str, const std::string& from, const std::string& to) {
     if (from.empty())
@@ -38,4 +36,12 @@ std::vector<std::string> split(std::string text, char delim) {
 
 std::string atos(int asciiVal) {
     return std::string(reinterpret_cast<char*>(&asciiVal));
+}
+
+Botan::secure_vector<uint8_t> toVec(std::string str) {
+    return Botan::secure_vector<uint8_t>(str.begin(), str.end());
+}
+
+std::string toStr(Botan::secure_vector<uint8_t> vec) {
+    return std::string(vec.begin(), vec.end());
 }
