@@ -66,12 +66,12 @@ shit I need to do for 2.0:
 - Icons and attachments
 - Key file implementation
 - Allow for more stuff to be stored there, i.e. user-input attributes
-- Allow choosing different checksum, derivation, hashing, and encryption methods (mostly done - test out every single combination and ensure they work)
 - More advanced password generator + EASCII
- * AES-256/GCM, Twofish
- * Blake2b(256), SHA-3(256), SHAKE-256(256), Skein-512, SHA-256
- * Argon2id, Bcrypt-PBKDF, or no hashing at all
- * Potentially see if any more PBKD functions can be used
+- Allow choosing different checksum, derivation, hashing, and encryption methods (mostly done - test out every single combination and ensure they work)
+  * AES-256/GCM, Twofish
+  * Blake2b(256), SHA-3(256), SHAKE-256(256), Skein-512, SHA-256
+  * Argon2id, Bcrypt-PBKDF, or no hashing at all
+  * Potentially see if any more PBKD functions can be used
 - Database config (sort of maybe done but not really?)
 - Create a proper .pdpp file format with a header; docs for header (NEARLY DONE)
 
