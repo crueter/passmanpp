@@ -3,6 +3,13 @@
 #include "entry_handler.h"
 
 #include <QInputDialog>
+#include <QLabel>
+#include <QGridLayout>
+#include <QDialogButtonBox>
+#include <QPushButton>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
+#include <QTimer>
 
 Database::Database() {}
 
@@ -12,7 +19,6 @@ void showMessage(std::string msg) {
     box.setStandardButtons(QMessageBox::Ok);
     box.exec();
 }
-
 
 std::string Database::getPw(std::string password) {
     std::string uuidLen = atos(uuid.length());
@@ -114,48 +120,115 @@ void Database::encrypt(std::string password) {
     pd.close();
 }
 
+bool Database::verify(std::string mpass) {
+    Botan::secure_vector<uint8_t> uuidc = toVec(uuid), ivc = toVec(iv), rp = toVec(data);
+    std::string ptr = getPw(mpass);
+
+    Botan::secure_vector<uint8_t> vPtr = toVec(ptr);
+
+    std::unique_ptr<Botan::Cipher_Mode> decr = Botan::Cipher_Mode::create(encryptionMatch.at(encryption - 1), Botan::DECRYPTION);
+
+    decr->set_key(vPtr);
+    decr->start(ivc);
+
+    try {
+        decr->finish(rp);
+
+        std::unique_ptr<Botan::Decompression_Algorithm> dataDe = Botan::Decompression_Algorithm::create("gzip");
+        dataDe->start();
+        dataDe->finish(rp);
+
+        stList = toStr(rp);
+    } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return false;
+        //displayErr("Wrong password, please try again.\n" + std::string(e.what()));
+    }
+    return true;
+}
+
 std::string Database::decrypt(std::string txt, std::string password) {
-    Botan::secure_vector<uint8_t> uuidc = toVec(uuid), ivc = toVec(iv), rp;
+    Botan::secure_vector<uint8_t> uuidc = toVec(uuid), ivc = toVec(iv);
     std::string mpass;
 
-    while(1) {
-        rp = toVec(data);
+    if (password == "") {
+        QDialog *passDi = new QDialog;
+        passDi->setWindowTitle(QWidget::tr("Enter your password"));
 
-        if (password == "") {
-            QString pass = QInputDialog::getText(nullptr, QWidget::tr("Enter your password"), QWidget::tr(std::string("Please enter your master password" +  txt + ".").c_str()), QLineEdit::Password);
-            mpass = pass.toStdString();
-            if (pass == "") {
-                std::cout << "Cancelled." << std::endl;
-                return mpass;
+        QGridLayout *layout = new QGridLayout;
+
+        QLabel *passLabel = new QLabel(QWidget::tr(std::string("Please enter your master password" + txt + ".").c_str()));
+
+        QLineEdit *passEdit = new QLineEdit;
+        passEdit->setEchoMode(QLineEdit::Password);
+        passEdit->setCursorPosition(0);
+
+        QDialogButtonBox *passButtons = new QDialogButtonBox(QDialogButtonBox::Ok);
+        QLabel *errLabel = new QLabel;
+        errLabel->setFrameStyle(QFrame::Panel | QFrame::Raised);
+        errLabel->setLineWidth(2);
+
+        errLabel->setText("Password is incorrect.\nIf this problem continues, the database may be corrupt.");
+        errLabel->setMargin(5);
+
+        QPalette palette;
+
+        QColor lColor;
+        lColor.setNamedColor("#DA4453");
+        palette.setColor(QPalette::Light, lColor);
+
+        QColor dColor;
+        dColor.setNamedColor("#DA4453");
+        palette.setColor(QPalette::Dark, dColor);
+
+        QColor tColor;
+        tColor.setNamedColor("#C4DA4453");
+        palette.setColor(QPalette::Window, tColor);
+
+        palette.setColor(QPalette::Text, Qt::white);
+
+        QWidget::connect(passButtons->button(QDialogButtonBox::Ok), &QPushButton::clicked, [passEdit, passLabel, passDi, passButtons, errLabel, layout, palette, this]() mutable {
+            std::string pw = passEdit->text().toStdString();
+            passDi->setCursor(QCursor(Qt::WaitCursor));
+
+            QPalette textPal;
+            textPal.setColor(QPalette::WindowText, Qt::darkGray);
+            textPal.setColor(QPalette::ButtonText, Qt::darkGray);
+
+            passLabel->setPalette(textPal);
+            passButtons->setPalette(textPal);
+
+            errLabel->setPalette(textPal);
+
+            passDi->repaint();
+
+            if (pw == "" || verify(pw)) {
+                passDi->accept();
+            } else {
+                layout->addWidget(errLabel, 2, 0);
+
+                errLabel->setPalette(palette);
+
+                passLabel->setPalette(QPalette());
+                passButtons->setPalette(QPalette());
+
+                passDi->unsetCursor();
             }
-        } else {
-            mpass = password;
-        }
+        });
 
-        std::string ptr = getPw(mpass);
+        layout->addWidget(passLabel, 0, 0);
+        layout->addWidget(passEdit, 1, 0);
+        layout->addWidget(passButtons, 3, 0);
 
-        Botan::secure_vector<uint8_t> vPtr = toVec(ptr);
+        passDi->setLayout(layout);
 
-        std::unique_ptr<Botan::Cipher_Mode> decr = Botan::Cipher_Mode::create(encryptionMatch.at(encryption - 1), Botan::DECRYPTION);
-
-        decr->set_key(vPtr);
-        decr->start(ivc);
-
-        try {
-            decr->finish(rp);
-
-            std::unique_ptr<Botan::Decompression_Algorithm> dataDe = Botan::Decompression_Algorithm::create("gzip");
-            dataDe->start();
-            dataDe->finish(rp);
-        } catch (std::exception& e) {
-            displayErr("Wrong password, please try again.\n" + std::string(e.what()));
-            continue;
-        }
-        break;
+        passDi->exec();
+        return passEdit->text().toStdString();
+    } else {
+        verify(password);
+        return password;
     }
-    std::string rpr(rp.begin(), rp.end());
-    stList = rpr;
-    return mpass;
+
 }
 
 bool Database::save(std::string password) {

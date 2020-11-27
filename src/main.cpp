@@ -46,21 +46,24 @@ int main(int argc,  char** argv) {
 
     db.parse();
 
-    std::cout << "You may find the source code at https://github.com/binex-dsk/passmanpp." << std::endl << "Type help for available commands." << std::endl;
+    std::cout << welcomeMessage << std::endl;
     while (1) {
         std::cout << "passman> ";
         std::getline(std::cin, choice);
 
         if (choice == "help")
-            std::cout << "edit: add, modify, and delete entries" << std::endl << "tips: tips for password management" << std::endl << "info: some info on passman++" << std::endl << "backup: backup your database" << std::endl << "save: save the database" << std::endl << "exit: exit out of the program" << std::endl;
+            std::cout << help << std::endl;
         else if (choice == "edit")
             eh->entryInteract(db);
         else if (choice == "tips")
             std::cout << tips << std::endl;
         else if (choice == "info")
             std::cout << info << std::endl;
-        else if (choice == "save")
-            db.save();
+        else if (choice == "save") {
+            if (!db.save()) {
+                std::cout << "Cancelled." << std::endl;
+            }
+        }
         else if (choice == "backup") {
             int br = fh->backup(db, path);
             if (br == 3) {

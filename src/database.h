@@ -28,6 +28,8 @@ public:
     bool saveAs(std::string savePath);
     bool convert();
 
+    bool verify(std::string mpass);
+
     bool keyFile;
     bool modified = false;
 

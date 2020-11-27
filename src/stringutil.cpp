@@ -1,4 +1,4 @@
-#include "stringutil.h"
+#include "constants.h"
 
 void replaceAll(std::string& str, const std::string& from, const std::string& to) {
     if (from.empty())
@@ -11,7 +11,6 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 }
 
 std::string trim(const std::string& line) {
-    const char* whiteSpace = " \t\v\r\n";
     std::size_t start = line.find_first_not_of(whiteSpace);
     std::size_t end = line.find_last_not_of(whiteSpace);
     return start == end ? std::string() : line.substr(start, end - start + 1);

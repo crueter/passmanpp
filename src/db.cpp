@@ -24,10 +24,6 @@ std::string genPass(int length, bool capitals, bool numbers, bool symbols) {
     std::string passw, csChoice, ssInd;
     uint32_t csInd;
 
-    std::vector<std::string> capital = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
-    std::vector<std::string> number = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
-    std::vector<std::string> symbol = {"!", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "]", "^", "_", "`", "{", "|", "}", "~"};
-
     for (int i = 0; i < length; ++i) {
         csInd = randomChar();
         ssInd = std::to_string(csInd);

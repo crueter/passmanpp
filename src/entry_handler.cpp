@@ -32,18 +32,18 @@ int EntryHandler::entryInteract(Database db) {
 
     QMenuBar *bar = new QMenuBar(dialog);
 
-    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), tr("Add a new entry (Shortcut: Ctrl+N)"), QKeySequence(tr("Ctrl+N")), [=]{
+    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), tr("Add a new entry (Shortcut: Ctrl+N)"), QKeySequence(tr("Ctrl+N")), [list, db, this]{
         addEntry(list, db);
     });
     bar->addAction(addButton);
 
-    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), tr("Delete selected entry (Shortcut: Del)"), QKeySequence::Delete, [=]{
+    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), tr("Delete selected entry (Shortcut: Del)"), QKeySequence::Delete, [list, db, this]{
         bool deleted = deleteEntry(list->currentItem(), db);
         if (deleted) list->takeItem(list->currentRow());
     });
     bar->addAction(delButton);
 
-    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), tr("Edit or view data of selected entry (Shortcut: Ctrl+E)"), QKeySequence(tr("Ctrl+E")), [=]{
+    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), tr("Edit or view data of selected entry (Shortcut: Ctrl+E)"), QKeySequence(tr("Ctrl+E")), [list, db, this]{
         editEntry(list->currentItem(), db);
     });
     bar->addAction(editButton);
@@ -58,7 +58,7 @@ int EntryHandler::entryInteract(Database db) {
     for (std::string name : getNames(db))
         list->addItem(QString::fromStdString(name));
 
-    connect(list, &QListWidget::itemDoubleClicked, this, [=](QListWidgetItem *item){
+    connect(list, &QListWidget::itemDoubleClicked, this, [db, this](QListWidgetItem *item){
         editEntry(item, db);
     });
 
@@ -85,7 +85,7 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     QToolButton *random = new QToolButton;
     random->setIcon(QIcon::fromTheme(tr("roll")));
     random->setStatusTip(tr("Generate a random password."));
-    connect(random, &QToolButton::clicked, [=]{
+    connect(random, &QToolButton::clicked, [passEdit, this]{
         QString rand = randomPass();
         if (rand != "")
             passEdit->setText(rand);
@@ -96,7 +96,7 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     view->setIcon(QIcon::fromTheme(tr("view-visible")));
     random->setStatusTip(tr("Toggle password view."));
 
-    connect(view, &QToolButton::clicked, [=](bool checked) {
+    connect(view, &QToolButton::clicked, [passEdit](bool checked) {
         QLineEdit::EchoMode echo;
         if (checked) echo = QLineEdit::Normal;
         else echo = QLineEdit::Password;
@@ -134,7 +134,17 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
 }
 
 bool EntryHandler::create(Database db) {
-    std::string pw = QInputDialog::getText(nullptr, QWidget::tr("Create Database"), QWidget::tr("Welcome! To start, please set a master password: "), QLineEdit::Password).toStdString();
+    std::string pw;
+    while(1) {
+        pw = QInputDialog::getText(nullptr, QWidget::tr("Create Database"), QWidget::tr("Welcome! To start, please set a master password: "), QLineEdit::Password).toStdString();
+        if (pw == "") {
+            displayErr("Password must be provided.");
+            continue;
+        }
+        if (pw.length() < 8) {
+            std::cout << "Warning: your password is less than 8 characters long. Consider making it longer." << std::endl;
+        }
+    }
     QDialog *di = new QDialog;
     di->setWindowTitle("Database Options");
 
@@ -218,6 +228,14 @@ bool EntryHandler::create(Database db) {
     db.desc = desc->text().toStdString();
     db.stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
 
+    if (db.name == "") {
+        db.name = "None";
+    }
+
+    if (db.desc == "") {
+        db.desc = "None";
+    }
+
     db.encrypt(pw);
 
     return arc;
@@ -278,9 +296,9 @@ int EntryHandler::addEntry(QListWidget *list, Database db) {
         else if (exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\""))
             displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
         else if (exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\""))
-            displayErr("This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!");
+            displayErr(reuseWarning);
         else if (password.length() < 8)
-            displayErr("Please make your password at least 8 characters. This is the common bare minimum for many websites, and is the shortest password you can have that can't be easily bruteforced.");
+            displayErr(shortWarning);
         else break;
     }
 
@@ -356,9 +374,9 @@ int EntryHandler::_editData(void *, int, char **data, char **) {
         else if (name != origName && exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\""))
             displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
         if (password != origPass && exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\""))
-            displayErr("This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!");
+            displayErr(reuseWarning);
         else if (password.length() < 8)
-            displayErr("Please make your password at least 8 characters. This is the common bare minimum for many websites, and is the shortest password you can have that can't be easily bruteforced.");
+            displayErr(shortWarning);
         else break;
     }
     if (edited == false) return true;

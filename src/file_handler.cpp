@@ -5,7 +5,7 @@
 #include "entry_handler.h"
 
 int FileHandler::backup(Database db, std::string path) {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Backup Location"), "", tr("passman++ Database Files (*.pdpp);;All Files (*)"));
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Backup Location"), "", tr(fileExt));
     if (fileName.isEmpty()) return 3;
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly)) return 17;
@@ -18,11 +18,11 @@ int FileHandler::backup(Database db, std::string path) {
     return true;
 }
 std::string FileHandler::newLoc() {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("New Database Location"), "", tr("passman++ Database Files (*.pdpp);;All Files (*)"));
+    QString fileName = QFileDialog::getSaveFileName(this, tr("New Database Location"), "", tr(fileExt));
     return fileName.toStdString();
 }
 std::string FileHandler::getDb() {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open Database"), "", tr("passman++ Database Files (*.pdpp);;All Files (*)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open Database"), "", tr(fileExt));
     return fileName.toStdString();
 }
 
