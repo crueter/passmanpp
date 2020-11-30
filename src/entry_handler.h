@@ -3,7 +3,7 @@
 #include <QInputDialog>
 
 #include "database.h"
-#include "db.h"
+#include "generators.h"
 
 void displayErr(std::string msg);
 

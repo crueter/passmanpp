@@ -11,6 +11,10 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
     }
 }
 
+bool find(std::vector<std::string> set, char* cInd) {
+    return std::find(set.begin(), set.end(), cInd) != set.end();
+}
+
 std::string trim(const std::string& line) {
     std::size_t start = line.find_first_not_of(whiteSpace);
     std::size_t end = line.find_last_not_of(whiteSpace);
@@ -21,7 +25,25 @@ std::string trimNull(const std::string& line) {
     std::size_t start = line.find_first_not_of("\u0000");
     std::size_t end = line.find_last_not_of("\u0000");
     return start == end ? std::string() : line.substr(start, end - start + 1);
+}
 
+std::string join(const std::vector<std::string> &elements, const std::string &delim) {
+    if (!elements.empty())
+    {
+        std::stringstream ss;
+        auto it = elements.cbegin();
+        while (true)
+        {
+            ss << *it++;
+            if (it != elements.cend()) {
+                ss << delim;
+            }
+            else {
+                return ss.str();
+            }
+        }
+    }
+    return "";
 }
 
 std::vector<std::string> split(std::string text, char delim) {

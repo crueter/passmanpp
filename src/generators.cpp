@@ -2,7 +2,7 @@
 #include <iterator>
 #include <algorithm>
 
-#include "db.h"
+#include "generators.h"
 
 static bool _find(std::vector<std::string> set, char* cInd) {
     return std::find(set.begin(), set.end(), cInd) != set.end();
@@ -10,14 +10,6 @@ static bool _find(std::vector<std::string> set, char* cInd) {
 
 uint32_t randomChar() {
     return 0x21U + randombytes_uniform(0x7EU - 0x20U);
-}
-
-bool exists(std::string cmd) {
-    int ar;
-    sqlite3_stmt *stmt;
-    sqlite3_prepare_v2(db, cmd.c_str(), -1, &stmt, NULL);
-    ar = sqlite3_step(stmt);
-    return (ar == 100);
 }
 
 std::string genPass(int length, bool capitals, bool numbers, bool symbols) {
@@ -48,4 +40,18 @@ std::string genPass(int length, bool capitals, bool numbers, bool symbols) {
         passw.append(reinterpret_cast<char*>(&csInd));
     }
     return passw;
+}
+
+Botan::secure_vector<uint8_t> genKey(std::string path) {
+    uint8_t length = 128 + randombytes_uniform(128);
+
+    Botan::AutoSeeded_RNG rng;
+    Botan::secure_vector<uint8_t> vec = rng.random_vec(length);
+
+    std::ofstream pkpp(path, std::ios::binary);
+    pkpp << toChar(vec);
+    pkpp.flush();
+    pkpp.close();
+
+    return vec;
 }

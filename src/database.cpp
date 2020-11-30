@@ -1,6 +1,7 @@
 #include "database.h"
 #include "constants.h"
 #include "entry_handler.h"
+#include "file_handler.h"
 
 #include <QInputDialog>
 #include <QLabel>
@@ -36,16 +37,15 @@ std::string Database::getPw(std::string password) {
         } else {
             pHash = pfHash->from_params(hashIters);
         }
-
         Botan::secure_vector<uint8_t> ptr(1024);
-        pHash->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), uuid.data(), uuidLen);
+        pHash->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
         password = toStr(ptr);
     }
 
     Botan::secure_vector<uint8_t> ptr(32);
     std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create("PBKDF2(" + checksumChoice + ")")->default_params();
 
-    ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), uuid.data(), uuidLen);
+    ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
     return toStr(ptr);
 }
 
@@ -73,7 +73,6 @@ void Database::encrypt(std::string password) {
     }
 
     pd << atos(ivLen) << toChar(iv);
-    pd << atos(uuidLen) << toChar(uuid);
 
     pd << atos(nameLen) << name.data();
     pd << atos(descLen) << desc.data();
@@ -93,6 +92,18 @@ void Database::encrypt(std::string password) {
     enc->start(iv);
     enc->finish(pt);
 
+    if (keyFile) {
+        std::ifstream key(keyFilePath, std::ios::binary);
+        Botan::secure_vector<uint8_t> keyData = Botan::secure_vector<uint8_t>(std::istreambuf_iterator<char>{key}, {});
+        std::string keyPw = getPw(toStr(keyData));
+
+        std::unique_ptr<Botan::Cipher_Mode> keyEnc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption - 1), Botan::ENCRYPTION);
+
+        keyEnc->set_key(toVec(keyPw));
+        keyEnc->start(iv);
+        keyEnc->finish(pt);
+    }
+
     std::string pts = toStr(pt);
     data = pt;
     pd << pts;
@@ -101,10 +112,27 @@ void Database::encrypt(std::string password) {
     pd.close();
 }
 
-bool Database::verify(std::string mpass) {
-    std::string ptr = getPw(mpass);
+int Database::verify(std::string mpass) {
+    Botan::secure_vector<uint8_t> vPtr = toVec(getPw(mpass)), pData = data;
 
-    Botan::secure_vector<uint8_t> vPtr = toVec(ptr), pData = data;
+    if (keyFile) {
+        std::ifstream key(keyFilePath, std::ios::binary);
+        Botan::secure_vector<uint8_t> keyData = Botan::secure_vector<uint8_t>(std::istreambuf_iterator<char>{key}, {});
+        std::string keyPw = getPw(toStr(keyData));
+
+        std::unique_ptr<Botan::Cipher_Mode> keyDec = Botan::Cipher_Mode::create(encryptionMatch.at(encryption - 1), Botan::DECRYPTION);
+
+        keyDec->set_key(toVec(keyPw));
+
+        keyDec->start(iv);
+
+        try {
+            keyDec->finish(pData);
+        } catch (std::exception& e) {
+            std::cerr << e.what() << std::endl;
+            return 3;
+        }
+    }
 
     std::unique_ptr<Botan::Cipher_Mode> decr = Botan::Cipher_Mode::create(encryptionMatch.at(encryption - 1), Botan::DECRYPTION);
 
@@ -121,7 +149,7 @@ bool Database::verify(std::string mpass) {
         this->stList = toStr(pData);
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
-        return false;
+        return 2;
     }
     return true;
 }
@@ -141,12 +169,33 @@ std::string Database::decrypt(std::string txt, std::string password) {
         passEdit->setEchoMode(QLineEdit::Password);
         passEdit->setCursorPosition(0);
 
+        passLabel->setBuddy(passEdit);
+
+        QLineEdit *keyEdit = new QLineEdit;
+        QPushButton *getKeyFile = new QPushButton(QWidget::tr("Open"));
+        QDialogButtonBox *keyBox = new QDialogButtonBox;
+
+        QLabel *keyLabel = new QLabel(QWidget::tr("Key File:"));
+
+        if (keyFile) {
+            QWidget::connect(getKeyFile, &QPushButton::clicked, [keyEdit, this]() mutable {
+                FileHandler *fh = new FileHandler;
+                keyFilePath = fh->getKeyFile();
+                if (keyFilePath != "") {
+                    keyFile = true;
+                }
+                keyEdit->setText(QString::fromStdString(keyFilePath));
+            });
+
+            keyBox->addButton(getKeyFile, QDialogButtonBox::ActionRole);
+            keyLabel->setBuddy(keyEdit);
+        }
+
         QDialogButtonBox *passButtons = new QDialogButtonBox(QDialogButtonBox::Ok);
         QLabel *errLabel = new QLabel;
         errLabel->setFrameStyle(QFrame::Panel | QFrame::Raised);
         errLabel->setLineWidth(2);
 
-        errLabel->setText("Password is incorrect.\nIf this problem continues, the database may be corrupt.");
         errLabel->setMargin(5);
 
         QPalette palette;
@@ -165,8 +214,9 @@ std::string Database::decrypt(std::string txt, std::string password) {
 
         palette.setColor(QPalette::Text, Qt::white);
 
-        QWidget::connect(passButtons->button(QDialogButtonBox::Ok), &QPushButton::clicked, [passEdit, passLabel, passDi, passButtons, errLabel, layout, palette, this]() mutable {
+        QWidget::connect(passButtons->button(QDialogButtonBox::Ok), &QPushButton::clicked, [passEdit, passLabel, passDi, passButtons, errLabel, layout, palette, keyEdit, this]() mutable -> void {
             std::string pw = passEdit->text().toStdString();
+
             passDi->setCursor(QCursor(Qt::WaitCursor));
 
             QPalette textPal;
@@ -180,27 +230,59 @@ std::string Database::decrypt(std::string txt, std::string password) {
 
             passDi->repaint();
 
-            if (pw == "" || verify(pw)) {
-                passDi->accept();
+            if (keyFile) {
+                this->keyFilePath = keyEdit->text().toStdString();
+            }
+
+            if (pw == "") {
+                return passDi->reject();
+            }
+
+            int ok = verify(pw);
+            if (ok == 1) {
+                return passDi->accept();
+            }
+
+            if (ok == 3) {
+                errLabel->setText(QWidget::tr("Key File is invalid."));
+            } else {
+                errLabel->setText(QWidget::tr("Password is incorrect.\nIf this problem continues, the database may be corrupt."));
+            }
+
+            if (keyFile) {
+                layout->addWidget(errLabel, 4, 0);
             } else {
                 layout->addWidget(errLabel, 2, 0);
-
-                errLabel->setPalette(palette);
-
-                passLabel->setPalette(QPalette());
-                passButtons->setPalette(QPalette());
-
-                passDi->unsetCursor();
             }
+
+            errLabel->setPalette(palette);
+
+            passLabel->setPalette(QPalette());
+            passButtons->setPalette(QPalette());
+
+            passDi->unsetCursor();
         });
 
-        layout->addWidget(passLabel, 0, 0);
+        layout->addWidget(passLabel);
         layout->addWidget(passEdit, 1, 0);
-        layout->addWidget(passButtons, 3, 0);
+        if (keyFile) {
+            layout->addWidget(keyLabel, 2, 0);
+            layout->addWidget(keyEdit, 3, 0);
+            layout->addWidget(keyBox, 3, 1);
+            layout->addWidget(passButtons, 5, 0);
+        } else {
+            layout->addWidget(passButtons, 3, 0);
+        }
 
         passDi->setLayout(layout);
 
-        passDi->exec();
+        int ret = passDi->exec();
+
+        if (ret == QDialog::Rejected) {
+            return "";
+        }
+
+        keyFilePath = keyEdit->text().toStdString();
         return passEdit->text().toStdString();
     } else {
         verify(password);
@@ -274,10 +356,6 @@ bool Database::convert() {
         }
     }
 
-    int uuidLen = 40 + randombytes_uniform(40);
-    Botan::AutoSeeded_RNG rng;
-    Botan::secure_vector<uint8_t> uuid = rng.random_vec(uuidLen);
-
     std::string name = split(std::string(basename(path.c_str())), '.')[0];
     std::string rdata = toStr(vData);
 
@@ -289,8 +367,6 @@ bool Database::convert() {
     this->encryption = 1;
     this->iv = Botan::secure_vector<uint8_t>(ivd.begin(), ivd.end());
     this->ivLen = ivd.size();
-    this->uuid = uuid;
-    this->uuidLen = uuidLen;
     this->name = name;
     this->nameLen = name.length();
     this->desc = "Converted from old database format.";
@@ -378,13 +454,6 @@ bool Database::parse() {
 
     pd.read(readData, ivLen);
     iv = toVec(readData, ivLen);
-
-    pd.read(len, 1);
-    uuidLen = int(len[0]);
-
-    pd.read(readData, uuidLen);
-
-    uuid = toVec(readData, uuidLen);
 
     pd.read(len, 1);
     nameLen = int(len[0]);

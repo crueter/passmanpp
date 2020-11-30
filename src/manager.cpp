@@ -1,37 +1,35 @@
 #include "manager.h"
-#include "database.h"
-#include "entry_handler.h"
 
-bool open(Database db) {
-    if (std::experimental::filesystem::exists(db.path)) {
-        db.parse();
-        try {
-            std::string p = db.decrypt(" to login");
-            if (p == "") {
-                return false;
-            }
-        } catch (std::exception& e) {
-            displayErr(e.what());
-            return false;
+bool choiceHandle(std::string choice, EntryHandler *eh, FileHandler *fh, Database db, std::string path) {
+    if (choice == "help") {
+        std::cout << help << std::endl;
+    } else if (choice == "edit") {
+        eh->entryInteract(db);
+    } else if (choice == "tips") {
+        std::cout << tips << std::endl;
+    } else if (choice == "info") {
+        std::cout << info << std::endl;
+    } else if (choice == "save") {
+        if (!db.save()) {
+            std::cerr << "Cancelled." << std::endl;
         }
-        std::string line;
-        std::istringstream iss(db.stList);
-        while (std::getline(iss, line)) {
-            exec(line, db, false);
+    } else if (choice == "backup") {
+        int br = fh->backup(db, path);
+        if (br == 3) {
+            displayErr("Invalid backup location.");
+        } else if (br == 17) {
+            displayErr("Improper permissions for file. Please select a location where the current user has write permissions.");
+        } else {
+            std::cout << "Database backed up successfully." << std::endl;
         }
-        return true;
+    } else if (choice == "exit") {
+        if (db.modified) {
+            std::cout << "Please save your work before leaving." << std::endl;
+        } else {
+            exit(0);
+        }
+    } else {
+        std::cerr << "Invalid choice. Type help for available commands." << std::endl;
     }
-    displayErr("Please enter a valid path!");
-    return false;
-}
-
-bool save(Database db) {
-    try {
-        db.save();
-    } catch (std::exception& e) {
-        displayErr(e.what());
-        return false;
-    }
-    db.modified = false;
     return true;
 }

@@ -27,7 +27,7 @@ public:
     bool save(std::string password = "");
     bool convert();
 
-    bool verify(std::string mpass);
+    int verify(std::string mpass);
 
     bool keyFile;
     bool modified = false;
@@ -40,14 +40,12 @@ public:
     unsigned int version = MAX_SUPPORTED_VERSION_NUMBER;
 
     Botan::secure_vector<uint8_t> iv;
-    Botan::secure_vector<uint8_t> uuid;
     Botan::secure_vector<uint8_t> data;
 
     std::string name;
     std::string desc;
 
     unsigned int ivLen;
-    unsigned int uuidLen;
     unsigned int nameLen;
     unsigned int descLen;
 

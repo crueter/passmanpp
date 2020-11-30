@@ -187,26 +187,42 @@ bool EntryHandler::create(Database db) {
 
     layout->addRow(hashIterLabel, hashIterSlider);
 
-    std::string keyFileName;
-    bool useKeyFile = false;
+    QLineEdit *keyEdit = new QLineEdit;
 
-    QPushButton *keyFile = new QPushButton(tr("Browse..."));
-    QWidget::connect(keyFile, &QPushButton::clicked, [keyFileName, useKeyFile, keyFile]() mutable {
+    std::string keyFilePath;
+
+    QPushButton *newKeyFile = new QPushButton(tr("New"));
+    QWidget::connect(newKeyFile, &QPushButton::clicked, [keyEdit, keyFilePath, db]() mutable {
         FileHandler *fh = new FileHandler;
-        keyFileName = fh->newKeyFile();
-        if (keyFileName != "") {
-            useKeyFile = true;
+        keyFilePath = fh->newKeyFile();
+        if (keyFilePath != "") {
+            db.keyFile = true;
         }
-        keyFile->setText(QString::fromStdString(keyFileName));
+        keyEdit->setText(QString::fromStdString(keyFilePath));
     });
 
-    layout->addRow(tr("Key File:"), keyFile);
+    QPushButton *getKeyFile = new QPushButton(tr("Open"));
+    QWidget::connect(getKeyFile, &QPushButton::clicked, [keyEdit, keyFilePath, db]() mutable {
+        FileHandler *fh = new FileHandler;
+        keyFilePath = fh->getKeyFile();
+        if (keyFilePath != "") {
+            db.keyFile = true;
+        }
+        keyEdit->setText(QString::fromStdString(keyFilePath));
+    });
+
+    QDialogButtonBox *keyBox = new QDialogButtonBox;
+    keyBox->addButton(newKeyFile, QDialogButtonBox::ActionRole);
+    keyBox->addButton(getKeyFile, QDialogButtonBox::ActionRole);
+
+    layout->addRow(tr("Key File:"), keyEdit);
+    layout->addWidget(keyBox);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(di);
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
     std::string pw;
-    connect(buttonBox, &QDialogButtonBox::accepted, [=]() mutable {
+    connect(buttonBox, &QDialogButtonBox::accepted, [pw, pass, di]() mutable {
         pw = pass->text().toStdString();
         if (pw == "") {
             displayErr("Password must be provided.");
@@ -228,25 +244,22 @@ bool EntryHandler::create(Database db) {
         return false;
     }
 
-    int uuidLen = 40 + randombytes_uniform(40);
-    Botan::AutoSeeded_RNG rng;
-    Botan::secure_vector<uint8_t> uuid = rng.random_vec(uuidLen);
-
     db.stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
-    int arc = exec(db.stList);
+    exec(db.stList);
 
     db.checksum = checksumBox->currentIndex() + 1;
     db.deriv = derivBox->currentIndex() + 1;
     db.hash = hashBox->currentIndex() + 1;
     db.hashIters = hashIterSlider->value();
-    db.keyFile = useKeyFile;
     db.encryption = encryptionBox->currentIndex() + 1;
-    db.uuid = uuid;
-    db.uuidLen = db.uuid.size();
     db.name = name->text().toStdString();
     db.desc = desc->text().toStdString();
+    pw = pass->text().toStdString();
+    db.keyFilePath = keyEdit->text().toStdString();
 
-    db.keyFilePath = keyFile->text().toStdString();
+    if (!std::experimental::filesystem::exists(db.keyFilePath)) {
+        genKey(db.keyFilePath);
+    }
 
     if (db.name == "") {
         db.name = "None";
@@ -260,7 +273,7 @@ bool EntryHandler::create(Database db) {
 
     db.encrypt(pw);
 
-    return arc;
+    return true;
 }
 
 

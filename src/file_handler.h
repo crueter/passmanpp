@@ -1,7 +1,8 @@
 ﻿#ifndef FILE_HANDLER_H
 #define FILE_HANDLER_H
-#include "db.h"
+#include "generators.h"
 #include "database.h"
+#include "sql.h"
 
 class FileHandler : public QWidget
 {
@@ -11,6 +12,9 @@ public:
     std::string newLoc();
     std::string getDb();
     std::string newKeyFile();
+    std::string getKeyFile();
+
+    bool open(Database db);
 };
 
 

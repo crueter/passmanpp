@@ -1,8 +1,10 @@
 #ifndef MANAGER_H
 #define MANAGER_H
-#include "database.h"
+#include "constants.h"
+#include "file_handler.h"
+#include "entry_handler.h"
+#include <iostream>
 
-bool open(Database db);
-bool save(Database db);
+bool choiceHandle(std::string choice, EntryHandler *eh, FileHandler *fh, Database db, std::string path);
 
-#endif
+#endif // MANAGER_H

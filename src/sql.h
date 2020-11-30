@@ -14,9 +14,14 @@ extern sqlite3* db;
 
 int _getNames(void *, int, char **data, char **);
 int _saveSt(void *, int count, char **data, char **cols);
+int _getUnion(void *, int, char **data, char **);
+int _createSt(void *, int, char **data, char **);
 
 int exec(std::string cmd, Database tdb = Database(), bool save = true, int (*callback)(void*, int, char**, char**) = nullptr);
 void saveSt(Database tdb);
+
+bool exists(std::string cmd);
+
 std::vector<std::string> getNames(Database tdb);
 
 #endif

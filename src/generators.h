@@ -6,7 +6,8 @@
 #include "sql.h"
 
 uint32_t randomChar();
-bool exists(std::string cmd);
 
 std::string genPass(int length, bool capitals, bool numbers, bool symbols);
+Botan::secure_vector<uint8_t> genKey(std::string path);
+
 #endif
