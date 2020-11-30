@@ -18,7 +18,7 @@ public:
 
     int addEntry(QListWidget *item, Database db);
     template <typename Func>
-    QAction *addButton(QIcon icon, QString statusTip, QKeySequence shortcut, Func func);
+    QAction *addButton(QIcon icon, const char *whatsThis, QKeySequence shortcut, Func func);
 
     int editEntry(QListWidgetItem *item, Database db);
     bool deleteEntry(QListWidgetItem *item, Database db);

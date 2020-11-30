@@ -6,9 +6,13 @@
 
 int FileHandler::backup(Database db, std::string path) {
     QString fileName = QFileDialog::getSaveFileName(this, tr("Backup Location"), "", tr(fileExt));
-    if (fileName.isEmpty()) return 3;
+    if (fileName.isEmpty()) {
+        return 3;
+    }
     QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly)) return 17;
+    if (!file.open(QIODevice::WriteOnly)) {
+        return 17;
+    }
     try {
         db.path = path;
         db.save();

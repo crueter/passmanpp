@@ -16,6 +16,9 @@ std::vector<std::string> split(std::string text, char delim);
 std::string atos(int asciiVal);
 
 Botan::secure_vector<uint8_t> toVec(std::string str);
+Botan::secure_vector<uint8_t> toVec(char *str, int length);
+
+char *toChar(Botan::secure_vector<uint8_t> vec);
 std::string toStr(Botan::secure_vector<uint8_t> vec);
 
 #endif

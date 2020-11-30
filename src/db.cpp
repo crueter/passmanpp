@@ -31,14 +31,18 @@ std::string genPass(int length, bool capitals, bool numbers, bool symbols) {
             csInd = randomChar();
             ssInd = std::to_string(csInd);
             char* cInd = reinterpret_cast<char*>(&csInd);
-            if ((i != 0 && ssInd == std::to_string(passw[i - 1])) || csInd == 0x22U || csInd == 0x5CU)
+            if ((i != 0 && ssInd == std::to_string(passw[i - 1])) || csInd == 0x22U || csInd == 0x5CU) {
                 continue;
-            if (capitals && _find(capital, cInd))
+            }
+            if (capitals && _find(capital, cInd)) {
                 continue;
-            if (numbers && _find(number, cInd))
+            }
+            if (numbers && _find(number, cInd)) {
                 continue;
-            if (symbols && _find(symbol, cInd))
+            }
+            if (symbols && _find(symbol, cInd)) {
                 continue;
+            }
             break;
         }
         passw.append(reinterpret_cast<char*>(&csInd));

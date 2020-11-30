@@ -26,33 +26,35 @@ int EntryHandler::entryInteract(Database db) {
     QGridLayout *layout = new QGridLayout(dialog);
     QListWidget *list = new QListWidget(dialog);
 
-    QToolButton *ok = new QToolButton();
-    ok->setText(tr("OK"));
-    connect(ok, &QToolButton::clicked, dialog, &QDialog::accept);
+    QDialogButtonBox *ok = new QDialogButtonBox(dialog);
+    ok->setStandardButtons(QDialogButtonBox::Ok);
+    connect(ok->button(QDialogButtonBox::Ok), &QPushButton::clicked, dialog, &QDialog::accept);
 
-    QMenuBar *bar = new QMenuBar(dialog);
+    QMenuBar *bar = new QMenuBar;
+    QMenu *menu = bar->addMenu(tr("Edit"));
 
-    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), tr("Add a new entry (Shortcut: Ctrl+N)"), QKeySequence(tr("Ctrl+N")), [list, db, this]{
+    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), "Creates a new entry in the database.", QKeySequence(tr("Ctrl+N")), [list, db, this]{
         addEntry(list, db);
     });
-    bar->addAction(addButton);
 
-    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), tr("Delete selected entry (Shortcut: Del)"), QKeySequence::Delete, [list, db, this]{
+    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), "Deletes the currently selected entry.", QKeySequence::Delete, [list, db, this]{
         bool deleted = deleteEntry(list->currentItem(), db);
-        if (deleted) list->takeItem(list->currentRow());
+        if (deleted) {
+            list->takeItem(list->currentRow());
+        }
     });
-    bar->addAction(delButton);
 
-    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), tr("Edit or view data of selected entry (Shortcut: Ctrl+E)"), QKeySequence(tr("Ctrl+E")), [list, db, this]{
+    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), "Edit or view all the information of the current entry.", QKeySequence(tr("Ctrl+E")), [list, db, this]{
         editEntry(list->currentItem(), db);
     });
-    bar->addAction(editButton);
+
+    menu->addActions(QList<QAction *>{addButton, delButton, editButton});
 
     layout->setMenuBar(bar);
     layout->addWidget(list);
 
-    dialog->setLayout(layout);
     layout->addWidget(ok);
+    dialog->setLayout(layout);
 
     list->setWindowTitle(tr("Select an entry"));
     for (std::string name : getNames(db))
@@ -87,8 +89,9 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     random->setStatusTip(tr("Generate a random password."));
     connect(random, &QToolButton::clicked, [passEdit, this]{
         QString rand = randomPass();
-        if (rand != "")
+        if (rand != "") {
             passEdit->setText(rand);
+        }
     });
 
     QToolButton *view = new QToolButton;
@@ -98,8 +101,11 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
 
     connect(view, &QToolButton::clicked, [passEdit](bool checked) {
         QLineEdit::EchoMode echo;
-        if (checked) echo = QLineEdit::Normal;
-        else echo = QLineEdit::Password;
+        if (checked) {
+            echo = QLineEdit::Normal;
+        } else {
+            echo = QLineEdit::Password;
+        }
         passEdit->setEchoMode(echo);
     });
 
@@ -114,16 +120,17 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     QDialogButtonBox *buttonBox = new QDialogButtonBox(opt);
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
-    connect(buttonBox, &QDialogButtonBox::accepted, opt, &QDialog::accept);
-    connect(buttonBox, &QDialogButtonBox::rejected, opt, &QDialog::reject);
+    connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, opt, &QDialog::accept);
+    connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, opt, &QDialog::reject);
 
     formLayout->addWidget(buttonBox);
 
     opt->setLayout(formLayout);
     int ret = opt->exec();
 
-    if (ret == QDialog::Rejected || (name == nameEdit->text() && url == urlEdit->text() && email == emailEdit->text() && password == passEdit->text() && notes == notesEdit->toPlainText()))
+    if (ret == QDialog::Rejected || (name == nameEdit->text() && url == urlEdit->text() && email == emailEdit->text() && password == passEdit->text() && notes == notesEdit->toPlainText())) {
         return false;
+    }
 
     name = nameEdit->text();
     url = urlEdit->text();
@@ -134,17 +141,6 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
 }
 
 bool EntryHandler::create(Database db) {
-    std::string pw;
-    while(1) {
-        pw = QInputDialog::getText(nullptr, QWidget::tr("Create Database"), QWidget::tr("Welcome! To start, please set a master password: "), QLineEdit::Password).toStdString();
-        if (pw == "") {
-            displayErr("Password must be provided.");
-            continue;
-        }
-        if (pw.length() < 8) {
-            std::cout << "Warning: your password is less than 8 characters long. Consider making it longer." << std::endl;
-        }
-    }
     QDialog *di = new QDialog;
     di->setWindowTitle("Database Options");
 
@@ -159,6 +155,10 @@ bool EntryHandler::create(Database db) {
         return box;
     };
 
+    QLineEdit *pass = new QLineEdit;
+    pass->setPlaceholderText(tr("Password"));
+    pass->setEchoMode(QLineEdit::Password);
+
     QLineEdit *name = new QLineEdit;
     name->setPlaceholderText(tr("Name"));
     name->setMaxLength(255);
@@ -167,8 +167,9 @@ bool EntryHandler::create(Database db) {
     desc->setPlaceholderText(tr("Description"));
     desc->setMaxLength(255);
 
-    layout->addRow(tr("Database Name:"), name);
-    layout->addRow(tr("Database Description"), desc);
+    layout->addRow(tr("Password:"), pass);
+    layout->addRow(tr("Name:"), name);
+    layout->addRow(tr("Description"), desc);
 
     QComboBox *checksumBox = comboBox(checksumMatch, "Checksum Function:");
     QComboBox *derivBox = comboBox(derivMatch, "Key Derivation Function:");
@@ -193,8 +194,9 @@ bool EntryHandler::create(Database db) {
     QWidget::connect(keyFile, &QPushButton::clicked, [keyFileName, useKeyFile, keyFile]() mutable {
         FileHandler *fh = new FileHandler;
         keyFileName = fh->newKeyFile();
-        if (keyFileName != "")
+        if (keyFileName != "") {
             useKeyFile = true;
+        }
         keyFile->setText(QString::fromStdString(keyFileName));
     });
 
@@ -203,38 +205,58 @@ bool EntryHandler::create(Database db) {
     QDialogButtonBox *buttonBox = new QDialogButtonBox(di);
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
-    connect(buttonBox, &QDialogButtonBox::accepted, di, &QDialog::accept);
+    std::string pw;
+    connect(buttonBox, &QDialogButtonBox::accepted, [=]() mutable {
+        pw = pass->text().toStdString();
+        if (pw == "") {
+            displayErr("Password must be provided.");
+        } else {
+            if (pw.length() < 8) {
+                std::cerr << "Warning: your password is less than 8 characters long. Consider making it longer." << std::endl;
+            }
+            di->accept();
+        }
+    });
     connect(buttonBox, &QDialogButtonBox::rejected, di, &QDialog::reject);
 
     layout->addWidget(buttonBox);
 
     di->setLayout(layout);
-    di->exec();
+    int ret = di->exec();
 
-    int uuidLen = randombytes_uniform(80);
+    if (ret == QDialog::Rejected) {
+        return false;
+    }
+
+    int uuidLen = 40 + randombytes_uniform(40);
     Botan::AutoSeeded_RNG rng;
     Botan::secure_vector<uint8_t> uuid = rng.random_vec(uuidLen);
 
-    int arc = exec("CREATE TABLE data (name text, email text, url text, notes text, password text)");
+    db.stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
+    int arc = exec(db.stList);
 
     db.checksum = checksumBox->currentIndex() + 1;
     db.deriv = derivBox->currentIndex() + 1;
     db.hash = hashBox->currentIndex() + 1;
     db.hashIters = hashIterSlider->value();
     db.keyFile = useKeyFile;
-    db.encryption = encryptionBox->currentIndex();
-    db.uuid = toStr(uuid);
+    db.encryption = encryptionBox->currentIndex() + 1;
+    db.uuid = uuid;
+    db.uuidLen = db.uuid.size();
     db.name = name->text().toStdString();
     db.desc = desc->text().toStdString();
-    db.stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
+
+    db.keyFilePath = keyFile->text().toStdString();
 
     if (db.name == "") {
         db.name = "None";
     }
+    db.nameLen = db.name.length();
 
     if (db.desc == "") {
         db.desc = "None";
     }
+    db.descLen = db.desc.length();
 
     db.encrypt(pw);
 
@@ -280,26 +302,32 @@ QString EntryHandler::randomPass() {
     opt->setLayout(layout);
     int ret = opt->exec();
 
-    if (ret == QDialog::Accepted)
+    if (ret == QDialog::Accepted) {
         return QString::fromStdString(genPass(length->text().toInt(), capitals->checkState() != 2, numbers->checkState() != 2, symbols->checkState() != 2));
-    else
+    } else {
         return "";
+    }
 }
 
 int EntryHandler::addEntry(QListWidget *list, Database db) {
     QString name, url, email, notes, password;
     while(1) {
-        entryDetails(name, email, url, password, notes);
+        bool ok = entryDetails(name, email, url, password, notes);
+        if (!ok) {
+            return false;
+        }
 
-        if (name == "")
+        if (name == "") {
             displayErr("Entry must have a name.");
-        else if (exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\""))
+        } else if (exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\"")) {
             displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
-        else if (exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\""))
+        } else if (exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\"")) {
             displayErr(reuseWarning);
-        else if (password.length() < 8)
+        } else if (password.length() < 8) {
             displayErr(shortWarning);
-        else break;
+        } else {
+            break;
+        }
     }
 
     std::string snotes = "\"" + notes.toStdString() + "\"";
@@ -318,9 +346,9 @@ int EntryHandler::addEntry(QListWidget *list, Database db) {
 }
 
 template <typename Func>
-QAction *EntryHandler::addButton(QIcon icon, QString statusTip, QKeySequence shortcut, Func func) {
+QAction *EntryHandler::addButton(QIcon icon, const char *whatsThis, QKeySequence shortcut, Func func) {
     QAction *action = new QAction(icon, "");
-    action->setToolTip(statusTip);
+    action->setWhatsThis(tr(whatsThis));
     action->setShortcut(shortcut);
     connect(action, &QAction::triggered, func);
     return action;
@@ -328,6 +356,7 @@ QAction *EntryHandler::addButton(QIcon icon, QString statusTip, QKeySequence sho
 
 int EntryHandler::editEntry(QListWidgetItem *item, Database db) {
     int arc = exec("SELECT * FROM data WHERE name=\"" + item->text().toStdString() + "\"", db, true, _editData);
+    saveSt(db);
     db.modified = true;
     return arc;
 }
@@ -345,7 +374,7 @@ bool EntryHandler::deleteEntry(QListWidgetItem *item, Database db) {
 
         std::cout << "Entry \"" << item->text().toStdString() << "\" successfully deleted." << std::endl;
         return true;
-    } else
+    }
     return false;
 }
 
@@ -364,22 +393,25 @@ int EntryHandler::_editData(void *, int, char **data, char **) {
     replaceAll(notes, " || ", "");
     QString qnotes = QString::fromStdString(notes);
 
-    bool edited;
     while (1) {
-        edited = eh->entryDetails(name, email, url, password, qnotes);
-        if (edited == false) break;
+        bool edited = eh->entryDetails(name, email, url, password, qnotes);
+        if (edited == false) {
+            return true;
+        }
 
-        if (name == "")
+        if (name == "") {
             displayErr("Entry must have a name.");
-        else if (name != origName && exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\""))
+        } else if (name != origName && exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\"")) {
             displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
-        if (password != origPass && exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\""))
+        }
+        if (password != origPass && exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\"")) {
             displayErr(reuseWarning);
-        else if (password.length() < 8)
+        } else if (password.length() < 8) {
             displayErr(shortWarning);
-        else break;
+        } else {
+            break;
+        }
     }
-    if (edited == false) return true;
 
     std::string stmt = "UPDATE data SET name = \"" + name.toStdString() + "\", email = \"" + email.toStdString() + "\", url = \"" + url.toStdString() + "\", notes = \"" + qnotes.toStdString() + "\", password = \"" + password.toStdString() + "\" WHERE name = \"" + name.toStdString() + "\"";
 

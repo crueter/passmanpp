@@ -1,8 +1,9 @@
 #include "constants.h"
 
 void replaceAll(std::string& str, const std::string& from, const std::string& to) {
-    if (from.empty())
+    if (from.empty()) {
         return;
+    }
     size_t start_pos = 0;
     while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
         str.replace(start_pos, from.length(), to);
@@ -39,6 +40,14 @@ std::string atos(int asciiVal) {
 
 Botan::secure_vector<uint8_t> toVec(std::string str) {
     return Botan::secure_vector<uint8_t>(str.begin(), str.end());
+}
+
+Botan::secure_vector<uint8_t> toVec(char *str, int length) {
+    return Botan::secure_vector<uint8_t>(str, str + length);
+}
+
+char *toChar(Botan::secure_vector<uint8_t> vec) {
+    return reinterpret_cast<char *>(vec.data());
 }
 
 std::string toStr(Botan::secure_vector<uint8_t> vec) {

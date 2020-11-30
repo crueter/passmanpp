@@ -23,7 +23,10 @@ int main(int argc,  char** argv) {
             if (ret == QMessageBox::Yes) {
                 path = fh->newLoc();
                 db.path = path;
-                eh->create(db);
+                bool cr = eh->create(db);
+                if (!cr) {
+                    return 1;
+                }
                 break;
             } else if (ret == QMessageBox::No) {
                 path = fh->getDb();
@@ -37,9 +40,12 @@ int main(int argc,  char** argv) {
         }
     } else {
         db.path = argv[1];
+        db.parse();
         bool o = open(db);
 
-        if (!o) return 1;
+        if (!o) {
+            return 1;
+        }
         path = std::experimental::filesystem::v1::canonical(argv[1]);
         db.path = path;
     }
@@ -51,14 +57,18 @@ int main(int argc,  char** argv) {
         std::cout << "passman> ";
         std::getline(std::cin, choice);
 
-        if (choice == "help")
+        if (choice == "help") {
             std::cout << help << std::endl;
-        else if (choice == "edit")
+        }
+        else if (choice == "edit") {
             eh->entryInteract(db);
-        else if (choice == "tips")
+        }
+        else if (choice == "tips") {
             std::cout << tips << std::endl;
-        else if (choice == "info")
+        }
+        else if (choice == "info") {
             std::cout << info << std::endl;
+        }
         else if (choice == "save") {
             if (!db.save()) {
                 std::cout << "Cancelled." << std::endl;
@@ -75,14 +85,16 @@ int main(int argc,  char** argv) {
             }
         }
         else if (choice == "exit") {
-            if (db.modified)
+            if (db.modified) {
                 std::cout << "Please save your work before leaving." << std::endl;
+            }
             else {
                 std::cout << "Thanks for using passman++." << std::endl;
                 return 0;
             }
-        } else
+        } else {
             std::cout << "Invalid choice. Type help for available commands." << std::endl;
+        }
     }
     return app.exec();
 }

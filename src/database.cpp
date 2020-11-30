@@ -21,13 +21,10 @@ void showMessage(std::string msg) {
 }
 
 std::string Database::getPw(std::string password) {
-    std::string uuidLen = atos(uuid.length());
-
-    Botan::secure_vector<uint8_t> vUuid = toVec(uuid);
-
     std::string checksumChoice = checksumMatch[checksum - 1];
-    if (checksumChoice == "Skein-512")
-        checksumChoice = "Skein-512(256, " + iv + ")";
+    if (checksumChoice == "Skein-512") {
+        checksumChoice = "Skein-512(256, " + Botan::hex_encode(iv) + ")";
+    }
 
     std::string hashChoice = hashMatch[hash - 1];
 
@@ -35,20 +32,20 @@ std::string Database::getPw(std::string password) {
         std::unique_ptr<Botan::PasswordHashFamily> pfHash = Botan::PasswordHashFamily::create(hashChoice);
         std::unique_ptr<Botan::PasswordHash> pHash;
         if (hashChoice == "Argon2id") {
-            pHash = pfHash->from_params(hashIters, 80000, 1);
+            pHash = pfHash->from_params(80000, hashIters, 1);
         } else {
             pHash = pfHash->from_params(hashIters);
         }
 
         Botan::secure_vector<uint8_t> ptr(1024);
-        pHash->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), vUuid.data(), int(uuidLen[0]));
+        pHash->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), uuid.data(), uuidLen);
         password = toStr(ptr);
     }
 
     Botan::secure_vector<uint8_t> ptr(32);
     std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create("PBKDF2(" + checksumChoice + ")")->default_params();
 
-    ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), vUuid.data(), uuid.size());
+    ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), uuid.data(), uuidLen);
     return toStr(ptr);
 }
 
@@ -69,34 +66,17 @@ void Database::encrypt(std::string password) {
 
     std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption - 1), Botan::ENCRYPTION);
 
-    if (iv == "") {
+    if (toStr(iv) == "") {
         Botan::AutoSeeded_RNG rng;
-        iv = toStr(rng.random_vec(enc->default_nonce_length()));
+        ivLen = enc->default_nonce_length();
+        iv = rng.random_vec(ivLen);
     }
 
-    std::string ivLen = atos(iv.length());
-    pd << ivLen << iv;
+    pd << atos(ivLen) << toChar(iv);
+    pd << atos(uuidLen) << toChar(uuid);
 
-    std::string uuidLen = atos(uuid.length());
-    pd << uuidLen << uuid;
-
-    std::unique_ptr<Botan::Compression_Algorithm> nameComp = Botan::Compression_Algorithm::create("gzip");
-    Botan::secure_vector<uint8_t> uName = toVec(name);
-    nameComp->start();
-    nameComp->finish(uName);
-
-    name = toStr(uName);
-    std::string nameLen = atos(name.length());
-    pd << nameLen << name;
-
-    std::unique_ptr<Botan::Compression_Algorithm> descComp = Botan::Compression_Algorithm::create("gzip");
-    Botan::secure_vector<uint8_t> uDesc = toVec(desc);
-    descComp->start();
-    descComp->finish(uDesc);
-
-    desc = toStr(uDesc);
-    std::string descLen = atos(desc.length());
-    pd << descLen << desc;
+    pd << atos(nameLen) << name.data();
+    pd << atos(descLen) << desc.data();
 
     std::string ptr = getPw(password);
     Botan::secure_vector<uint8_t> vPassword = toVec(ptr);
@@ -104,16 +84,17 @@ void Database::encrypt(std::string password) {
     enc->set_key(vPassword);
 
     Botan::secure_vector<uint8_t> pt(stList.data(), stList.data() + stList.length());
+
     std::unique_ptr<Botan::Compression_Algorithm> ptComp = Botan::Compression_Algorithm::create("gzip");
 
     ptComp->start();
     ptComp->finish(pt);
 
-    enc->start(toVec(iv));
+    enc->start(iv);
     enc->finish(pt);
 
     std::string pts = toStr(pt);
-    data = pts;
+    data = pt;
     pd << pts;
 
     pd.flush();
@@ -121,34 +102,31 @@ void Database::encrypt(std::string password) {
 }
 
 bool Database::verify(std::string mpass) {
-    Botan::secure_vector<uint8_t> uuidc = toVec(uuid), ivc = toVec(iv), rp = toVec(data);
     std::string ptr = getPw(mpass);
 
-    Botan::secure_vector<uint8_t> vPtr = toVec(ptr);
+    Botan::secure_vector<uint8_t> vPtr = toVec(ptr), pData = data;
 
     std::unique_ptr<Botan::Cipher_Mode> decr = Botan::Cipher_Mode::create(encryptionMatch.at(encryption - 1), Botan::DECRYPTION);
 
     decr->set_key(vPtr);
-    decr->start(ivc);
+    decr->start(iv);
 
     try {
-        decr->finish(rp);
+        decr->finish(pData);
 
         std::unique_ptr<Botan::Decompression_Algorithm> dataDe = Botan::Decompression_Algorithm::create("gzip");
         dataDe->start();
-        dataDe->finish(rp);
+        dataDe->finish(pData);
 
-        stList = toStr(rp);
+        this->stList = toStr(pData);
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
         return false;
-        //displayErr("Wrong password, please try again.\n" + std::string(e.what()));
     }
     return true;
 }
 
 std::string Database::decrypt(std::string txt, std::string password) {
-    Botan::secure_vector<uint8_t> uuidc = toVec(uuid), ivc = toVec(iv);
     std::string mpass;
 
     if (password == "") {
@@ -233,7 +211,9 @@ std::string Database::decrypt(std::string txt, std::string password) {
 
 bool Database::save(std::string password) {
     std::string pw = decrypt(" to save");
-    if (pw == "") return false;
+    if (pw == "") {
+        return false;
+    }
 
     std::string mpass;
     if (pw != "") {
@@ -241,21 +221,19 @@ bool Database::save(std::string password) {
     } else {
         mpass = password;
     }
-    stList = glob_stList;
+    saveSt(*this);
+    this->stList = glob_stList;
     encrypt(mpass);
+
     modified = false;
     return true;
-}
-
-bool Database::saveAs(std::string savePath) {
-    path = savePath;
-    return save();
 }
 
 bool Database::convert() {
     std::ifstream pd(path, std::ios_base::binary | std::ios_base::out);
     std::string iv;
     std::getline(pd, iv);
+
     std::vector<uint8_t> ivd;
     try {
         ivd = Botan::hex_decode(iv);
@@ -264,7 +242,9 @@ bool Database::convert() {
     }
     std::string r(std::istreambuf_iterator<char>{pd}, {});
 
-    if (ivd.size() != 12) return false;
+    if (ivd.size() != 12) {
+        return false;
+    }
 
     showMessage("This database may be for an older version of passman++. I will try to convert it now.");
 
@@ -285,6 +265,7 @@ bool Database::convert() {
 
         decr->set_key(mptr);
         decr->start(ivd);
+
         try {
             decr->finish(vData);
             break;
@@ -293,7 +274,7 @@ bool Database::convert() {
         }
     }
 
-    int uuidLen = randombytes_uniform(80);
+    int uuidLen = 40 + randombytes_uniform(40);
     Botan::AutoSeeded_RNG rng;
     Botan::secure_vector<uint8_t> uuid = rng.random_vec(uuidLen);
 
@@ -306,14 +287,17 @@ bool Database::convert() {
     this->hashIters = 8;
     this->keyFile = false;
     this->encryption = 1;
-    this->uuid = std::string(uuid.begin(), uuid.end());
+    this->iv = Botan::secure_vector<uint8_t>(ivd.begin(), ivd.end());
+    this->ivLen = ivd.size();
+    this->uuid = uuid;
+    this->uuidLen = uuidLen;
     this->name = name;
-    desc = "Converted from old database format.";
+    this->nameLen = name.length();
+    this->desc = "Converted from old database format.";
+    this->descLen = desc.length();
     this->stList = rdata;
-    this->iv = std::string(ivd.begin(), ivd.end());
 
     encrypt(password);
-
     pd.close();
     return true;
 }
@@ -386,44 +370,35 @@ bool Database::parse() {
 
     pd.read(readData, 1);
     if (int(readData[0]) != 0x1DU) {
-        return showErr("No group separator byte after database configuration.");
+        return showErr("No group separator byte after valid database configuration.");
     }
 
     pd.read(len, 1);
+    ivLen = int(len[0]);
 
-    pd.read(readData, int(len[0]));
-    iv = readData;
-
-    pd.read(len, 1);
-
-    pd.read(readData, int(len[0]));
-    uuid = readData;
+    pd.read(readData, ivLen);
+    iv = toVec(readData, ivLen);
 
     pd.read(len, 1);
+    uuidLen = int(len[0]);
 
-    pd.read(readData, int(len[0]));
+    pd.read(readData, uuidLen);
 
-    std::unique_ptr<Botan::Decompression_Algorithm> decomp = Botan::Decompression_Algorithm::create("gzip");
-    std::string sData(readData, int(len[0]));
-    Botan::secure_vector<uint8_t> uData = toVec(sData);
-
-    decomp->start();
-    decomp->finish(uData);
-
-    name = toStr(uData);
+    uuid = toVec(readData, uuidLen);
 
     pd.read(len, 1);
+    nameLen = int(len[0]);
 
-    pd.read(readData, int(len[0]));
+    pd.read(readData, nameLen);
+    name = std::string(readData, nameLen);
 
-    std::unique_ptr<Botan::Decompression_Algorithm> decompD = Botan::Decompression_Algorithm::create("gzip");
-    std::string sDataD(readData, int(len[0]));
-    Botan::secure_vector<uint8_t> uDataD = toVec(sDataD);
-    decompD->start();
-    decompD->finish(uDataD);
+    pd.read(len, 1);
+    descLen = int(len[0]);
 
-    desc = toStr(uDataD);
-    data = std::string(std::istreambuf_iterator<char>{pd}, {});
+    pd.read(readData, descLen);
+    desc = std::string(readData, descLen);
+
+    data = Botan::secure_vector<uint8_t>(std::istreambuf_iterator<char>{pd}, {});
 
     pd.close();
     return true;

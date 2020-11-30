@@ -7,7 +7,9 @@ bool open(Database db) {
         db.parse();
         try {
             std::string p = db.decrypt(" to login");
-            if (p == "") return false;
+            if (p == "") {
+                return false;
+            }
         } catch (std::exception& e) {
             displayErr(e.what());
             return false;

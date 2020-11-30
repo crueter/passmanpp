@@ -25,7 +25,6 @@ public:
     void encrypt(std::string password);
     std::string decrypt(std::string txt = "", std::string password = "");
     bool save(std::string password = "");
-    bool saveAs(std::string savePath);
     bool convert();
 
     bool verify(std::string mpass);
@@ -33,21 +32,28 @@ public:
     bool keyFile;
     bool modified = false;
 
-    int checksum;
-    int deriv;
-    int hash;
-    int hashIters;
-    int encryption;
-    int version = MAX_SUPPORTED_VERSION_NUMBER;
+    unsigned int checksum;
+    unsigned int deriv;
+    unsigned int hash;
+    unsigned int hashIters;
+    unsigned int encryption;
+    unsigned int version = MAX_SUPPORTED_VERSION_NUMBER;
 
-    std::string iv;
-    std::string uuid;
+    Botan::secure_vector<uint8_t> iv;
+    Botan::secure_vector<uint8_t> uuid;
+    Botan::secure_vector<uint8_t> data;
+
     std::string name;
     std::string desc;
-    std::string data;
+
+    unsigned int ivLen;
+    unsigned int uuidLen;
+    unsigned int nameLen;
+    unsigned int descLen;
 
     std::string stList;
     std::string path;
+    std::string keyFilePath;
 };
 
 #endif // DATABASE_H
