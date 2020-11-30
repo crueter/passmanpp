@@ -29,9 +29,9 @@ Feel free to contribute whatever you want.
 passman++ is made possible by:
 
 - The following FOSS libraries:
- * [Botan](https://github.com/randombit/botan/)
- * [Qt](https://qt.io)
- * [libsodium](https://github.com/jedisct1/libsodium)
+  * [Botan](https://github.com/randombit/botan/)
+  * [Qt](https://qt.io)
+  * [libsodium](https://github.com/jedisct1/libsodium)
 - The amazing people on the [Qt forum](https://forum.qt.io) (and [randombit](https://github.com/randombit), too!) for helping me debug many of my internal issues
 - My friend Lenny for originally helping me create PyPassMan's AES version
 - The Qt devs and [docs](https://doc.qt.io)
