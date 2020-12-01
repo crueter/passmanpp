@@ -22,7 +22,7 @@ int main(int argc,  char** argv) {
                     return 1;
                 }
                 db.path = path;
-                bool cr = eh->create(db);
+                bool cr = db.config();
                 if (!cr) {
                     return 1;
                 }
@@ -45,7 +45,7 @@ int main(int argc,  char** argv) {
             return 1;
         }
         db.path = path;
-        bool cr = eh->create(db);
+        bool cr = db.config();
         if (!cr) {
             return 1;
         }
@@ -67,7 +67,7 @@ int main(int argc,  char** argv) {
     db.parse();
 
     if (argc >= 3) {
-        choiceHandle(argv[2], eh, fh, db, path);
+        choiceHandle(argv[2], eh, fh, db);
     }
 
     std::cout << welcomeMessage << std::endl;
@@ -75,7 +75,7 @@ int main(int argc,  char** argv) {
         std::cout << "passman> ";
         std::getline(std::cin, choice);
 
-        choiceHandle(choice, eh, fh, db, path);
+        choiceHandle(choice, eh, fh, db);
     }
     return app.exec();
 }

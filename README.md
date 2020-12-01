@@ -9,7 +9,6 @@ An extremely simple and minimal yet just as secure and powerful command-line and
 # Building
 After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE! THE MAIN BRANCH IS UNSTABLE!), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) installed, and then:
 ```bash
-$ cd src
 $ qmake passman.pro
 $ make
 ```
@@ -53,7 +52,7 @@ Stuff I planned to do and have already done:
 - Using Qt for a GUI
 - More error handling
 - Streamlined way to access your data (aka, the GUI)
-- More advanced password generator (partially done; will add extended ASCII maybe)
+- More advanced password generator
 - Better entry modification tool
 
 # 2.0 UPDATE
@@ -63,7 +62,8 @@ All planned updates for passman++ 2.0:
 - Icons and attachments
 - Allow for more stuff to be stored there, i.e. user-input attributes
 - More advanced password generator + EASCII
-- Database config (effectively done, just need on-the-fly config)
+- Switch to CMake
+- Add some help
 
 # 2.0 UPDATE: Already Done
 Previously planned updates for passman++ 2.0 that have already been implemented:
@@ -78,6 +78,7 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
   * Blake2b(256), SHA-3(256), SHAKE-256(256), Skein-512, SHA-256
   * Argon2id, Bcrypt-PBKDF, or no hashing at all (only derivation)
   * Potentially see if any more PBKD functions can be used
+- Database config and changing it on-the-fly
 
 # Relation to PyPassMan
 I would NOT recommend using PyPassMan currently. As you've read, 2.0 will be a MASSIVE update, so much so that it'll be superior in every single possible conceivable way imaginable to PyPassMan. Plus, I stopped development of that a while ago and removed it from the AUR.

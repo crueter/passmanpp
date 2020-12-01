@@ -4,7 +4,7 @@
 #include "file_handler.h"
 #include "entry_handler.h"
 
-int FileHandler::backup(Database db, std::string path) {
+int FileHandler::backup(Database db) {
     QString fileName = QFileDialog::getSaveFileName(this, tr("Backup Location"), "", tr(fileExt));
     if (fileName.isEmpty()) {
         return 3;
@@ -14,7 +14,7 @@ int FileHandler::backup(Database db, std::string path) {
         return 17;
     }
     try {
-        db.path = path;
+        db.path = fileName.toStdString();
         db.save();
     } catch (std::exception& e) {
         displayErr(e.what());
@@ -31,12 +31,12 @@ std::string FileHandler::getDb() {
 }
 
 std::string FileHandler::newKeyFile() {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("New Key File"), "", tr("passman++ Key Files (*.pkpp);;All Files (*)"));
+    QString fileName = QFileDialog::getSaveFileName(this, tr("New Key File"), "", tr(keyExt));
     return fileName.toStdString();
 }
 
 std::string FileHandler::getKeyFile() {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open Key File"), "", tr("passman++ Key Files (*.pkpp);;All Files (*)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open Key File"), "", tr(keyExt));
     return fileName.toStdString();
 }
 

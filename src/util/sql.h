@@ -4,8 +4,7 @@
 #include <QListWidgetItem>
 #include <sqlite3.h>
 
-#include "stringutil.h"
-#include "database.h"
+#include "../database.h"
 
 extern std::ofstream pdb;
 extern std::string glob_stList;

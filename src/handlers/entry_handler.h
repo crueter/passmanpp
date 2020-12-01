@@ -1,9 +1,9 @@
 #ifndef ENTRY_HANDLER_H
 #define ENTRY_HANDLER_H
 #include <QInputDialog>
+#include <QListWidgetItem>
 
-#include "database.h"
-#include "generators.h"
+#include "../database.h"
 
 void displayErr(std::string msg);
 
@@ -13,7 +13,6 @@ public:
     int entryInteract(Database db);
     bool entryDetails(QString& name, QString& url, QString& email, QString& password, QString& notes);
 
-    bool create(Database db);
     QString randomPass();
 
     int addEntry(QListWidget *item, Database db);

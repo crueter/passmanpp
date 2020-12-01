@@ -1,18 +1,16 @@
-#include "database.h"
-#include "constants.h"
-#include "entry_handler.h"
-#include "file_handler.h"
+#include "handlers/entry_handler.h"
+#include "handlers/file_handler.h"
 
 #include <QInputDialog>
-#include <QLabel>
-#include <QGridLayout>
-#include <QDialogButtonBox>
 #include <QPushButton>
-#include <QGraphicsOpacityEffect>
-#include <QPropertyAnimation>
-#include <QTimer>
+#include <QLabel>
+#include <QFormLayout>
+#include <QDialogButtonBox>
+#include <QComboBox>
+#include <QSpinBox>
 
 Database::Database() {}
+std::string kfp = "";
 
 void showMessage(std::string msg) {
     QMessageBox box;
@@ -72,12 +70,13 @@ void Database::encrypt(std::string password) {
         iv = rng.random_vec(ivLen);
     }
 
-    pd << atos(ivLen) << toChar(iv);
+    pd << atos(ivLen) << toChar(iv);    
 
     pd << atos(nameLen) << name.data();
     pd << atos(descLen) << desc.data();
 
     std::string ptr = getPw(password);
+
     Botan::secure_vector<uint8_t> vPassword = toVec(ptr);
 
     enc->set_key(vPassword);
@@ -169,8 +168,6 @@ std::string Database::decrypt(std::string txt, std::string password) {
         passEdit->setEchoMode(QLineEdit::Password);
         passEdit->setCursorPosition(0);
 
-        passLabel->setBuddy(passEdit);
-
         QLineEdit *keyEdit = new QLineEdit;
         QPushButton *getKeyFile = new QPushButton(QWidget::tr("Open"));
         QDialogButtonBox *keyBox = new QDialogButtonBox;
@@ -188,7 +185,6 @@ std::string Database::decrypt(std::string txt, std::string password) {
             });
 
             keyBox->addButton(getKeyFile, QDialogButtonBox::ActionRole);
-            keyLabel->setBuddy(keyEdit);
         }
 
         QDialogButtonBox *passButtons = new QDialogButtonBox(QDialogButtonBox::Ok);
@@ -231,7 +227,7 @@ std::string Database::decrypt(std::string txt, std::string password) {
             passDi->repaint();
 
             if (keyFile) {
-                this->keyFilePath = keyEdit->text().toStdString();
+                keyFilePath = keyEdit->text().toStdString();
             }
 
             if (pw == "") {
@@ -283,12 +279,13 @@ std::string Database::decrypt(std::string txt, std::string password) {
         }
 
         keyFilePath = keyEdit->text().toStdString();
+        kfp = keyFilePath;
+
         return passEdit->text().toStdString();
     } else {
         verify(password);
         return password;
     }
-
 }
 
 bool Database::save(std::string password) {
@@ -384,10 +381,10 @@ bool Database::showErr(std::string msg) {
 }
 
 bool Database::parse() {
-    std::ifstream pd(path, std::ios_base::binary | std::ios_base::out);
-    char readData[65536], len[2];
+    std::ifstream pd(path, std::ios_base::binary);
+    char readData[64], len[2];
     pd.read(readData, 6);
-    if (readData != "PD++" + atos(0x11U) + atos(0x11U)) {
+    if (std::string(readData, 6) != "PD++" + atos(0x11U) + atos(0x11U)) {
         bool conv = convert();
         if (!conv) {
             return showErr("Invalid magic number \"" + std::string(readData) + "\".");
@@ -470,5 +467,153 @@ bool Database::parse() {
     data = Botan::secure_vector<uint8_t>(std::istreambuf_iterator<char>{pd}, {});
 
     pd.close();
+    return true;
+}
+
+bool Database::config(bool create) {
+    if (!create) {
+        parse();
+    }
+
+    QDialog *di = new QDialog;
+    di->setWindowTitle("Database Options");
+
+    QFormLayout *layout = new QFormLayout;
+
+    auto comboBox = [layout, create](std::vector<const char *> vec, const char *label, int val) -> QComboBox* {
+        QComboBox *box = new QComboBox;
+        QStringList list = QStringList(vec.begin(), vec.end());
+        box->addItems(list);
+        box->setCurrentIndex(create ? 0 : val - 1);
+        layout->addRow(QWidget::tr(label), box);
+        return box;
+    };
+
+    QLineEdit *pass = new QLineEdit;
+    pass->setPlaceholderText(QWidget::tr("Password"));
+    pass->setEchoMode(QLineEdit::Password);
+    layout->addRow(QWidget::tr("Password:"), pass);
+
+    auto lineEdit = [layout](const char *text, std::string defText, const char *label) -> QLineEdit* {
+        QLineEdit *le = new QLineEdit;
+        le->setPlaceholderText(QWidget::tr(text));
+        le->setMaxLength(255);
+        le->setText(QString::fromStdString(defText));
+
+        layout->addRow(QWidget::tr(label), le);
+        return le;
+    };
+
+    QLineEdit *nameEdit = lineEdit("Name", name, "Name:");
+    QLineEdit *descEdit = lineEdit("Description", desc, "Description:");
+
+    QComboBox *checksumBox = comboBox(checksumMatch, "Checksum Function:", checksum);
+    QComboBox *derivBox = comboBox(derivMatch, "Key Derivation Function:", deriv);
+    QComboBox *hashBox = comboBox(hashMatch, "Password Hashing Function:", hash);
+    QComboBox *encryptionBox = comboBox(encryptionMatch, "Data Encryption Function:", encryption);
+
+    int iterVal = create ? 8 : hashIters;
+
+    QSpinBox *hashIterBox = new QSpinBox;
+    hashIterBox->setRange(8, 40);
+    hashIterBox->setSingleStep(1);
+    hashIterBox->setValue(iterVal);
+
+    layout->addRow(QWidget::tr("Password Hashing Iterations:"), hashIterBox);
+
+    QLineEdit *keyEdit = new QLineEdit;
+    keyEdit->setText(QString::fromStdString(kfp));
+
+    FileHandler *fh = new FileHandler;
+
+    QPushButton *newKeyFile = new QPushButton(QWidget::tr("New"));
+    QWidget::connect(newKeyFile, &QPushButton::clicked, [keyEdit, fh] {
+        keyEdit->setText(QString::fromStdString(fh->newKeyFile()));
+    });
+
+    QPushButton *getKeyFile = new QPushButton(QWidget::tr("Open"));
+    QWidget::connect(getKeyFile, &QPushButton::clicked, [keyEdit, fh] {
+        keyEdit->setText(QString::fromStdString(fh->getKeyFile()));
+    });
+
+    QDialogButtonBox *keyBox = new QDialogButtonBox;
+    keyBox->addButton(newKeyFile, QDialogButtonBox::ActionRole);
+    keyBox->addButton(getKeyFile, QDialogButtonBox::ActionRole);
+
+    layout->addRow(QWidget::tr("Key File:"), keyEdit);
+    layout->addWidget(keyBox);
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(di);
+    buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+
+    QWidget::connect(buttonBox, &QDialogButtonBox::accepted, [pass, di, create]() mutable {
+        std::string pw = pass->text().toStdString();
+        if (create && pw == "") {
+            displayErr("Password must be provided.");
+        } else {
+            if (create && pw.length() < 8) {
+                std::cerr << "Warning: your password is less than 8 characters long. Consider making it longer." << std::endl;
+            }
+            di->accept();
+        }
+    });
+    QWidget::connect(buttonBox, &QDialogButtonBox::rejected, di, &QDialog::reject);
+
+    layout->addWidget(buttonBox);
+
+    di->setLayout(layout);
+    int ret = di->exec();
+
+    if (ret == QDialog::Rejected) {
+        return false;
+    }
+
+    if (create) {
+        stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
+        exec(stList);
+    }
+
+    std::string pw = pass->text().toStdString();
+    std::string kfPath = keyEdit->text().toStdString();
+    bool kf = !kfPath.empty();
+
+    if (!std::experimental::filesystem::exists(kfPath)) {
+        genKey(kfPath);
+    }
+
+    if (!create) {
+        std::string dec = decrypt(" to save your new configuration");
+        if (pw.empty()) {
+            pw = dec;
+        }
+        saveSt(*this);
+        stList = glob_stList;
+    }
+
+    checksum = checksumBox->currentIndex() + 1;
+    deriv = derivBox->currentIndex() + 1;
+    hash = hashBox->currentIndex() + 1;
+    hashIters = hashIterBox->value();
+    encryption = encryptionBox->currentIndex() + 1;
+    name = nameEdit->text().toStdString();
+    desc = descEdit->text().toStdString();
+
+    if (kf) {
+        keyFilePath = kfPath;
+    }
+    keyFile = kf;
+
+    if (name == "") {
+        name = "None";
+    }
+    nameLen = name.length();
+
+    if (desc == "") {
+        desc = "None";
+    }
+    descLen = desc.length();
+
+    encrypt(pw);
+
     return true;
 }

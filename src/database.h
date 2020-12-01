@@ -7,10 +7,9 @@
 #include <botan/auto_rng.h>
 #include <botan/hex.h>
 
-#include "stringutil.h"
 #include "constants.h"
 
-Botan::secure_vector<uint8_t> toVec(std::string str);
+extern std::string kfp;
 void showMessage(std::string msg);
 
 class Database
@@ -24,6 +23,8 @@ public:
 
     void encrypt(std::string password);
     std::string decrypt(std::string txt = "", std::string password = "");
+    bool config(bool create = true);
+
     bool save(std::string password = "");
     bool convert();
 

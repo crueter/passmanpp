@@ -1,6 +1,6 @@
 #include "manager.h"
 
-bool choiceHandle(std::string choice, EntryHandler *eh, FileHandler *fh, Database db, std::string path) {
+bool choiceHandle(std::string choice, EntryHandler *eh, FileHandler *fh, Database db) {
     if (choice == "help") {
         std::cout << help << std::endl;
     } else if (choice == "edit") {
@@ -14,7 +14,7 @@ bool choiceHandle(std::string choice, EntryHandler *eh, FileHandler *fh, Databas
             std::cerr << "Cancelled." << std::endl;
         }
     } else if (choice == "backup") {
-        int br = fh->backup(db, path);
+        int br = fh->backup(db);
         if (br == 3) {
             displayErr("Invalid backup location.");
         } else if (br == 17) {
@@ -22,6 +22,8 @@ bool choiceHandle(std::string choice, EntryHandler *eh, FileHandler *fh, Databas
         } else {
             std::cout << "Database backed up successfully." << std::endl;
         }
+    } else if (choice == "config") {
+        db.config(false);
     } else if (choice == "exit") {
         if (db.modified) {
             std::cout << "Please save your work before leaving." << std::endl;
