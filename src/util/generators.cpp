@@ -1,6 +1,7 @@
 #include <ios>
 #include <iterator>
 #include <algorithm>
+#include <sodium/randombytes.h>
 
 #include "generators.h"
 

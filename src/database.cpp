@@ -8,6 +8,10 @@
 #include <QDialogButtonBox>
 #include <QComboBox>
 #include <QSpinBox>
+#include <QMenuBar>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QDebug>
 
 Database::Database() {}
 std::string kfp = "";
@@ -40,8 +44,10 @@ std::string Database::getPw(std::string password) {
         password = toStr(ptr);
     }
 
+    std::string derivChoice = derivMatch[deriv - 1];
+
     Botan::secure_vector<uint8_t> ptr(32);
-    std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create("PBKDF2(" + checksumChoice + ")")->default_params();
+    std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create(derivChoice + "(" + checksumChoice + ")")->default_params();
 
     ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
     return toStr(ptr);
@@ -70,7 +76,7 @@ void Database::encrypt(std::string password) {
         iv = rng.random_vec(ivLen);
     }
 
-    pd << atos(ivLen) << toChar(iv);    
+    pd << atos(ivLen) << toChar(iv);
 
     pd << atos(nameLen) << name.data();
     pd << atos(descLen) << desc.data();
@@ -80,6 +86,8 @@ void Database::encrypt(std::string password) {
     Botan::secure_vector<uint8_t> vPassword = toVec(ptr);
 
     enc->set_key(vPassword);
+
+    std::cout << stList << std::endl;
 
     Botan::secure_vector<uint8_t> pt(stList.data(), stList.data() + stList.length());
 
@@ -300,8 +308,7 @@ bool Database::save(std::string password) {
     } else {
         mpass = password;
     }
-    saveSt(*this);
-    this->stList = glob_stList;
+    stList = saveSt(*this);
     encrypt(mpass);
 
     modified = false;
@@ -369,6 +376,9 @@ bool Database::convert() {
     this->desc = "Converted from old database format.";
     this->descLen = desc.length();
     this->stList = rdata;
+    execAll(rdata);
+    this->stList = saveSt(*this);
+    db.exec("DROP TABLE data");
 
     encrypt(password);
     pd.close();
@@ -382,7 +392,7 @@ bool Database::showErr(std::string msg) {
 
 bool Database::parse() {
     std::ifstream pd(path, std::ios_base::binary);
-    char readData[64], len[2];
+    char readData[256], len[2];
     pd.read(readData, 6);
     if (std::string(readData, 6) != "PD++" + atos(0x11U) + atos(0x11U)) {
         bool conv = convert();
@@ -479,6 +489,12 @@ bool Database::config(bool create) {
     di->setWindowTitle("Database Options");
 
     QFormLayout *layout = new QFormLayout;
+    QMenuBar *bar = new QMenuBar;
+    QMenu *help = bar->addMenu(QWidget::tr("Help"));
+    help->addAction(QWidget::tr("Choosing Options"), []{
+        qDebug() << choosingUrl;
+        QDesktopServices::openUrl(QUrl(choosingUrl));
+    });
 
     auto comboBox = [layout, create](std::vector<const char *> vec, const char *label, int val) -> QComboBox* {
         QComboBox *box = new QComboBox;
@@ -560,6 +576,7 @@ bool Database::config(bool create) {
     QWidget::connect(buttonBox, &QDialogButtonBox::rejected, di, &QDialog::reject);
 
     layout->addWidget(buttonBox);
+    layout->setMenuBar(bar);
 
     di->setLayout(layout);
     int ret = di->exec();
@@ -569,8 +586,8 @@ bool Database::config(bool create) {
     }
 
     if (create) {
-        stList = "CREATE TABLE data (name text, email text, url text, notes text, password text)";
-        exec(stList);
+        QString stList = getCreate(QString::fromStdString(name), {"name", "email", "url", "notes", "password"}, {QVariant::String, QVariant::String, QVariant::String, QVariant::String, QVariant::String}, {"default", "default@example.com", "example.com", "This is a default, example entry. Feel free to remove it."});
+        db.exec(stList);
     }
 
     std::string pw = pass->text().toStdString();

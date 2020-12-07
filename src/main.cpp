@@ -1,9 +1,14 @@
 #include <QApplication>
+#include <QFile>
+#include <QDir>
+#include <QDirIterator>
+#include <QDebug>
 
 #include "manager.h"
 
 int main(int argc,  char** argv) {
     QApplication app (argc, argv);
+    dbInit();
     FileHandler* fh = new FileHandler;
     EntryHandler* eh = new EntryHandler;
     Database db;

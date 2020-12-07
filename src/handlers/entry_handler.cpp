@@ -6,6 +6,8 @@
 #include <QMenuBar>
 #include <QPushButton>
 #include <QDialogButtonBox>
+#include <QDebug>
+#include <QDesktopServices>
 
 #include "file_handler.h"
 #include "entry_handler.h"
@@ -52,9 +54,11 @@ int EntryHandler::entryInteract(Database db) {
     layout->addWidget(ok);
     dialog->setLayout(layout);
 
-    list->setWindowTitle(tr("Select an entry"));
-    for (std::string name : getNames(db))
-        list->addItem(QString::fromStdString(name));
+    dialog->setWindowTitle(tr("Select an entry"));
+    for (QSqlQuery q : selectAll()) {
+        qDebug() << q.record();
+        list->addItem(q.record().field(0).tableName());
+    }
 
     connect(list, &QListWidget::itemDoubleClicked, this, [db, this](QListWidgetItem *item){
         editEntry(item, db);
@@ -181,7 +185,7 @@ QString EntryHandler::randomPass() {
     }
 }
 
-int EntryHandler::addEntry(QListWidget *list, Database db) {
+int EntryHandler::addEntry(QListWidget *list, Database tdb) {
     QString name, url, email, notes, password;
     while(1) {
         bool ok = entryDetails(name, email, url, password, notes);
@@ -191,9 +195,9 @@ int EntryHandler::addEntry(QListWidget *list, Database db) {
 
         if (name == "") {
             displayErr("Entry must have a name.");
-        } else if (exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\"")) {
+        } else if (exists("name", name)) {
             displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
-        } else if (exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\"")) {
+        } else if (exists("password", password)) {
             displayErr(reuseWarning);
         } else if (password.length() < 8) {
             displayErr(shortWarning);
@@ -202,19 +206,20 @@ int EntryHandler::addEntry(QListWidget *list, Database db) {
         }
     }
 
-    std::string snotes = "\"" + notes.toStdString() + "\"";
+    QString snotes = "\"" + notes + "\"";
+    snotes.replace("\n", " || char(10) || ");
+    snotes.replace("||  ||", "||");
 
-    replaceAll(snotes, "\n", " || char(10) || ");
-    replaceAll(snotes, "||  ||", "||");
-    int arc = exec("INSERT INTO data (name, email, url, notes, password) VALUES (\"" + name.toStdString() + "\", \"" + email.toStdString() + "\", \"" + url.toStdString() + "\", " + snotes + ", \"" + password.toStdString() + "\")", db);
-    saveSt(db);
+    QString st = getCreate(name, {"name", "email", "url", "notes", "password"}, {QVariant::String, QVariant::String, QVariant::String, QVariant::String, QVariant::String}, {name, email, url, snotes, password});
+    bool ok = db.exec(st).isValid();
+    saveSt(tdb);
 
-    db.modified = true;
+    tdb.modified = true;
     std::cout << "Entry \"" << name.toStdString() << "\" successfully added." << std::endl;
     list->addItem(name);
     list->sortItems();
 
-    return arc;
+    return ok;
 }
 
 template <typename Func>
@@ -226,14 +231,65 @@ QAction *EntryHandler::addButton(QIcon icon, const char *whatsThis, QKeySequence
     return action;
 }
 
-int EntryHandler::editEntry(QListWidgetItem *item, Database db) {
-    int arc = exec("SELECT * FROM data WHERE name=\"" + item->text().toStdString() + "\"", db, true, _editData);
-    saveSt(db);
-    db.modified = true;
-    return arc;
+int EntryHandler::editEntry(QListWidgetItem *item, Database tdb) {
+    QString st = "SELECT * FROM " + item->text();
+    QSqlQuery q(db);
+    q.exec(st);
+    bool ok = false;
+
+    while (q.next()) {
+        QString name = q.record().value(0).toString();
+        QString origName = name;
+        QString email = q.record().value(1).toString();
+        QString url = q.record().value(2).toString();
+
+        QString password = q.record().value(4).toString();
+        QString origPass = password;
+
+        QString notes = q.record().value(3).toString();
+        notes.replace("char(10)", "\n");
+        notes.replace(" || ", "");
+
+        while (1) {
+            bool edited = entryDetails(name, email, url, password, notes);
+            if (edited == false) {
+                return true;
+            }
+
+            if (name == "") {
+                displayErr("Entry must have a name.");
+            } else if (name != origName && exists("name", name)) {
+                displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
+            } else if (password != origPass && exists("password", password)) {
+                displayErr(reuseWarning);
+            } else if (password.length() < 8) {
+                displayErr(shortWarning);
+            } else {
+                break;
+            }
+        }
+
+        QString stm;
+
+        if (name != origName) {
+            db.exec("DROP TABLE " + origName);
+            stm = getCreate(name, {"name", "email", "url", "notes", "password"}, {QVariant::String, QVariant::String, QVariant::String, QVariant::String, QVariant::String}, {name, email, url, notes, password});
+        } else {
+            stm = "UPDATE " + name + " SET name = \"" + name + "\", email = \"" + email + "\", url = \"" + url + "\", notes = \"" + notes + "\", password = \"" + password + "\" WHERE name = \"" + name + "\"";
+        }
+
+        ok = db.exec(stm).isValid();
+        if (ok) {
+            std::cout << "Entry \"" << name.toStdString() << "\" successfully edited." << std::endl;
+        }
+    }
+    q.finish();
+    saveSt(tdb);
+    tdb.modified = true;
+    return ok;
 }
 
-bool EntryHandler::deleteEntry(QListWidgetItem *item, Database db) {
+bool EntryHandler::deleteEntry(QListWidgetItem *item, Database tdb) {
     QMessageBox delChoice;
     delChoice.setText(tr(std::string("Are you sure you want to delete entry \"" + item->text().toStdString() + "\"? This action is IRREVERSIBLE!").c_str()));
     delChoice.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
@@ -241,53 +297,11 @@ bool EntryHandler::deleteEntry(QListWidgetItem *item, Database db) {
     int ret = delChoice.exec();
 
     if (ret == QMessageBox::Yes) {
-        exec("DELETE FROM data WHERE name=\"" + item->text().toStdString() + "\"", db);
-        db.modified = true;
+        db.exec("DROP TABLE " + item->text());
+        tdb.modified = true;
 
         std::cout << "Entry \"" << item->text().toStdString() << "\" successfully deleted." << std::endl;
         return true;
     }
     return false;
-}
-
-int EntryHandler::_editData(void *, int, char **data, char **) {
-    EntryHandler *eh = new EntryHandler;
-    QString name = data[0];
-    QString origName = name;
-    QString email = data[1];
-    QString url = data[2];
-
-    QString password = data[4];
-    QString origPass = password;
-
-    std::string notes = data[3];
-    replaceAll(notes, "char(10)", "\n");
-    replaceAll(notes, " || ", "");
-    QString qnotes = QString::fromStdString(notes);
-
-    while (1) {
-        bool edited = eh->entryDetails(name, email, url, password, qnotes);
-        if (edited == false) {
-            return true;
-        }
-
-        if (name == "") {
-            displayErr("Entry must have a name.");
-        } else if (name != origName && exists("SELECT * FROM data WHERE name=\"" + name.toStdString() + "\"")) {
-            displayErr("An entry named \"" + name.toStdString() + "\" already exists.");
-        }
-        if (password != origPass && exists("SELECT * FROM data WHERE password=\"" + password.toStdString() + "\"")) {
-            displayErr(reuseWarning);
-        } else if (password.length() < 8) {
-            displayErr(shortWarning);
-        } else {
-            break;
-        }
-    }
-
-    std::string stmt = "UPDATE data SET name = \"" + name.toStdString() + "\", email = \"" + email.toStdString() + "\", url = \"" + url.toStdString() + "\", notes = \"" + qnotes.toStdString() + "\", password = \"" + password.toStdString() + "\" WHERE name = \"" + name.toStdString() + "\"";
-
-    int arc = exec(stmt);
-    std::cout << "Entry \"" << name.toStdString() << "\" successfully edited." << std::endl;
-    return arc;
 }

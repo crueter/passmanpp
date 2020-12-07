@@ -30,8 +30,9 @@ static const std::string tips = "A good password contains:\n"
                           "Do not store your passwords in an easy-to-find location. Either use a password manager like this one, or store it in a place nobody can find. Never just try to \"remember\" them, either--your memory is volatile. A password manager is far better at remembering things than you ever will be.\n"
                           "Lock your computer and phone when not using them, especially if you store passwords on it.";
 
+static const std::string github = "https://github.com/binex-dsk/passmanpp";
 static const std::string info = "passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\n"
-                          "Project repository: https://github.com/binex-dsk/passmanpp\n"
+                          "Project repository: " + github + "\n"
                           "FOSS Libraries used: Botan, Qt, libsodium\n"
                           "Botan version: " + BOTAN_VERSION + "\n"
                           "Current version: " + PASSMAN_VERSION;
@@ -50,9 +51,9 @@ static const std::string usage = "usage: ./passman [PATH] [COMMAND]\n"
                                  "where COMMAND is one of:\n"
                                  "new: create a new database\n"
                                  "help: this help message\n\n"
-                                 "submit all bug reports, or take a look at the source code, at https://github.com/binex-dsk/passmanpp.";
+                                 "submit all bug reports, or take a look at the source code, at " + github + ".";
 
-static const std::string welcomeMessage = "You may find the source code at https://github.com/binex-dsk/passmanpp.\n"
+static const std::string welcomeMessage = "You may find the source code at " + github + ".\n"
                                           "Type help for available commands.";
 
 static const std::string reuseWarning = "This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!";
@@ -60,6 +61,7 @@ static const std::string shortWarning = "Please make your password at least 8 ch
 
 static const char fileExt[49] = "passman++ Database Files (*.pdpp);;All Files (*)";
 static const char keyExt[44] = "passman++ Key Files (*.pkpp);;All Files (*)";
+static const char choosingUrl[71] = "https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md";
 static const std::string whiteSpace = " \t\v\r\n";
 
 static const std::vector<std::string> capital = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};

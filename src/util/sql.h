@@ -2,24 +2,27 @@
 #define SQL_H
 #include <QMessageBox>
 #include <QListWidgetItem>
-#include <sqlite3.h>
+#include <QSqlDatabase>
+#include <QSqlError>
+#include <QSqlQuery>
+#include <QSqlRecord>
+#include <QSqlField>
+#include <QVector>
 
 #include "../database.h"
 
-extern std::ofstream pdb;
-extern std::string glob_stList;
+extern QSqlDatabase db;
 
-extern sqlite3* db;
+void dbInit();
+QString typeConv(QVariant::Type type);
+//int exec(std::string cmd, Database tdb = Database(), bool save = true, int (*callback)(void*, int, char**, char**) = nullptr);
 
-int _getNames(void *, int, char **data, char **);
-int _saveSt(void *, int count, char **data, char **cols);
-int _getUnion(void *, int, char **data, char **);
-int _createSt(void *, int, char **data, char **);
+void execAll(std::string stmt);
+QString getCreate(QString name, QStringList names, QList<QVariant::Type> types, QVariantList values);
+QVector<QSqlQuery> selectAll();
+std::string saveSt(Database tdb, bool exec = false);
 
-int exec(std::string cmd, Database tdb = Database(), bool save = true, int (*callback)(void*, int, char**, char**) = nullptr);
-void saveSt(Database tdb);
-
-bool exists(std::string cmd);
+bool exists(QString field, QString value);
 
 std::vector<std::string> getNames(Database tdb);
 

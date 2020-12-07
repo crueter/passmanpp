@@ -40,22 +40,24 @@ std::string FileHandler::getKeyFile() {
     return fileName.toStdString();
 }
 
-bool FileHandler::open(Database db) {
-    if (std::experimental::filesystem::exists(db.path)) {
-        db.parse();
-        try {
-            std::string p = db.decrypt(" to login");
-            if (p == "") {
+bool FileHandler::open(Database tdb) {
+    if (std::experimental::filesystem::exists(tdb.path)) {
+        tdb.parse();
+        if (tdb.stList == "") {
+            try {
+                std::string p = tdb.decrypt(" to login");
+                if (p == "") {
+                    return false;
+                }
+            } catch (std::exception& e) {
+                displayErr(e.what());
                 return false;
             }
-        } catch (std::exception& e) {
-            displayErr(e.what());
-            return false;
         }
         std::string line;
-        std::istringstream iss(db.stList);
+        std::istringstream iss(tdb.stList);
         while (std::getline(iss, line)) {
-            exec(line, db, false);
+            db.exec(QString::fromStdString(line));
         }
         return true;
     }
