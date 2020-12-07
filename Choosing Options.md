@@ -11,7 +11,7 @@ Derivation functions:
 Password Hashing functions:
  - Argon2id was the winner of the Password Hashing Competition in July 2015. Hybrid of Argon2i and Argon2d combining the security functions of both. Extremely hard to bruteforce due to its very high memory requirements, but higher memory usage or hashing iterations can be very slow. Generally, you'll want to use this, as it's the best of the best, essentially. Default option for very obvious reasons.
  - Bcrypt-PBKDF should be avoided because Argon2id is better against bruteforce attacks. It's still very secure, however, so use it if you please.
- - No hashing with only a derivation function should also generally be avoided, but with something such as Blake2b it's still secure.
+ - No hashing with only a derivation function should also generally be avoided, but with something such as Blake2b it's still secure. It's also significantly faster.
 
 Encryption functions:
  - AES-256/GCM has been the industry standard for a very, very long time. Very fast, and basically the best you'll find. Due to how widely used it is, you'll likely find out very early on if a security vulnerability is found, meaning that I can replace it with a different encryption option quickly. Default option.

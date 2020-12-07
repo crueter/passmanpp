@@ -40,7 +40,7 @@ QVector<QSqlQuery> selectAll() {
 }
 
 QString getCreate(QString name, QStringList names, QList<QVariant::Type> types, QVariantList values) {
-    QString saveStr = "CREATE TABLE " + name + "(";
+    QString saveStr = "CREATE TABLE '" + name + "' (";
     for (int i = 0; i < names.size(); ++i) {
         saveStr += names[i] + " " + typeConv(types[i]);
         if (i != names.size() - 1) {
@@ -124,7 +124,7 @@ std::string saveSt(Database tdb, bool exec) {
 
     if (exec) {
         QSqlQuery delQuery(db);
-        delQuery.exec("SELECT 'DROP TABLE ' || name || ';' FROM sqlite_master WHERE type = 'table'");
+        delQuery.exec("SELECT 'DROP TABLE \"' || name || '\"' FROM sqlite_master WHERE type = 'table'");
         QString delSt;
 
         while (delQuery.next()) {
