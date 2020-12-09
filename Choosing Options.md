@@ -1,12 +1,13 @@
 Checksum functions:
- - Blake2b is very fast in software but relatively slow in hardware. Default option.
- - SHA-3 (or Keccak) won the SHA-3 contest by NIST, replacing SHA-2. It's slower in software but very, very fast in hardware that supports it. passman++ uses SHA3-256.
- - SHAKE-256 is a subset of SHA-3 and can be used interchangeably with SHA3-256. Theoretically, it's more secure against collision attacks.
- - Skein-512 was a finalist in NIST's SHA-3 contest. Based on Threefish, SHA-3 or Blake2b are generally preferred, but it hasn't been broken yet, so it's a viable alternative if you want to use it.
- - SHA-512 is incredibly fast and that's the only reason to use it. Usually prefer anything else on newer hardware.
+ - Blake2b is very fast in software but relatively slow in hardware. Pretty much the most secure option. Default option.
+ - SHA-3 (or Keccak) won the SHA-3 contest by NIST, replacing SHA-2. It's slower in software but very, very fast in hardware that supports it. Supposedly more secure than Blake2b, but information is limited, so they're used interchangeably and are generally considered to be equally secure.
+ - SHAKE-256 is a subset of SHA-3 and can be used interchangeably with SHA-3. Theoretically, it's more secure against collision attacks. 
+ - Skein-512 was a finalist in NIST's SHA-3 contest. Based on Threefish. SHA-3 or Blake2b are generally preferred, but it hasn't been broken yet, so it's a viable alternative if you want to use it.
+ - SHA-512 is extremely fast on 64-bit systems and that's the only reason to use it. Usually prefer anything else on newer hardware as they'll still be fast enough. May also sometimes not work with SHACAL2, though this is rare.
 
 Derivation functions:
  - PBKDF2 is the only one available. However, it's for a good reason: there's few if not no other options. It's been a proven standard and is easily compatible with all sorts of checksum functions.
+ - This choice will likely be removed in the final 2.0 release.
 
 Password Hashing functions:
  - Argon2id was the winner of the Password Hashing Competition in July 2015. Hybrid of Argon2i and Argon2d combining the security functions of both. Extremely hard to bruteforce due to its very high memory requirements, but higher memory usage or hashing iterations can be very slow. Generally, you'll want to use this, as it's the best of the best, essentially. Default option for very obvious reasons.
@@ -14,13 +15,14 @@ Password Hashing functions:
  - No hashing with only a derivation function should also generally be avoided, but with something such as Blake2b it's still secure. It's also significantly faster.
 
 Encryption functions:
- - AES-256/GCM has been the industry standard for a very, very long time. Very fast, and basically the best you'll find. Due to how widely used it is, you'll likely find out very early on if a security vulnerability is found, meaning that I can replace it with a different encryption option quickly. Default option.
- - Twofish is "less" secure than AES, but in reality, it still hasn't been broken. No real advantage to AES, but use if you want.
- - SHACAL2 is extremely fast and just as secure. Relatively obscure, but standardized, so if you want unlocking to be fast, go ahead and use it.
- - Serpent is another alternative to AES and Twofish. No real advantage to AES, but use if you want.
+ - AES-256/GCM has been the industry standard for an incredibly long time. Very fast, and basically the best you'll find. Due to how widely used it is, you'll likely find out very early on if a security vulnerability is found, meaning that I can replace it with a different encryption option quickly. Default option.
+ - Twofish/GCM is "less" secure than AES, but in reality, it still hasn't been broken. If it does, however, due to it having less adoption as AES, it might take longer to find out when this happens. No real advantage to AES, but use if you want.
+ - SHACAL2/EAX is very fast and just as secure. Relatively obscure, but standardized, so if you want unlocking to be fast, go ahead and use it. It's also "more versatile" than other options.
+ - Serpent/GCM is another alternative to AES and Twofish. No real advantage to AES, but use if you want.
 
 Choosing options:
- - If you just want the "most" secure options, select Blake2b or SHA-3(256), Argon2id, and AES-256/GCM.
+ - If you just want the "most" secure options, select Blake2b or SHA-3, Argon2id, and AES-256/GCM.
+ - If you just want the most speed, select SHA-512, only derivation, and SHACAL2/EAX
  - Select others if you really have a reason to or want some sort of compatibility with other programs for whatever reason.
  - More hashing iterations makes it slower. Making it slower makes bruteforcing harder but it takes longer for your password to authenticate. Generally you'll want a value below 20, as anything higher can be very, very slow unless you've got a modern desktop Ryzen.
- - If your hardware does not have hardware AES encryption, avoid using AES-256. Go with anything else, as AES-256 is shown to (at least theoretically) be more vulnerable without hardware acceleration.
+ - If your hardware does not have hardware AES encryption, avoid using AES-256/GCM. Go with anything else, as AES is shown to (at least theoretically) be more vulnerable without hardware acceleration.

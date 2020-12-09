@@ -40,9 +40,15 @@ std::string Database::getPw(std::string password) {
             pHash = pfHash->from_params(hashIters);
         }
 
+        qDebug() << hashIters;
+        qDebug() << QString::fromStdString(hashChoice);
+        qDebug() << QString::fromStdString(checksumChoice);
+        qDebug() << QString::fromStdString(password) << Qt::endl;
+
         Botan::secure_vector<uint8_t> ptr(1024);
-        pHash->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), iv.size());
+        pHash->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
         password = toStr(ptr);
+        qDebug() << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
     }
 
     std::string derivChoice = derivMatch[deriv];
@@ -50,7 +56,8 @@ std::string Database::getPw(std::string password) {
     Botan::secure_vector<uint8_t> ptr(32);
     std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create(derivChoice + "(" + checksumChoice + ")")->default_params();
 
-    ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), iv.size());
+    ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
+    qDebug() << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
 
     return toStr(ptr);
 }
@@ -72,8 +79,8 @@ void Database::encrypt(std::string password) {
 
     if (iv.empty()) {
         Botan::AutoSeeded_RNG rng;
-
-        iv = rng.random_vec(enc->default_nonce_length());
+        ivLen = enc->default_nonce_length();
+        iv = rng.random_vec(ivLen);
     }
 
     pd << iv.data();
@@ -114,6 +121,7 @@ void Database::encrypt(std::string password) {
 
     std::string pts = toStr(pt);
     data = pt;
+    qDebug() << QString::fromStdString(Botan::hex_encode(pt));
 
     pd << pts;
 
@@ -124,6 +132,7 @@ void Database::encrypt(std::string password) {
 int Database::verify(std::string mpass) {
     qDebug() << iv;
     Botan::secure_vector<uint8_t> vPtr = toVec(getPw(mpass)), pData = data;
+    qDebug() << QString::fromStdString(Botan::hex_encode(vPtr));
 
     if (keyFile) {
         std::ifstream key(keyFilePath, std::ios::binary);
@@ -150,6 +159,7 @@ int Database::verify(std::string mpass) {
     decr->start(iv);
 
     try {
+        qDebug() << QString::fromStdString(Botan::hex_encode(pData));
         decr->finish(pData);
 
         std::unique_ptr<Botan::Decompression_Algorithm> dataDe = Botan::Decompression_Algorithm::create("gzip");
@@ -300,7 +310,7 @@ std::string Database::decrypt(std::string txt, std::string password) {
 
 bool Database::save(std::string password) {
     std::string pw = decrypt(" to save");
-    if (pw == "") {
+    if (pw.empty()) {
         return false;
     }
 
@@ -390,13 +400,14 @@ bool Database::showErr(std::string msg) {
 }
 
 bool Database::parse() {
-    std::ifstream pd(path, std::ios_base::binary);
+    char readData[4];
 
-    std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption), Botan::ENCRYPTION);
-    int ivLen = enc->default_nonce_length();
+    QFile f(QString::fromStdString(path));
+    f.open(QIODevice::ReadOnly);
+    QDataStream q(&f);
 
-    char readData[ivLen];
-    pd.read(readData, 4);
+    q.readRawData(readData, 4);
+
     if (std::string(readData, 4) != "PD++") {
         bool conv = convert();
         if (!conv) {
@@ -405,52 +416,52 @@ bool Database::parse() {
         return true;
     }
 
-    pd >> version;
+    q >> version;
     if (version > MAX_SUPPORTED_VERSION_NUMBER) {
         return showErr("Invalid version number.");
     }
 
-    pd >> checksum;
+    q >> checksum;
     if (checksum >= checksumMatch.size()){
         return showErr("Invalid checksum option.");
     }
 
-    pd >> deriv;
+    q >> deriv;
+    qDebug() << deriv;
     if (deriv >= derivMatch.size()){
         return showErr("Invalid derivation option.");
     }
 
-    pd >> hash;
+    q >> hash;
     if (hash >= hashMatch.size()){
         return showErr("Invalid hash option.");
     }
 
-    pd >> hashIters;
-    qDebug() << hashIters;
-    pd >> keyFile;
+    q >> hashIters;
+    q >> keyFile;
 
-    pd >> encryption;
+    q >> encryption;
     if (encryption >= encryptionMatch.size()){
         return showErr("Invalid encryption option.");
     }
 
-    QFile f(QString::fromStdString(path));
-    f.open(QIODevice::ReadOnly);
-    QDataStream q(&f);
-    f.seek(11);
-    q.readRawData(readData, ivLen);
+    std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption), Botan::ENCRYPTION);
+    ivLen = enc->default_nonce_length();
 
-    //pd.seekg(11);
-    //pd.seekg(9).read(readData, ivLen);
-    //iv = toVec(ivc, ivLen);
-    iv = Botan::secure_vector<uint8_t>(readData, readData + ivLen);
+    QByteArray restData = f.readAll();
+    QList<QByteArray> spl = restData.split(0);
 
-    std::getline(pd, name, '\0');
-    std::getline(pd, desc, '\0');
+    std::string nameIV = spl[0].toStdString();
+    iv = toVec(nameIV.substr(0, ivLen));
+    name = nameIV.substr(ivLen);
 
-    data = Botan::secure_vector<uint8_t>(std::istreambuf_iterator<char>{pd}, {});
+    desc = spl[1].toStdString();
 
-    pd.close();
+    QByteArray qdata = spl.sliced(2).join(0);
+
+    data = Botan::secure_vector<uint8_t>(qdata.begin(), qdata.end());
+
+    f.close();
     return true;
 }
 
@@ -473,7 +484,7 @@ bool Database::config(bool create) {
         QComboBox *box = new QComboBox;
         QStringList list = QStringList(vec.begin(), vec.end());
         box->addItems(list);
-        box->setCurrentIndex(create ? 0 : val - 1);
+        box->setCurrentIndex(create ? 0 : val);
         layout->addRow(QWidget::tr(label), box);
         return box;
     };
@@ -499,6 +510,8 @@ bool Database::config(bool create) {
     QComboBox *derivBox = comboBox(derivMatch, "Key Derivation Function:", deriv);
     QComboBox *hashBox = comboBox(hashMatch, "Password Hashing Function:", hash);
     QComboBox *encryptionBox = comboBox(encryptionMatch, "Data Encryption Function:", encryption);
+
+    qDebug() << checksum << deriv << hash << encryption;
 
     int iterVal = create ? 8 : hashIters;
 
@@ -575,6 +588,9 @@ bool Database::config(bool create) {
         if (pw.empty()) {
             pw = dec;
         }
+        if (dec.empty()) {
+            return false;
+        }
         stList = saveSt();
     }
 
@@ -612,7 +628,7 @@ bool Database::open() {
         if (stList == "") {
             try {
                 std::string p = decrypt(" to login");
-                if (p == "") {
+                if (p.empty()) {
                     return false;
                 }
             } catch (std::exception& e) {
@@ -646,7 +662,10 @@ int Database::backup() {
     }
     try {
         path = fileName.toStdString();
-        save();
+        bool ok = save();
+        if (!ok) {
+            return false;
+        }
     } catch (std::exception& e) {
         displayErr(e.what());
     }

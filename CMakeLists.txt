@@ -42,14 +42,3 @@ target_link_libraries(passman PRIVATE
         stdc++fs
 )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -march=native")
-
-#### Keys ignored in scope 1:.:.:passman.pro:<TRUE>:
-# TEMPLATE = "app"
-
-## Scopes:
-#####################################################################
-
-#extend_target(passman CONDITION (QT_MAJOR_VERSION GREATER 4)
-#    PUBLIC_LIBRARIES
-#        Qt::Widgets
-#)

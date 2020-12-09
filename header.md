@@ -39,6 +39,7 @@ The rest of the data is the encrypted SQLite data.
   * in the case of multiple newlines, this is truncated as 
   * allow for user input attributes, no duplicates, types: string, number, bool
     - store strings as `text`, numbers as `real`, and bools as `integer` (0 for off, anything else for on)
+    - in future releases, there MAY be a multiline text option. It'll probably `blob` type or something
   * store each input attribute as its own column
   * (future) store an icon name as text, which refers to the system theme's icon of that name
 - encrypt the table's CREATE TABLE and INSERT statements with the chosen encryption function, key is the password checksummed then hashed with the chosen checksum and hash methods (salted with the IV), IV is the database IV

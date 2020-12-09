@@ -24,11 +24,15 @@ bool choiceHandle(std::string choice, EntryHandler *eh, Database db) {
             displayErr("Invalid backup location.");
         } else if (br == 17) {
             displayErr("Improper permissions for file. Please select a location where the current user has write permissions.");
+        } else if (!br) {
+            std::cerr << "Cancelled." << std::endl;
         } else {
             std::cout << "Database backed up successfully." << std::endl;
         }
     } else if (choice == "config") {
-        db.config(false);
+        if (!db.config(false)) {
+            return false;
+        }
     } else if (choice == "exit") {
         if (db.modified) {
             std::cout << "Please save your work before leaving." << std::endl;

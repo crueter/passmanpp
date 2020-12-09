@@ -4,8 +4,9 @@
 
 | Version   | Supported          |
 | -------   | ------------------ |
-| 1.4.0p    | :white_check_mark: |
-| 1.3.0     | :white_check_mark: |
+| 2.0.0rc1  | Debug support only
+| 1.4.0p    | :white_check_mark:, LTS |
+| 1.3.0     | Extended support only |
 | 1.2.0     | Extended support only |
 | <= 1.1.0  | :x: |
 
@@ -15,7 +16,7 @@ Please report all security vulnerabilities through the issues tab. If you know h
 
 To ensure proper handling of this, provide the following:
 - What the vulnerability is
-- How it can be exploited (don't be TOO in detail)
+- How it can be exploited
 - What it affects
 - Version
 - Where you believe the vulnerability to be (I/A)

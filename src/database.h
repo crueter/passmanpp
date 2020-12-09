@@ -45,6 +45,8 @@ public:
     uint8_t encryption;
     uint8_t version = MAX_SUPPORTED_VERSION_NUMBER;
 
+    uint8_t ivLen;
+
     Botan::secure_vector<uint8_t> iv;
     Botan::secure_vector<uint8_t> data;
 
