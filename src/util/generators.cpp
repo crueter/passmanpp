@@ -23,13 +23,13 @@ std::string genPass(int length, bool capitals, bool numbers, bool symbols) {
             if ((i != 0 && ssInd == std::to_string(passw[i - 1])) || csInd == 0x22U || csInd == 0x5CU) {
                 continue;
             }
-            if (capitals && find(capital, cInd)) {
+            if (capitals && capital.contains(cInd)) {
                 continue;
             }
-            if (numbers && find(number, cInd)) {
+            if (numbers && number.contains(cInd)) {
                 continue;
             }
-            if (symbols && find(symbol, cInd)) {
+            if (symbols && symbol.contains(cInd)) {
                 continue;
             }
             break;
@@ -46,7 +46,7 @@ Botan::secure_vector<uint8_t> genKey(std::string path) {
     Botan::secure_vector<uint8_t> vec = rng.random_vec(length);
 
     std::ofstream pkpp(path, std::ios::binary);
-    pkpp << toChar(vec);
+    pkpp << toStr(vec);
     pkpp.flush();
     pkpp.close();
 

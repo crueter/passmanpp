@@ -7,23 +7,20 @@
 #include <QSqlQuery>
 #include <QSqlRecord>
 #include <QSqlField>
-#include <QVector>
+#include <QDebug>
 
 #include "../database.h"
 
 extern QSqlDatabase db;
 
 void dbInit();
-QString typeConv(QVariant::Type type);
-//int exec(std::string cmd, Database tdb = Database(), bool save = true, int (*callback)(void*, int, char**, char**) = nullptr);
 
+void execAll(QString stmt);
 void execAll(std::string stmt);
-QString getCreate(QString name, QStringList names, QList<QVariant::Type> types, QVariantList values);
-QVector<QSqlQuery> selectAll();
-std::string saveSt(Database tdb, bool exec = false);
+QString getCreate(QString name, QStringList names, QList<QMetaType> types, QVariantList values);
+QList<QSqlQuery> selectAll();
+std::string saveSt(bool exec = false);
 
 bool exists(QString field, QString value);
-
-std::vector<std::string> getNames(Database tdb);
 
 #endif

@@ -1,13 +1,12 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
-
-#include "util/stringutil.h"
+#include "util/extra.h"
 
 static const int MAX_SUPPORTED_VERSION_NUMBER = 5;
-static const std::vector<const char*> checksumMatch = {"Blake2b(256)", "SHA-3(256)", "SHAKE-256(256)", "Skein-512", "SHA-256"};
+static const std::vector<const char*> checksumMatch = {"Blake2b", "SHA-3", "SHAKE-256", "Skein-512", "SHA-512"};
 static const std::vector<const char*> derivMatch = {"PBKDF2"};
 static const std::vector<const char*> hashMatch = {"Argon2id", "Bcrypt-PBKDF", "No hashing, only derivation"};
-static const std::vector<const char*> encryptionMatch = {"AES-256/GCM", "Twofish"};
+static const std::vector<const char*> encryptionMatch = {"AES-256/GCM", "Twofish/GCM", "SHACAL2/EAX", "Serpent/GCM"};
 
 static const std::string PASSMAN_VERSION = "2.0.0 DEBUG";
 static const std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH);
@@ -64,10 +63,10 @@ static const char keyExt[44] = "passman++ Key Files (*.pkpp);;All Files (*)";
 static const char choosingUrl[71] = "https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md";
 static const std::string whiteSpace = " \t\v\r\n";
 
-static const std::vector<std::string> capital = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
-static const std::vector<std::string> number = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
-static const std::vector<std::string> symbol = {"!", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "]", "^", "_", "`", "{", "|", "}", "~"};
+static const QList<std::string> capital = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+static const QList<std::string> number = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+static const QList<std::string> symbol = {"!", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "]", "^", "_", "`", "{", "|", "}", "~"};
 
-static const std::vector<std::string> choices = {"help", "info", "tips", "edit", "backup", "save", "config", "exit"};
+static const QList<std::string> choices = {"help", "info", "tips", "edit", "backup", "save", "config", "exit"};
 
 #endif // CONSTANTS_H

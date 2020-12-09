@@ -1,15 +1,49 @@
 #include <QApplication>
-#include <QFile>
-#include <QDir>
-#include <QDirIterator>
-#include <QDebug>
 
-#include "manager.h"
+#include "handlers/entry_handler.h"
+#include "util/extra.h"
+#include "util/sql.h"
+
+bool choiceHandle(std::string choice, EntryHandler *eh, Database db) {
+    if (choice == "help") {
+        std::cout << help << std::endl;
+    } else if (choice == "edit") {
+        eh->entryInteract(db);
+        db.stList = saveSt();
+    } else if (choice == "tips") {
+        std::cout << tips << std::endl;
+    } else if (choice == "info") {
+        std::cout << info << std::endl;
+    } else if (choice == "save") {
+        if (!db.save()) {
+            std::cerr << "Cancelled." << std::endl;
+        }
+    } else if (choice == "backup") {
+        int br = db.backup();
+        if (br == 3) {
+            displayErr("Invalid backup location.");
+        } else if (br == 17) {
+            displayErr("Improper permissions for file. Please select a location where the current user has write permissions.");
+        } else {
+            std::cout << "Database backed up successfully." << std::endl;
+        }
+    } else if (choice == "config") {
+        db.config(false);
+    } else if (choice == "exit") {
+        if (db.modified) {
+            std::cout << "Please save your work before leaving." << std::endl;
+        } else {
+            exit(0);
+        }
+    } else {
+        std::cerr << "Invalid choice. Type help for available commands." << std::endl;
+    }
+    return true;
+}
 
 int main(int argc,  char** argv) {
     QApplication app (argc, argv);
     dbInit();
-    FileHandler* fh = new FileHandler;
     EntryHandler* eh = new EntryHandler;
     Database db;
     std::string choice, path;
@@ -22,7 +56,7 @@ int main(int argc,  char** argv) {
             int ret = newChoice.exec();
 
             if (ret == QMessageBox::Yes) {
-                path = fh->newLoc();
+                path = newLoc();
                 if (path == "") {
                     return 1;
                 }
@@ -33,9 +67,9 @@ int main(int argc,  char** argv) {
                 }
                 break;
             } else if (ret == QMessageBox::No) {
-                path = fh->getDb();
+                path = getDb();
                 db.path = path;
-                if (!fh->open(db)) {
+                if (!db.open()) {
                     std::cout << "Aborted." << std::endl;
                     continue;
                 }
@@ -45,9 +79,13 @@ int main(int argc,  char** argv) {
             }
         }
     } else if (std::string(argv[1]) == "new") {
-        path = fh->newLoc();
-        if (path == "") {
-            return 1;
+        if (argc < 3) {
+            path = newLoc();
+            if (path == "") {
+                return 1;
+            }
+        } else {
+            path = std::string(argv[2]);
         }
         db.path = path;
         bool cr = db.config();
@@ -60,7 +98,7 @@ int main(int argc,  char** argv) {
     } else {
         db.path = argv[1];
         db.parse();
-        bool o = fh->open(db);
+        bool o = db.open();
 
         if (!o) {
             return 1;
@@ -69,10 +107,12 @@ int main(int argc,  char** argv) {
         db.path = path;
     }
 
-    db.parse();
+    if (!db.parse()) {
+        return 1;
+    }
 
-    if (argc >= 3) {
-        choiceHandle(argv[2], eh, fh, db);
+    if (argc >= 3 && std::string(argv[1]) != "new") {
+        choiceHandle(argv[2], eh, db);
     }
 
     std::cout << welcomeMessage << std::endl;
@@ -80,7 +120,7 @@ int main(int argc,  char** argv) {
         std::cout << "passman> ";
         std::getline(std::cin, choice);
 
-        choiceHandle(choice, eh, fh, db);
+        choiceHandle(choice, eh, db);
     }
     return app.exec();
 }

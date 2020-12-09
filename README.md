@@ -7,9 +7,9 @@ While this is happening, no other updates will come out. Occasionally, however, 
 An extremely simple and minimal yet just as secure and powerful command-line and GUI password manager. Super lightweight and easy to use.
 
 # Building
-After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE! THE MAIN BRANCH IS UNSTABLE!), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) installed, and then:
+After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE, THIS MAY BE UNSTABLE), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) installed, and then:
 ```bash
-$ qmake passman.pro
+$ cmake CMakeLists.txt
 $ make
 ```
 Optionally:
@@ -34,6 +34,7 @@ passman++ is made possible by:
 - The amazing people on the [Qt forum](https://forum.qt.io) (and [randombit](https://github.com/randombit), too!) for helping me debug many of my internal issues
 - My friend Lenny for originally helping me create PyPassMan's AES version
 - The Qt devs and [docs](https://doc.qt.io)
+- CMake
 - [KeePassXC](https://github.com/keepassxreboot/keepassxc) for the idea
 - And of course, the Botan ([randombit](https://github.com/randombit)) and libsodium devs ([jedisctl](https://github.com/jedisct1)).
 
@@ -45,6 +46,7 @@ passman++ is made possible by:
 - Groups (sort of like KeePass's directories)
 - Maybe... just maybe... KeePass* format integration
 - Some sort of vault (like Plasma Vault)
+- Icons and attachments
 
 # Already Done
 Stuff I planned to do and have already done:
@@ -59,11 +61,8 @@ Stuff I planned to do and have already done:
 All planned updates for passman++ 2.0:
 - Create a full GUI interface
 - Password health/entropy checker
-- Icons and attachments
 - Allow for more stuff to be stored there, i.e. user-input attributes
 - More advanced password generator + EASCII
-- Switch to CMake
-- Add some help
 
 # 2.0 UPDATE: Already Done
 Previously planned updates for passman++ 2.0 that have already been implemented:
@@ -79,6 +78,8 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
   * Argon2id, Bcrypt-PBKDF, or no hashing at all (only derivation)
   * Potentially see if any more PBKD functions can be used
 - Database config and changing it on-the-fly
+- Switch to CMake
+- Add some help
 
 # Relation to PyPassMan
 I would NOT recommend using PyPassMan currently. As you've read, 2.0 will be a MASSIVE update, so much so that it'll be superior in every single possible conceivable way imaginable to PyPassMan. Plus, I stopped development of that a while ago and removed it from the AUR.

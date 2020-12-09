@@ -1,16 +1,11 @@
 #include <QCheckBox>
-#include <QLabel>
 #include <QToolButton>
-#include <QFormLayout>
 #include <QTextEdit>
-#include <QMenuBar>
-#include <QPushButton>
-#include <QDialogButtonBox>
-#include <QDebug>
-#include <QDesktopServices>
+#include <QLineEdit>
 
-#include "file_handler.h"
 #include "entry_handler.h"
+#include "sql.h"
+#include "generators.h"
 
 void displayErr(std::string msg) {
     QMessageBox err;
@@ -56,7 +51,6 @@ int EntryHandler::entryInteract(Database db) {
 
     dialog->setWindowTitle(tr("Select an entry"));
     for (QSqlQuery q : selectAll()) {
-        qDebug() << q.record();
         list->addItem(q.record().field(0).tableName());
     }
 
@@ -206,20 +200,21 @@ int EntryHandler::addEntry(QListWidget *list, Database tdb) {
         }
     }
 
-    QString snotes = "\"" + notes + "\"";
+    QString snotes = notes;
     snotes.replace("\n", " || char(10) || ");
     snotes.replace("||  ||", "||");
 
-    QString st = getCreate(name, {"name", "email", "url", "notes", "password"}, {QVariant::String, QVariant::String, QVariant::String, QVariant::String, QVariant::String}, {name, email, url, snotes, password});
-    bool ok = db.exec(st).isValid();
-    saveSt(tdb);
+    QString st = getCreate(name, {"name", "email", "url", "notes", "password"}, {QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString)}, {name, email, url, snotes, password});
+
+    execAll(st);
+    tdb.stList = saveSt();
 
     tdb.modified = true;
     std::cout << "Entry \"" << name.toStdString() << "\" successfully added." << std::endl;
     list->addItem(name);
     list->sortItems();
 
-    return ok;
+    return true;
 }
 
 template <typename Func>
@@ -232,10 +227,11 @@ QAction *EntryHandler::addButton(QIcon icon, const char *whatsThis, QKeySequence
 }
 
 int EntryHandler::editEntry(QListWidgetItem *item, Database tdb) {
-    QString st = "SELECT * FROM " + item->text();
+    QString st = "SELECT * FROM '" + item->text() + "'";
     QSqlQuery q(db);
     q.exec(st);
     bool ok = false;
+    QString stmt;
 
     while (q.next()) {
         QString name = q.record().value(0).toString();
@@ -269,22 +265,19 @@ int EntryHandler::editEntry(QListWidgetItem *item, Database tdb) {
             }
         }
 
-        QString stm;
-
         if (name != origName) {
-            db.exec("DROP TABLE " + origName);
-            stm = getCreate(name, {"name", "email", "url", "notes", "password"}, {QVariant::String, QVariant::String, QVariant::String, QVariant::String, QVariant::String}, {name, email, url, notes, password});
+            stmt = getCreate(name, {"name", "email", "url", "notes", "password"}, {QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString)}, {name, email, url, notes, password});
+            stmt += "DROP TABLE '" + origName + "'\n";
+            item->setText(name);
         } else {
-            stm = "UPDATE " + name + " SET name = \"" + name + "\", email = \"" + email + "\", url = \"" + url + "\", notes = \"" + notes + "\", password = \"" + password + "\" WHERE name = \"" + name + "\"";
+            stmt = "UPDATE " + name + " SET name = \"" + name + "\", email = \"" + email + "\", url = \"" + url + "\", notes = \"" + notes + "\", password = \"" + password + "\" WHERE name = \"" + name + "\"";
         }
 
-        ok = db.exec(stm).isValid();
-        if (ok) {
-            std::cout << "Entry \"" << name.toStdString() << "\" successfully edited." << std::endl;
-        }
+        std::cout << "Entry \"" << name.toStdString() << "\" successfully edited." << std::endl;
     }
     q.finish();
-    saveSt(tdb);
+    execAll(stmt);
+    tdb.stList = saveSt();
     tdb.modified = true;
     return ok;
 }
