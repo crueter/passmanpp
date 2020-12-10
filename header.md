@@ -36,10 +36,9 @@ The rest of the data is the encrypted SQLite data.
 - create a table for each entry
   * basic name, email, url, notes, and password (all `text`)
   * notes' newlines are stored as " || char(10) || "
-  * in the case of multiple newlines, this is truncated as 
   * allow for user input attributes, no duplicates, types: string, number, bool
     - store strings as `text`, numbers as `real`, and bools as `integer` (0 for off, anything else for on)
-    - in future releases, there MAY be a multiline text option. It'll probably `blob` type or something
+    - in future releases, there MAY be a multiline text option. It'll probably be `blob` type or something
   * store each input attribute as its own column
   * (future) store an icon name as text, which refers to the system theme's icon of that name
 - encrypt the table's CREATE TABLE and INSERT statements with the chosen encryption function, key is the password checksummed then hashed with the chosen checksum and hash methods (salted with the IV), IV is the database IV
@@ -50,9 +49,11 @@ See the `sql.cpp`, `database.cpp`, and `entry_handler.cpp` files for help with c
 
 Nothing actually needs to be the same, though - feel free to use any SQLite backend you choose. However, you'll almost certainly need to use Botan - passman++ relies on many of its features that simply aren't available on others like Crypto++. Don't worry that Botan is just a C++ library though - it's got some C bindings. Check in the [handbook](https://botan.randombit.net/handbook/api_ref/) for more details.
 
+I also recommend using Qt for your SQLite backend, as it provides a good interfacing for the database and provides proper classes.
+
 NEVER use ANY beta standards (such as this one). These are HIGHLY UNSTABLE and subject to breaking changes. Always, always, ALWAYS create your implementation using the latest release's standard format.
 
-ALL attributes for entries MUST be editable. In the case of a name update, remove the old name and create a new table with the new name.
+ALL attributes for entries MUST be editable. In the case of a name update, remove the old name and create a new table with the new name (and of course, the updated data).
 
 The SQLite is flexible to your will - you can freely create new connections and store configuration there, for example. However, always keep separate tables for entries. NEVER create just a single table for entry data, as this will break compatibility!
 
