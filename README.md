@@ -3,13 +3,23 @@ passman++ version 2.0 is coming soon. It will feature a massive suite of new sec
 
 While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any commits to work when directly cloned.
 
+2.0.0rc1 is currently out. It's completely stable and tested and working, containing nearly all of the major changes in 2.0, but does not include a full-featured GUI and is still a combined CLI/GUI app.
+
 # passman++
 An extremely simple and minimal yet just as secure and powerful command-line and GUI password manager. Super lightweight and easy to use.
 
 # Building
 After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE, THIS MAY BE UNSTABLE), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) installed, and then:
 ```bash
+$ cd src
+$ qmake passman.pro
+```
+Or, on development builds, in the root directory:
+```bash
 $ cmake CMakeLists.txt
+```
+Finally,
+```bash
 $ make
 ```
 Optionally:
@@ -19,6 +29,10 @@ Optionally:
 Or on Arch Linux (with yay):
 ```bash
 $ yay -S passman++
+```
+Or the development version:
+```bash
+$ yay -S passman++-devel
 ```
 Dependencies will be automatically installed in this case.
 # Contributing
