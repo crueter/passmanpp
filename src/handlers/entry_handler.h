@@ -6,6 +6,7 @@
 #include <QFormLayout>
 #include <QDialogButtonBox>
 #include <QMenuBar>
+#include <QTableWidgetItem>
 
 #include "../database.h"
 
@@ -18,12 +19,12 @@ public:
 
     QString randomPass();
 
-    int addEntry(QListWidget *item, Database db);
+    int addEntry(QTableWidget *table, Database db);
     template <typename Func>
     QAction *addButton(QIcon icon, const char *whatsThis, QKeySequence shortcut, Func func);
 
-    int editEntry(QListWidgetItem *item, Database db);
-    bool deleteEntry(QListWidgetItem *item, Database db);
+    int editEntry(QTableWidgetItem *item, Database db);
+    bool deleteEntry(QTableWidgetItem *item, Database db);
 
     static int _editData(void *, int, char **data, char **);
 };

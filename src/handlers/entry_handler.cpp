@@ -2,11 +2,28 @@
 #include <QToolButton>
 #include <QTextEdit>
 #include <QLineEdit>
+#include <QTableView>
+#include <QTableWidgetItem>
+#include <QHeaderView>
+#include <QItemDelegate>
 
 #include "entry_handler.h"
 #include "sql.h"
 #include "generators.h"
 
+void redrawTable(QTableWidget *table) {
+    int j = 0;
+    QList<QSqlQuery> all = selectAll();
+    table->setRowCount(all.length());
+    for (QSqlQuery q : all) {
+        while (q.next()) {
+            for (int i = 0; i < q.record().count() - 1; ++i) {
+                table->setItem(j, i, new QTableWidgetItem(q.record().field(i).value().toString().replace(" || char(10) || ", "\n")));
+            }
+        }
+        ++j;
+    }
+}
 void displayErr(std::string msg) {
     QMessageBox err;
     err.setText(QWidget::tr(msg.c_str()));
@@ -14,50 +31,55 @@ void displayErr(std::string msg) {
     err.exec();
 }
 
-int EntryHandler::entryInteract(Database db) {
+int EntryHandler::entryInteract(Database tdb) {
     QDialog *dialog = new QDialog;
-    QGridLayout *layout = new QGridLayout(dialog);
-    QListWidget *list = new QListWidget(dialog);
 
     QDialogButtonBox *ok = new QDialogButtonBox(dialog);
     ok->setStandardButtons(QDialogButtonBox::Ok);
     connect(ok->button(QDialogButtonBox::Ok), &QPushButton::clicked, dialog, &QDialog::accept);
 
+    QGridLayout *layout = new QGridLayout(dialog);
+
+    QTableWidget *table = new QTableWidget(dialog);
+    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setSortingEnabled(true);
+
+    QStringList labels{"Name", "Email", "URL", "Notes"};
+    table->setColumnCount(labels.length());
+    table->setHorizontalHeaderLabels(labels);
+
+    redrawTable(table);
+
+    connect(table, &QTableWidget::itemDoubleClicked, [tdb, this](QTableWidgetItem *item){
+        editEntry(item, tdb);
+    });
+
+    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), "Creates a new entry in the database.", QKeySequence(tr("Ctrl+N")), [table, tdb, this]{
+        addEntry(table, tdb);
+    });
+
+    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), "Deletes the currently selected entry.", QKeySequence::Delete, [table, tdb, this]{
+        deleteEntry(table->currentItem(), tdb);
+    });
+
+    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), "Edit or view all the information of the current entry.", QKeySequence(tr("Ctrl+E")), [table, tdb, this]{
+        editEntry(table->currentItem(), tdb);
+    });
+
     QMenuBar *bar = new QMenuBar;
     QMenu *menu = bar->addMenu(tr("Edit"));
-
-    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), "Creates a new entry in the database.", QKeySequence(tr("Ctrl+N")), [list, db, this]{
-        addEntry(list, db);
-    });
-
-    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), "Deletes the currently selected entry.", QKeySequence::Delete, [list, db, this]{
-        bool deleted = deleteEntry(list->currentItem(), db);
-        if (deleted) {
-            list->takeItem(list->currentRow());
-        }
-    });
-
-    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), "Edit or view all the information of the current entry.", QKeySequence(tr("Ctrl+E")), [list, db, this]{
-        editEntry(list->currentItem(), db);
-    });
-
     menu->addActions(QList<QAction *>{addButton, delButton, editButton});
 
+    layout->addWidget(table);
     layout->setMenuBar(bar);
-    layout->addWidget(list);
 
     layout->addWidget(ok);
+
     dialog->setLayout(layout);
-
     dialog->setWindowTitle(tr("Select an entry"));
-    for (QSqlQuery q : selectAll()) {
-        list->addItem(q.record().field(0).tableName());
-    }
 
-    connect(list, &QListWidget::itemDoubleClicked, this, [db, this](QListWidgetItem *item){
-        editEntry(item, db);
-    });
-
+    dialog->resize(800, 450);
     dialog->exec();
 
     return true;
@@ -71,12 +93,13 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     QLineEdit *emailEdit = new QLineEdit(email);
     QLineEdit *passEdit = new QLineEdit(password);
     passEdit->setEchoMode(QLineEdit::Password);
-    QTextEdit *notesEdit = new QTextEdit(notes);
+    QTextEdit *notesEdit = new QTextEdit;
+    notesEdit->setPlainText(notes);
 
     QFormLayout *formLayout = new QFormLayout;
     formLayout->addRow(tr("&Name:"), nameEdit);
-    formLayout->addRow(tr("&URL:"), urlEdit);
     formLayout->addRow(tr("&Email:"), emailEdit);
+    formLayout->addRow(tr("&URL:"), urlEdit);
 
     QToolButton *random = new QToolButton;
     random->setIcon(QIcon::fromTheme(tr("roll")));
@@ -120,6 +143,8 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     formLayout->addWidget(buttonBox);
 
     opt->setLayout(formLayout);
+
+    nameEdit->setFocus(Qt::FocusReason::MouseFocusReason);
     int ret = opt->exec();
 
     if (ret == QDialog::Rejected || (name == nameEdit->text() && url == urlEdit->text() && email == emailEdit->text() && password == passEdit->text() && notes == notesEdit->toPlainText())) {
@@ -131,6 +156,8 @@ bool EntryHandler::entryDetails(QString& name, QString& url, QString& email, QSt
     email = emailEdit->text();
     password = passEdit->text();
     notes = notesEdit->toPlainText();
+    notes.replace("\n", " || char(10) || ");
+
     return true;
 }
 
@@ -179,7 +206,7 @@ QString EntryHandler::randomPass() {
     }
 }
 
-int EntryHandler::addEntry(QListWidget *list, Database tdb) {
+int EntryHandler::addEntry(QTableWidget *table, Database tdb) {
     QString name, url, email, notes, password;
     while(1) {
         bool ok = entryDetails(name, email, url, password, notes);
@@ -200,20 +227,18 @@ int EntryHandler::addEntry(QListWidget *list, Database tdb) {
         }
     }
 
-    QString snotes = notes;
-    snotes.replace("\n", " || char(10) || ");
-    snotes.replace("||  ||", "||");
+    notes.replace("\n", " || char(10) || ");
+    //notes.replace("||  ||", "||");
 
-    QString st = getCreate(name, {"name", "email", "url", "notes", "password"}, {QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString)}, {name, email, url, snotes, password});
+    QString st = getCreate(name, {"name", "email", "url", "notes", "password"}, {QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString)}, {name, email, url, notes, password});
 
     execAll(st);
     tdb.stList = saveSt();
 
     tdb.modified = true;
     std::cout << "Entry \"" << name.toStdString() << "\" successfully added." << std::endl;
-    list->addItem(name);
-    list->sortItems();
 
+    redrawTable(table);
     return true;
 }
 
@@ -226,8 +251,8 @@ QAction *EntryHandler::addButton(QIcon icon, const char *whatsThis, QKeySequence
     return action;
 }
 
-int EntryHandler::editEntry(QListWidgetItem *item, Database tdb) {
-    QString st = "SELECT * FROM '" + item->text() + "'";
+int EntryHandler::editEntry(QTableWidgetItem *item, Database tdb) {
+    QString st = "SELECT * FROM '" + item->tableWidget()->item(item->row(), 0)->text() + "'";
     QSqlQuery q(db);
     q.exec(st);
     bool ok = false;
@@ -243,11 +268,10 @@ int EntryHandler::editEntry(QListWidgetItem *item, Database tdb) {
         QString origPass = password;
 
         QString notes = q.record().value(3).toString();
-        notes.replace("char(10)", "\n");
-        notes.replace(" || ", "");
+        notes.replace(" || char(10) || ", "\n");
 
         while (1) {
-            bool edited = entryDetails(name, email, url, password, notes);
+            bool edited = entryDetails(name, url, email, password, notes);
             if (edited == false) {
                 return true;
             }
@@ -270,31 +294,36 @@ int EntryHandler::editEntry(QListWidgetItem *item, Database tdb) {
             stmt += "DROP TABLE '" + origName + "'\n";
             item->setText(name);
         } else {
-            stmt = "UPDATE " + name + " SET name = \"" + name + "\", email = \"" + email + "\", url = \"" + url + "\", notes = \"" + notes + "\", password = \"" + password + "\" WHERE name = \"" + name + "\"";
+            stmt = "UPDATE '" + name + "' SET name = '" + name + "', email = '" + email + "', url = '" + url + "', notes = '" + notes + "', password = '" + password + "' WHERE name = '" + name + "'";
         }
 
         std::cout << "Entry \"" << name.toStdString() << "\" successfully edited." << std::endl;
     }
     q.finish();
+    std::cout << stmt.toStdString() << std::endl;
     execAll(stmt);
     tdb.stList = saveSt();
     tdb.modified = true;
+
+    redrawTable(item->tableWidget());
     return ok;
 }
 
-bool EntryHandler::deleteEntry(QListWidgetItem *item, Database tdb) {
+bool EntryHandler::deleteEntry(QTableWidgetItem *item, Database tdb) {
+    QString name = item->tableWidget()->item(item->row(), 0)->text();
     QMessageBox delChoice;
-    delChoice.setText(tr(std::string("Are you sure you want to delete entry \"" + item->text().toStdString() + "\"? This action is IRREVERSIBLE!").c_str()));
+    delChoice.setText(tr(std::string("Are you sure you want to delete entry \"" + name.toStdString() + "\"? This action is IRREVERSIBLE!").c_str()));
     delChoice.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
     delChoice.setDefaultButton(QMessageBox::No);
     int ret = delChoice.exec();
 
     if (ret == QMessageBox::Yes) {
-        db.exec("DROP TABLE " + item->text());
+        db.exec("DROP TABLE " + name);
         tdb.modified = true;
 
-        std::cout << "Entry \"" << item->text().toStdString() << "\" successfully deleted." << std::endl;
+        std::cout << "Entry \"" << name.toStdString() << "\" successfully deleted." << std::endl;
         return true;
     }
+    redrawTable(item->tableWidget());
     return false;
 }

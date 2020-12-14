@@ -8,7 +8,7 @@ static const std::vector<const char*> derivMatch = {"PBKDF2"};
 static const std::vector<const char*> hashMatch = {"Argon2id", "Bcrypt-PBKDF", "No hashing, only derivation"};
 static const std::vector<const char*> encryptionMatch = {"AES-256/GCM", "Twofish/GCM", "SHACAL2/EAX", "Serpent/GCM"};
 
-static const std::string PASSMAN_VERSION = "2.0.0 DEBUG";
+static const std::string PASSMAN_VERSION = "2.0.0rc1";
 static const std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH);
 
 static const std::string tips = "A good password contains:\n"
@@ -68,5 +68,8 @@ static const QList<std::string> number = {"0", "1", "2", "3", "4", "5", "6", "7"
 static const QList<std::string> symbol = {"!", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "]", "^", "_", "`", "{", "|", "}", "~"};
 
 static const QList<std::string> choices = {"help", "info", "tips", "edit", "backup", "save", "config", "exit"};
+
+extern bool debug;
+extern bool verbose;
 
 #endif // CONSTANTS_H

@@ -6,8 +6,6 @@ Botan::secure_vector<uint8_t> toVec(std::string str) {
 }
 
 Botan::secure_vector<uint8_t> toVec(char *str, int length) {
-    //return Botan::secure_vector<uint8_t>(str, str + length);
-    qDebug() << str;
     return toVec(std::string(str, length));
 }
 

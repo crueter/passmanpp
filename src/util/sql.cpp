@@ -14,19 +14,20 @@ void dbInit() {
 
 QList<QSqlQuery> selectAll() {
     QSqlQuery selQuery(db);
-    selQuery.exec("SELECT * FROM 'sqlite_master' WHERE type='table'");
+    selQuery.exec("SELECT tbl_name FROM 'sqlite_master' WHERE type='table' ORDER BY tbl_name");
     QList<QSqlQuery> queries;
 
     while (selQuery.next()) {
-        QString val = selQuery.value(1).toString();
+        QString val = selQuery.value(0).toString();
 
         if (val == "") {
             return {};
         }
-        QString lSt = "SELECT * FROM '" + val + "' ORDER BY name";
+        QString lSt = "SELECT * FROM '" + val + "'";
 
         QSqlQuery query(db);
         bool ok = query.exec(lSt);
+
         if (!ok) {
             qDebug() << "Warning: SQL execution error:" << query.lastError();
         }
@@ -84,6 +85,7 @@ void execAll(QString stmt) {
         }
         QSqlQuery finalQ(db);
         bool ok = finalQ.exec(st);
+
         if (!ok) {
             qDebug() << "Warning: SQL execution error:" << finalQ.lastError();
         }
@@ -98,12 +100,12 @@ void execAll(std::string stmt) {
 }
 
 std::string saveSt(bool exec) {
-    QList<QSqlQuery> queries = selectAll();
     QString execSt = "";
 
-    for (QSqlQuery q : queries) {
+    for (QSqlQuery q : selectAll()) {
         while (q.next()) {
             QSqlRecord rec = q.record();
+
             QString name = q.value(0).toString();
 
             QStringList names;
@@ -141,10 +143,11 @@ std::string saveSt(bool exec) {
 }
 
 bool exists(QString field, QString value) {
-    QList<QSqlQuery> all = selectAll();
-    for (QSqlQuery q : all) {
-        if (q.value(q.record().indexOf(field)) == value) {
-            return true;
+    for (QSqlQuery q : selectAll()) {
+        while (q.next()) {
+            if (q.value(q.record().indexOf(field)) == value) {
+                return true;
+            }
         }
     }
     return false;

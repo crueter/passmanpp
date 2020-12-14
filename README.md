@@ -1,7 +1,7 @@
 # 2.0
 passman++ version 2.0 is coming soon. It will feature a massive suite of new security and general features. Please see [#2.0 UPDATE](https://github.com/binex-dsk/passmanpp#20-update) for more info on what I plan to do.
 
-While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any commits to work when directly cloned.
+While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any of the commits to work when directly cloned.
 
 2.0.0rc1 is currently out. It's completely stable and tested and working, containing nearly all of the major changes in 2.0, but does not include a full-featured GUI and is still a combined CLI/GUI app.
 
@@ -82,23 +82,26 @@ All planned updates for passman++ 2.0:
 Previously planned updates for passman++ 2.0 that have already been implemented:
 - Properly align the randomize/view icons for EntryDetails()
 - Allow users to choose the number of iterations of hashing (to slow down bruteforcing)
-- Database UUIDs
 - Proper name/description for files in the header
 - Key file implementation
 - Create a proper .pdpp file format
 - Allow choosing different checksum, derivation, hashing, and encryption methods
-  * AES-256/GCM, Twofish
-  * Blake2b(256), SHA-3(256), SHAKE-256(256), Skein-512, SHA-256
+  * AES-256/GCM, Twofish/GCM, SHACAL2/EAX, Serpent/GCM
+  * Blake2b, SHA-3, SHAKE-256, Skein-512, SHA-512
   * Argon2id, Bcrypt-PBKDF, or no hashing at all (only derivation)
   * Potentially see if any more PBKD functions can be used
 - Database config and changing it on-the-fly
 - Switch to CMake
 - Add some help
+- Organize entry modifier into a table view thing
 
 # Relation to PyPassMan
 I would NOT recommend using PyPassMan currently. As you've read, 2.0 will be a MASSIVE update, so much so that it'll be superior in every single possible conceivable way imaginable to PyPassMan. Plus, I stopped development of that a while ago and removed it from the AUR.
 
 The .pdpp format that passman++ uses is **not** compatible with passman's .pdb format. They have different headers, config, password protection implementations, etc. Some day I'll write a pdb-to-pdpp converter.
+
+# Debug
+Define the environment variables `PASSMAN_DEBUG` and/or `PASSMAN_VERBOSE` to any value and you will activate debug/verbose mode, which will give you extra output. Sometimes I may ask you to use this in a bug report.
 
 # Security
 Technical side out of the way...

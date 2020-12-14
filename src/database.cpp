@@ -19,7 +19,7 @@ void showMessage(std::string msg) {
 
 std::string getCS(uint8_t cs, uint8_t encr) {
     std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(encr), Botan::ENCRYPTION);
-    std::string checksumChoice = std::string(checksumMatch[cs]);
+    std::string checksumChoice(checksumMatch[cs]);
 
     if (checksumChoice != "SHA-512") {
         checksumChoice += "(" + std::to_string(enc->maximum_keylength() * 8) + ")";
@@ -40,15 +40,19 @@ std::string Database::getPw(std::string password) {
             pHash = pfHash->from_params(hashIters);
         }
 
-        qDebug() << hashIters;
-        qDebug() << QString::fromStdString(hashChoice);
-        qDebug() << QString::fromStdString(checksumChoice);
-        qDebug() << QString::fromStdString(password) << Qt::endl;
+        if (verbose) {
+            qDebug() << hashIters;
+            qDebug() << QString::fromStdString(hashChoice);
+            qDebug() << QString::fromStdString(checksumChoice);
+            qDebug() << QString::fromStdString(password) << Qt::endl;
+        }
 
         Botan::secure_vector<uint8_t> ptr(1024);
         pHash->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
         password = toStr(ptr);
-        qDebug() << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
+        if(verbose) {
+            qDebug() << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
+        }
     }
 
     std::string derivChoice = derivMatch[deriv];
@@ -57,7 +61,9 @@ std::string Database::getPw(std::string password) {
     std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create(derivChoice + "(" + checksumChoice + ")")->default_params();
 
     ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
-    qDebug() << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
+    if (verbose) {
+        qDebug() << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
+    }
 
     return toStr(ptr);
 }
@@ -85,7 +91,9 @@ void Database::encrypt(std::string password) {
 
     pd << iv.data();
     pd << name;
-    qDebug() << iv;
+    if (verbose) {
+        qDebug() << iv;
+    }
     pd.put(0);
 
     pd << desc;
@@ -121,7 +129,9 @@ void Database::encrypt(std::string password) {
 
     std::string pts = toStr(pt);
     data = pt;
-    qDebug() << QString::fromStdString(Botan::hex_encode(pt));
+    if (verbose) {
+        qDebug() << QString::fromStdString(Botan::hex_encode(pt));
+    }
 
     pd << pts;
 
@@ -130,9 +140,10 @@ void Database::encrypt(std::string password) {
 }
 
 int Database::verify(std::string mpass) {
-    qDebug() << iv;
     Botan::secure_vector<uint8_t> vPtr = toVec(getPw(mpass)), pData = data;
-    qDebug() << QString::fromStdString(Botan::hex_encode(vPtr));
+    if (verbose) {
+        qDebug() << QString::fromStdString(Botan::hex_encode(vPtr));
+    }
 
     if (keyFile) {
         std::ifstream key(keyFilePath, std::ios::binary);
@@ -159,7 +170,9 @@ int Database::verify(std::string mpass) {
     decr->start(iv);
 
     try {
-        qDebug() << QString::fromStdString(Botan::hex_encode(pData));
+        if (verbose) {
+            qDebug() << QString::fromStdString(Botan::hex_encode(pData));
+        }
         decr->finish(pData);
 
         std::unique_ptr<Botan::Decompression_Algorithm> dataDe = Botan::Decompression_Algorithm::create("gzip");
@@ -351,7 +364,7 @@ bool Database::convert() {
 
     while (true) {
         vData = toVec(r);
-        QString pass = QInputDialog::getText(nullptr, QWidget::tr("Enter your password"), QWidget::tr(std::string("Please enter your master password to convert the database.").c_str()), QLineEdit::Password);
+        QString pass = QInputDialog::getText(nullptr, QWidget::tr("Enter your password"), QWidget::tr("Please enter your master password to convert the database."), QLineEdit::Password);
         password = pass.toStdString();
 
         Botan::secure_vector<uint8_t> mptr(32);
@@ -427,7 +440,6 @@ bool Database::parse() {
     }
 
     q >> deriv;
-    qDebug() << deriv;
     if (deriv >= derivMatch.size()){
         return showErr("Invalid derivation option.");
     }
@@ -482,7 +494,7 @@ bool Database::config(bool create) {
 
     auto comboBox = [layout, create](std::vector<const char *> vec, const char *label, int val) -> QComboBox* {
         QComboBox *box = new QComboBox;
-        QStringList list = QStringList(vec.begin(), vec.end());
+        QStringList list(vec.begin(), vec.end());
         box->addItems(list);
         box->setCurrentIndex(create ? 0 : val);
         layout->addRow(QWidget::tr(label), box);
@@ -511,7 +523,9 @@ bool Database::config(bool create) {
     QComboBox *hashBox = comboBox(hashMatch, "Password Hashing Function:", hash);
     QComboBox *encryptionBox = comboBox(encryptionMatch, "Data Encryption Function:", encryption);
 
-    qDebug() << checksum << deriv << hash << encryption;
+    if (verbose) {
+        qDebug() << checksum << deriv << hash << encryption;
+    }
 
     int iterVal = create ? 8 : hashIters;
 

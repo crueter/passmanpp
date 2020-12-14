@@ -4,6 +4,9 @@
 #include "util/extra.h"
 #include "util/sql.h"
 
+bool debug = false;
+bool verbose = false;
+
 bool choiceHandle(std::string choice, EntryHandler *eh, Database db) {
     if (choice == "help") {
         std::cout << help << std::endl;
@@ -47,6 +50,15 @@ bool choiceHandle(std::string choice, EntryHandler *eh, Database db) {
 
 int main(int argc,  char** argv) {
     QApplication app (argc, argv);
+    if (getenv("PASSMAN_DEBUG")) {
+        std::cout << "Debug mode activated. Do NOT use this unless you are testing stuff." << std::endl;
+        debug = true;
+    }
+    if (getenv("PASSMAN_DEBUG")) {
+        std::cout << "Verbose mode activated. Do NOT use this unless you are testing stuff." << std::endl;
+        verbose = true;
+    }
+
     dbInit();
     EntryHandler* eh = new EntryHandler;
     Database db;
