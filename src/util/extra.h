@@ -9,19 +9,26 @@
 
 #include <QFileDialog>
 
-std::string atos(int asciiVal);
+typedef Botan::secure_vector<uint8_t> secvec;
 
-Botan::secure_vector<uint8_t> toVec(std::string str);
-Botan::secure_vector<uint8_t> toVec(char *str, int length);
+QString atos(int asciiVal);
 
-std::string toStr(Botan::secure_vector<uint8_t> vec);
+secvec toVec(std::string str);
+secvec toVec(QString str);
+secvec toVec(char *str, int length);
 
-QString tr(std::string s);
+QByteArray toQBA(secvec vec);
+QString toStr(secvec vec);
+std::string toStdStr(secvec vec);
+
+QString tr(QString s);
 QString tr(const char *s);
 
-std::string newLoc();
-std::string getDb();
-std::string newKeyFile();
-std::string getKeyFile();
+QString newLoc();
+QString getDb();
+QString newKeyFile();
+QString getKeyFile();
+
+void displayErr(QString msg);
 
 #endif

@@ -2,13 +2,12 @@
 #define CONSTANTS_H
 #include "util/extra.h"
 
-static const int MAX_SUPPORTED_VERSION_NUMBER = 5;
-static const std::vector<const char*> checksumMatch = {"Blake2b", "SHA-3", "SHAKE-256", "Skein-512", "SHA-512"};
-static const std::vector<const char*> derivMatch = {"PBKDF2"};
-static const std::vector<const char*> hashMatch = {"Argon2id", "Bcrypt-PBKDF", "No hashing, only derivation"};
-static const std::vector<const char*> encryptionMatch = {"AES-256/GCM", "Twofish/GCM", "SHACAL2/EAX", "Serpent/GCM"};
+static const int MAX_SUPPORTED_VERSION_NUMBER = 6;
+static const QList<std::string> checksumMatch = {"Blake2b", "SHA-3", "SHAKE-256", "Skein-512", "SHA-512"};
+static const QList<std::string> hashMatch = {"Argon2id", "Bcrypt-PBKDF", "No hashing, only derivation"};
+static const QList<std::string> encryptionMatch = {"AES-256/GCM", "Twofish/GCM", "SHACAL2/EAX", "Serpent/GCM"};
 
-static const std::string PASSMAN_VERSION = "2.0.0rc1";
+static const std::string PASSMAN_VERSION = "2.0.0rc2";
 static const std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH);
 
 static const std::string tips = "A good password contains:\n"
@@ -55,19 +54,20 @@ static const std::string usage = "usage: ./passman [PATH] [COMMAND]\n"
 static const std::string welcomeMessage = "You may find the source code at " + github + ".\n"
                                           "Type help for available commands.";
 
-static const std::string reuseWarning = "This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!";
-static const std::string shortWarning = "Please make your password at least 8 characters. This is the common bare minimum for many websites, and is the shortest password you can have that can't be easily bruteforced.";
+static const QString reuseWarning = "This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!";
+static const QString shortWarning = "Please make your password at least 8 characters. This is the common bare minimum for many websites, and is the shortest password you can have that can't be easily bruteforced.";
 
-static const char fileExt[49] = "passman++ Database Files (*.pdpp);;All Files (*)";
-static const char keyExt[44] = "passman++ Key Files (*.pkpp);;All Files (*)";
-static const char choosingUrl[71] = "https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md";
-static const std::string whiteSpace = " \t\v\r\n";
+static const QString _allF = ";;All Files (*)";
+static const QString fileExt = "passman++ Database Files (*.pdpp)" + _allF;
+static const QString keyExt = "passman++ Key Files (*.pkpp)" + _allF;
+static const QString choosingUrl = "https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md";
+static const QString whiteSpace = " \t\v\r\n";
 
-static const QList<std::string> capital = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
-static const QList<std::string> number = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
-static const QList<std::string> symbol = {"!", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "]", "^", "_", "`", "{", "|", "}", "~"};
+static const QList<QChar> capital = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+static const QList<QChar> number = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+static const QList<QChar> symbol = {'!', '#', '$', '%', '&', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', ']', '^', '_', '`', '{', '|', '}', '~'};
 
-static const QList<std::string> choices = {"help", "info", "tips", "edit", "backup", "save", "config", "exit"};
+static const QStringList choices = {"help", "info", "tips", "edit", "backup", "save", "config", "exit"};
 
 extern bool debug;
 extern bool verbose;

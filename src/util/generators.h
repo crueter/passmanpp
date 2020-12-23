@@ -2,9 +2,11 @@
 #define DB_H
 #include "sql.h"
 
-uint32_t randomChar();
+QChar randomChar();
 
-std::string genPass(int length, bool capitals, bool numbers, bool symbols);
-Botan::secure_vector<uint8_t> genKey(std::string path);
+QString genPass(int length, bool capitals, bool numbers, bool symbols);
+void genKey(const QString &path);
+
+QString randomPass();
 
 #endif

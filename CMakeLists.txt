@@ -19,11 +19,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(passman
         src/constants.h
         src/database.cpp src/database.h
-        src/handlers/entry_handler.cpp src/handlers/entry_handler.h
         src/main.cpp
         src/util/extra.cpp src/util/extra.h
         src/util/generators.cpp src/util/generators.h
         src/util/sql.cpp src/util/sql.h
+        src/entry.cpp src/entry.h
+        src/field.cpp src/field.h
 )
 
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)

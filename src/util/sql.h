@@ -15,12 +15,10 @@ extern QSqlDatabase db;
 
 void dbInit();
 
-void execAll(QString stmt);
-void execAll(std::string stmt);
-QString getCreate(QString name, QStringList names, QList<QMetaType> types, QVariantList values);
-QList<QSqlQuery> selectAll();
-std::string saveSt(bool exec = false);
+void execAll(const QString &stmt);
 
-bool exists(QString field, QString value);
+QList<QSqlQuery> selectAll();
+
+bool exists(const QString &field, const QString &value);
 
 #endif

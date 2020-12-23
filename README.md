@@ -6,10 +6,10 @@ While this is happening, no other updates will come out. Occasionally, however, 
 2.0.0rc1 is currently out. It's completely stable and tested and working, containing nearly all of the major changes in 2.0, but does not include a full-featured GUI and is still a combined CLI/GUI app.
 
 # passman++
-An extremely simple and minimal yet just as secure and powerful command-line and GUI password manager. Super lightweight and easy to use.
+An extremely simple, minimal, and easy-to-use yet just as secure and powerful command-line and GUI password manager.
 
 # Building
-After downloading the source zip or tar.gz and extracting (DO NOT GIT CLONE, THIS MAY BE UNSTABLE), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) installed, and then:
+After downloading the source zip or tar.gz from the [releases](https://github.com/binex-dsk/passmanpp/releases) page, and extracting it (or directly cloning for bleeding-edge builds), make sure you have [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) installed, and then:
 ```bash
 $ cd src
 $ qmake passman.pro
@@ -50,7 +50,7 @@ passman++ is made possible by:
 - The Qt devs and [docs](https://doc.qt.io)
 - CMake
 - [KeePassXC](https://github.com/keepassxreboot/keepassxc) for the idea
-- And of course, the Botan ([randombit](https://github.com/randombit)) and libsodium devs ([jedisctl](https://github.com/jedisct1)).
+- And of course, the Botan ([randombit](https://github.com/randombit)) and libsodium devs ([jedisct1](https://github.com/jedisct1)).
 
 # To Do
 - Separate users
@@ -94,9 +94,10 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
 - Switch to CMake
 - Add some help
 - Organize entry modifier into a table view thing
+- Reduce the use of SQLite and directly edit entry data
 
 # Relation to PyPassMan
-I would NOT recommend using PyPassMan currently. As you've read, 2.0 will be a MASSIVE update, so much so that it'll be superior in every single possible conceivable way imaginable to PyPassMan. Plus, I stopped development of that a while ago and removed it from the AUR.
+I would NOT recommend using PyPassMan currently. As you've read, 2.0 will be a MASSIVE update, so much so that it'll be superior in every single conceivable way imaginable to PyPassMan. Plus, I stopped development of that a while ago and removed it from the AUR.
 
 The .pdpp format that passman++ uses is **not** compatible with passman's .pdb format. They have different headers, config, password protection implementations, etc. Some day I'll write a pdb-to-pdpp converter.
 
@@ -110,8 +111,9 @@ By using passman++, all security is tested thoroughly, using tried-and-true stan
 
 Your password and its hash are NEVER stored absolutely ANYWHERE. All operations involving your password require you to input the password, and all verification is done by Botan's AES implementation. Every single bit of data is only accessible to those who know the password, which is your ONLY way to get access to it. Without your password, there is NO way to get your data, so keep it safe somewhere!
 
-Password generation is done using libsodium's cryptographically secure random character generator. All your passwords will appear to be almost, if not completely random.
+Password generation is done using libsodium's cryptographically secure random number generator. All your passwords will appear to be almost, if not completely random.
 
 The only "security hole" this has is somebody deleting your database files. Keep backups using the `backup` command. Store your databases in safe locations that only you have access to. Hell, you could even make a QR code of your database. Store it properly and you'll be fine.
 
+# Extras
 This program is only intended to work under Linux. Feel free, however, to compile this for Windows and use it yourself, or even distribute it separately. However, as per the BSD License, you are required to credit me, and include the same BSD License in your version.

@@ -1,42 +1,63 @@
+#include <QMessageBox>
+
 #include "extra.h"
 #include "constants.h"
 
-Botan::secure_vector<uint8_t> toVec(std::string str) {
-    return Botan::secure_vector<uint8_t>(str.begin(), str.end());
+secvec toVec(std::string str) {
+    return secvec(str.begin(), str.end());
 }
 
-Botan::secure_vector<uint8_t> toVec(char *str, int length) {
-    return toVec(std::string(str, length));
+secvec toVec(QString str) {
+    return toVec(str.toStdString());
 }
 
-std::string toStr(Botan::secure_vector<uint8_t> vec) {
+secvec toVec(char *str, int length) {
+    return secvec(str, str + length);
+}
+
+QByteArray toQBA(secvec vec) {
+    return QByteArray(reinterpret_cast<const char*>(vec.data()), vec.size());
+}
+
+QString toStr(secvec vec) {
+    return QString(toQBA(vec));
+}
+
+std::string toStdStr(secvec vec) {
     return std::string(vec.begin(), vec.end());
 }
 
-QString tr(std::string s) {
-    return QWidget::tr(s.c_str());
+QString tr(QString s) {
+    return QWidget::tr(s.toStdString().data());
 }
 
 QString tr(const char *s) {
     return QWidget::tr(s);
 }
 
-std::string newKeyFile() {
-    QString fileName = QFileDialog::getSaveFileName(nullptr, tr("New Key File"), "", tr(keyExt));
-    return fileName.toStdString();
+QString newKeyFile() {
+    QString fileName = QFileDialog::getSaveFileName(nullptr, tr("New Key File"), "", keyExt);
+    return fileName;
 }
 
-std::string getKeyFile() {
-    QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", tr(keyExt));
-    return fileName.toStdString();
+QString getKeyFile() {
+    QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", keyExt);
+    return fileName;
 }
 
-std::string newLoc() {
-    QString fileName = QFileDialog::getSaveFileName(nullptr, tr("New Database Location"), "", tr(fileExt));
-    return fileName.toStdString();
+QString newLoc() {
+    QString fileName = QFileDialog::getSaveFileName(nullptr, tr("New Database Location"), "", fileExt);
+    return fileName;
 }
 
-std::string getDb() {
-    QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open Database"), "", tr(fileExt));
-    return fileName.toStdString();
+QString getDb() {
+    QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open Database"), "", fileExt);
+    return fileName;
+}
+
+void displayErr(QString msg) {
+    QMessageBox err;
+    err.setText(QWidget::tr(msg.toStdString().data()));
+    err.setStandardButtons(QMessageBox::Ok);
+    err.exec();
 }

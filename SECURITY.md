@@ -6,9 +6,7 @@
 | -------   | ------------------ |
 | 2.0.0rc1  | Debug support only |
 | 1.4.0p    | :white_check_mark:, LTS |
-| 1.3.0     | Extended support only |
-| 1.2.0     | Extended support only |
-| <= 1.1.0  | :x: |
+| <= 1.3.0  | :x: |
 
 ## Reporting a Vulnerability
 

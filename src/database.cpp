@@ -3,16 +3,21 @@
 #include <QUrl>
 #include <QDesktopServices>
 #include <QInputDialog>
+#include <QDialogButtonBox>
+#include <QLabel>
+#include <QFormLayout>
+#include <QPushButton>
+#include <QMenuBar>
+#include <QHeaderView>
 
-#include "handlers/entry_handler.h"
 #include "util/generators.h"
+#include "entry.h"
 
 Database::Database() {}
-std::string kfp = "";
 
-void showMessage(std::string msg) {
+void showMessage(const QString &msg) {
     QMessageBox box;
-    box.setText(QString::fromStdString(msg));
+    box.setText(msg);
     box.setStandardButtons(QMessageBox::Ok);
     box.exec();
 }
@@ -27,7 +32,119 @@ std::string getCS(uint8_t cs, uint8_t encr) {
     return checksumChoice;
 }
 
-std::string Database::getPw(std::string password) {
+void Database::get() {
+    entries = {};
+    for (QSqlQuery q : selectAll()) {
+        while (q.next()) {
+            QList<Field *> fields;
+
+            for (int i = 0; i < q.record().count(); ++i) {
+                QVariant val = q.record().value(i);
+                QString vName = q.record().fieldName(i);
+                QMetaType::Type id = (QMetaType::Type)q.record().field(i).typeID();
+
+                Field *f = new Field(vName, val, id);
+                fields.push_back(f);
+            }
+
+            Entry *entry = new Entry(fields, this);
+            entries.push_back(entry);
+        }
+    }
+}
+
+int Database::add(QTableWidget *table) {
+    Entry *entry = new Entry({}, this);
+    entry->setDefaults();
+    entries.push_back(entry);
+
+    int ret = entry->edit(nullptr, table);
+    return ret;
+}
+
+int Database::edit() {
+    QDialog *dialog = new QDialog;
+
+    QDialogButtonBox *ok = new QDialogButtonBox(dialog);
+    ok->setStandardButtons(QDialogButtonBox::Ok);
+    QObject::connect(ok->button(QDialogButtonBox::Ok), &QPushButton::clicked, dialog, &QDialog::accept);
+
+    QGridLayout *layout = new QGridLayout(dialog);
+
+    QTableWidget *table = new QTableWidget(dialog);
+    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setSortingEnabled(true);
+
+    QStringList labels{"Name", "Email", "URL"};
+    table->setColumnCount(labels.length());
+    table->setHorizontalHeaderLabels(labels);
+
+    auto getNamed = [this](QTableWidget *table) -> Entry *{
+        QString name = table->item(table->currentItem()->row(), 0)->text();
+
+        return entryNamed(name);
+    };
+
+    QObject::connect(table, &QTableWidget::itemDoubleClicked, [getNamed](QTableWidgetItem *item) {
+        getNamed(item->tableWidget())->edit(item);
+    });
+
+    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), "Creates a new entry in the database.", QKeySequence(tr("Ctrl+N")), [table, this]{
+        add(table);
+    });
+
+    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), "Deletes the currently selected entry.", QKeySequence::Delete, [table, getNamed]{
+        getNamed(table)->del(table->currentItem());
+    });
+
+    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), "Edit or view all the information of the current entry.", QKeySequence(tr("Ctrl+E")), [table, getNamed]{
+        getNamed(table)->edit(table->currentItem());
+    });
+
+    QMenuBar *bar = new QMenuBar;
+    QMenu *menu = bar->addMenu(tr("Edit"));
+    menu->addActions(QList<QAction *>{addButton, delButton, editButton});
+
+    layout->addWidget(table);
+    layout->setMenuBar(bar);
+
+    layout->addWidget(ok);
+
+    dialog->setLayout(layout);
+    dialog->setWindowTitle(tr("Select an entry"));
+
+    dialog->resize(800, 450);
+    dialog->exec();
+
+    return true;
+}
+
+bool Database::saveSt(bool exec) {
+    QString execSt = "";
+
+    for (Entry *entry : entries) {
+        execSt += entry->getCreate();
+    }
+
+    if (exec) {
+        QSqlQuery delQuery(db);
+        delQuery.exec("SELECT 'DROP TABLE \"' || name || '\"' FROM sqlite_master WHERE type = 'table'");
+        QString delSt;
+
+        while (delQuery.next()) {
+            delSt += delQuery.value(0).toString() + "\n";
+        }
+        delQuery.finish();
+        db.exec(delSt);
+
+        execAll(execSt);
+    }
+    this->stList = execSt;
+    return true;
+}
+
+secvec Database::getPw(QString password) {
     std::string checksumChoice = getCS(checksum, encryption);
     std::string hashChoice = hashMatch[hash];
 
@@ -41,41 +158,36 @@ std::string Database::getPw(std::string password) {
         }
 
         if (verbose) {
-            qDebug() << hashIters;
-            qDebug() << QString::fromStdString(hashChoice);
-            qDebug() << QString::fromStdString(checksumChoice);
-            qDebug() << QString::fromStdString(password) << Qt::endl;
+            qDebug() << hashIters << QString::fromStdString(hashChoice) << QString::fromStdString(checksumChoice) << iv << password << Qt::endl;
         }
 
-        Botan::secure_vector<uint8_t> ptr(1024);
-        pHash->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
+        secvec ptr(512);
+        pHash->derive_key(ptr.data(), ptr.size(), password.toStdString().data(), password.size(), iv.data(), ivLen);
         password = toStr(ptr);
         if(verbose) {
-            qDebug() << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
+            qDebug() << "After Hashing:" << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
         }
     }
 
-    std::string derivChoice = derivMatch[deriv];
+    secvec ptr(32);
+    std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create("PBKDF2(" + checksumChoice + ")")->default_params();
 
-    Botan::secure_vector<uint8_t> ptr(32);
-    std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create(derivChoice + "(" + checksumChoice + ")")->default_params();
-
-    ph->derive_key(ptr.data(), ptr.size(), password.c_str(), password.size(), iv.data(), ivLen);
+    ph->derive_key(ptr.data(), ptr.size(), password.toStdString().data(), password.size(), iv.data(), ivLen);
     if (verbose) {
-        qDebug() << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
+        qDebug() << "After Derivation:" << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
     }
 
-    return toStr(ptr);
+    return ptr;
 }
 
-void Database::encrypt(std::string password) {
-    std::ofstream pd(path, std::ios_base::binary | std::ios_base::trunc);
+void Database::encrypt(const QString &password) {
+    std::ofstream pd(path.toStdString(), std::fstream::binary | std::fstream::trunc);
     pd.seekp(0);
+
     pd << "PD++";
 
     pd.put(MAX_SUPPORTED_VERSION_NUMBER);
     pd.put(checksum);
-    pd.put(deriv);
     pd.put(hash);
     pd.put(hashIters);
     pd.put(keyFile);
@@ -90,22 +202,20 @@ void Database::encrypt(std::string password) {
     }
 
     pd << iv.data();
-    pd << name;
-    if (verbose) {
-        qDebug() << iv;
-    }
-    pd.put(0);
 
-    pd << desc;
-    pd.put(0);
+    pd << name.toStdString();
+    pd.put(10);
 
-    std::string ptr = getPw(password);
+    pd << desc.toStdString();
+    pd.put(10);
 
-    Botan::secure_vector<uint8_t> vPassword = toVec(ptr);
+    secvec vPassword = getPw(password);
 
     enc->set_key(vPassword);
 
-    Botan::secure_vector<uint8_t> pt(stList.data(), stList.data() + stList.length());
+    saveSt();
+    std::string stl = stList.toStdString();
+    secvec pt(stl.data(), stl.data() + stl.length());
 
     std::unique_ptr<Botan::Compression_Algorithm> ptComp = Botan::Compression_Algorithm::create("gzip");
 
@@ -116,9 +226,10 @@ void Database::encrypt(std::string password) {
     enc->finish(pt);
 
     if (keyFile) {
-        std::ifstream key(keyFilePath, std::ios::binary);
-        Botan::secure_vector<uint8_t> keyData = Botan::secure_vector<uint8_t>(std::istreambuf_iterator<char>{key}, {});
-        std::string keyPw = getPw(toStr(keyData));
+        QFile kf(keyFilePath);
+        kf.open(QIODevice::ReadOnly);
+        QTextStream key(&kf);
+        QString keyPw = key.readAll();
 
         std::unique_ptr<Botan::Cipher_Mode> keyEnc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption), Botan::ENCRYPTION);
 
@@ -127,11 +238,11 @@ void Database::encrypt(std::string password) {
         keyEnc->finish(pt);
     }
 
-    std::string pts = toStr(pt);
     data = pt;
     if (verbose) {
-        qDebug() << QString::fromStdString(Botan::hex_encode(pt));
+        qDebug() << "Data (Encryption):" << QString::fromStdString(Botan::hex_encode(pt));
     }
+    std::string pts = toStdStr(pt);
 
     pd << pts;
 
@@ -139,16 +250,14 @@ void Database::encrypt(std::string password) {
     pd.close();
 }
 
-int Database::verify(std::string mpass) {
-    Botan::secure_vector<uint8_t> vPtr = toVec(getPw(mpass)), pData = data;
-    if (verbose) {
-        qDebug() << QString::fromStdString(Botan::hex_encode(vPtr));
-    }
+int Database::verify(const QString &mpass) {
+    secvec vPtr = getPw(mpass), pData = data;
 
     if (keyFile) {
-        std::ifstream key(keyFilePath, std::ios::binary);
-        Botan::secure_vector<uint8_t> keyData = Botan::secure_vector<uint8_t>(std::istreambuf_iterator<char>{key}, {});
-        std::string keyPw = getPw(toStr(keyData));
+        QFile kf(keyFilePath);
+        kf.open(QIODevice::ReadOnly);
+        QTextStream key(&kf);
+        QString keyPw = key.readAll();
 
         std::unique_ptr<Botan::Cipher_Mode> keyDec = Botan::Cipher_Mode::create(encryptionMatch.at(encryption), Botan::DECRYPTION);
 
@@ -171,7 +280,7 @@ int Database::verify(std::string mpass) {
 
     try {
         if (verbose) {
-            qDebug() << QString::fromStdString(Botan::hex_encode(pData));
+            qDebug() << "Data (Verification):" << Botan::hex_encode(pData).data();
         }
         decr->finish(pData);
 
@@ -187,34 +296,32 @@ int Database::verify(std::string mpass) {
     return true;
 }
 
-std::string Database::decrypt(std::string txt, std::string password) {
-    std::string mpass;
-
+QString Database::decrypt(const QString &txt, const QString &password) {
     if (password == "") {
         QDialog *passDi = new QDialog;
         passDi->setWindowTitle(QWidget::tr("Enter your password"));
 
         QGridLayout *layout = new QGridLayout;
 
-        QLabel *passLabel = new QLabel(QWidget::tr(std::string("Please enter your master password" + txt + ".").c_str()));
+        QLabel *passLabel = new QLabel("Please enter your master password" + txt + ".");
 
         QLineEdit *passEdit = new QLineEdit;
         passEdit->setEchoMode(QLineEdit::Password);
         passEdit->setCursorPosition(0);
 
         QLineEdit *keyEdit = new QLineEdit;
+        QLabel *keyLabel = new QLabel(QWidget::tr("Key File:"));
         QPushButton *getKf = new QPushButton(QWidget::tr("Open"));
         QDialogButtonBox *keyBox = new QDialogButtonBox;
 
-        QLabel *keyLabel = new QLabel(QWidget::tr("Key File:"));
-
         if (keyFile) {
+
             QWidget::connect(getKf, &QPushButton::clicked, [keyEdit, this]() mutable {
                 keyFilePath = getKeyFile();
                 if (keyFilePath != "") {
                     keyFile = true;
                 }
-                keyEdit->setText(QString::fromStdString(keyFilePath));
+                keyEdit->setText(keyFilePath);
             });
 
             keyBox->addButton(getKf, QDialogButtonBox::ActionRole);
@@ -229,22 +336,13 @@ std::string Database::decrypt(std::string txt, std::string password) {
 
         QPalette palette;
 
-        QColor lColor;
-        lColor.setNamedColor("#DA4453");
-        palette.setColor(QPalette::Light, lColor);
-
-        QColor dColor;
-        dColor.setNamedColor("#DA4453");
-        palette.setColor(QPalette::Dark, dColor);
-
-        QColor tColor;
-        tColor.setNamedColor("#C4DA4453");
-        palette.setColor(QPalette::Window, tColor);
-
+        palette.setColor(QPalette::Light, QColor("#DA4453"));
+        palette.setColor(QPalette::Dark, QColor("#DA4453"));
+        palette.setColor(QPalette::Window, QColor("#C4DA4453"));
         palette.setColor(QPalette::Text, Qt::white);
 
         QWidget::connect(passButtons->button(QDialogButtonBox::Ok), &QPushButton::clicked, [passEdit, passLabel, passDi, passButtons, errLabel, layout, palette, keyEdit, this]() mutable -> void {
-            std::string pw = passEdit->text().toStdString();
+            QString pw = passEdit->text();
 
             passDi->setCursor(QCursor(Qt::WaitCursor));
 
@@ -260,7 +358,7 @@ std::string Database::decrypt(std::string txt, std::string password) {
             passDi->repaint();
 
             if (keyFile) {
-                keyFilePath = keyEdit->text().toStdString();
+                keyFilePath = keyEdit->text();
             }
 
             if (pw == "") {
@@ -311,29 +409,28 @@ std::string Database::decrypt(std::string txt, std::string password) {
             return "";
         }
 
-        keyFilePath = keyEdit->text().toStdString();
-        kfp = keyFilePath;
+        keyFilePath = keyEdit->text();
 
-        return passEdit->text().toStdString();
+        return passEdit->text();
     } else {
         verify(password);
         return password;
     }
 }
 
-bool Database::save(std::string password) {
-    std::string pw = decrypt(" to save");
-    if (pw.empty()) {
+bool Database::save(const QString &password) {
+    QString pw = decrypt(" to save");
+    if (pw.isEmpty()) {
         return false;
     }
 
-    std::string mpass;
+    QString mpass;
     if (pw != "") {
         mpass = pw;
     } else {
         mpass = password;
     }
-    stList = saveSt();
+
     encrypt(mpass);
 
     modified = false;
@@ -341,36 +438,36 @@ bool Database::save(std::string password) {
 }
 
 bool Database::convert() {
-    std::ifstream pd(path, std::ios_base::binary | std::ios_base::out);
-    std::string iv;
-    std::getline(pd, iv);
+    QFile f(path);
+    f.open(QIODevice::ReadOnly);
+    QTextStream pd(&f);
+    QString iv = pd.readLine();
 
     std::vector<uint8_t> ivd;
     try {
-        ivd = Botan::hex_decode(iv);
+        ivd = Botan::hex_decode(iv.toStdString());
     } catch (...) {
         return false;
     }
-    std::string r(std::istreambuf_iterator<char>{pd}, {});
 
     if (ivd.size() != 12) {
         return false;
     }
+    QString r = pd.readAll();
 
     showMessage("This database may be for an older version of passman++. I will try to convert it now.");
 
-    Botan::secure_vector<uint8_t> vData;
-    std::string password;
+    secvec vData;
+    QString password;
 
     while (true) {
         vData = toVec(r);
-        QString pass = QInputDialog::getText(nullptr, QWidget::tr("Enter your password"), QWidget::tr("Please enter your master password to convert the database."), QLineEdit::Password);
-        password = pass.toStdString();
+        password = QInputDialog::getText(nullptr, QWidget::tr("Enter your password"), QWidget::tr("Please enter your master password to convert the database."), QLineEdit::Password);
 
-        Botan::secure_vector<uint8_t> mptr(32);
+        secvec mptr(32);
         std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create("PBKDF2(SHA-256)")->default_params();
 
-        ph->derive_key(mptr.data(), mptr.size(), password.c_str(), password.size(), ivd.data(), ivd.size());
+        ph->derive_key(mptr.data(), mptr.size(), password.toStdString().data(), password.size(), ivd.data(), ivd.size());
 
         std::unique_ptr<Botan::Cipher_Mode> decr = Botan::Cipher_Mode::create("AES-256/GCM", Botan::DECRYPTION);
 
@@ -384,30 +481,29 @@ bool Database::convert() {
             displayErr("Wrong password, try again.");
         }
     }
+    QString name = QString(basename(path.toStdString().data())).split(".")[0];
+    QString rdata = toStr(vData);
 
-    std::string name = QString(basename(path.c_str())).split(".")[0].toStdString();
-    std::string rdata = toStr(vData);
-
-    this->checksum = 1;
-    this->deriv = 1;
-    this->hash = 1;
+    this->checksum = 0;
+    this->hash = 0;
     this->hashIters = 8;
     this->keyFile = false;
-    this->encryption = 1;
-    this->iv = Botan::secure_vector<uint8_t>(ivd.begin(), ivd.end());
+    this->encryption = 0;
+    this->iv = secvec(ivd.begin(), ivd.end());
     this->name = name;
     this->desc = "Converted from old database format.";
     this->stList = rdata;
     execAll(rdata);
-    this->stList = saveSt();
+    get();
+    saveSt();
     db.exec("DROP TABLE data");
 
     encrypt(password);
-    pd.close();
+    f.close();
     return true;
 }
 
-bool Database::showErr(std::string msg) {
+bool Database::showErr(QString msg) {
     displayErr("Error: database file is corrupt or invalid.\nDetails: " + msg);
     return {};
 }
@@ -415,7 +511,7 @@ bool Database::showErr(std::string msg) {
 bool Database::parse() {
     char readData[4];
 
-    QFile f(QString::fromStdString(path));
+    QFile f(path);
     f.open(QIODevice::ReadOnly);
     QDataStream q(&f);
 
@@ -424,7 +520,7 @@ bool Database::parse() {
     if (std::string(readData, 4) != "PD++") {
         bool conv = convert();
         if (!conv) {
-            return showErr("Invalid magic number \"" + std::string(readData) + "\".");
+            return showErr("Invalid magic number \"" + QString(readData) + "\".");
         }
         return true;
     }
@@ -439,9 +535,9 @@ bool Database::parse() {
         return showErr("Invalid checksum option.");
     }
 
-    q >> deriv;
-    if (deriv >= derivMatch.size()){
-        return showErr("Invalid derivation option.");
+    if (version < 6) {
+        uint8_t n;
+        q >> n;
     }
 
     q >> hash;
@@ -460,20 +556,23 @@ bool Database::parse() {
     std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption), Botan::ENCRYPTION);
     ivLen = enc->default_nonce_length();
 
-    QByteArray restData = f.readAll();
-    QList<QByteArray> spl = restData.split(0);
+    char ivc[ivLen];
+    q.readRawData(ivc, ivLen);
+    iv = toVec(ivc, ivLen);
 
-    std::string nameIV = spl[0].toStdString();
-    iv = toVec(nameIV.substr(0, ivLen));
-    name = nameIV.substr(ivLen);
+    char namec[255], descc[255];
+    f.readLine(namec, 255);
+    f.readLine(descc, 255);
 
-    desc = spl[1].toStdString();
+    desc = QString(namec).trimmed();
+    name = QString(descc).trimmed();
 
-    QByteArray qdata = spl.sliced(2).join(0);
+    int available = f.bytesAvailable();
+    char datac[available];
+    q.readRawData(datac, available);
 
-    data = Botan::secure_vector<uint8_t>(qdata.begin(), qdata.end());
+    data = toVec(datac, available);
 
-    f.close();
     return true;
 }
 
@@ -492,9 +591,14 @@ bool Database::config(bool create) {
         QDesktopServices::openUrl(QUrl(choosingUrl));
     });
 
-    auto comboBox = [layout, create](std::vector<const char *> vec, const char *label, int val) -> QComboBox* {
+    auto comboBox = [layout, create](QList<std::string> vec, const char *label, int val) -> QComboBox* {
         QComboBox *box = new QComboBox;
-        QStringList list(vec.begin(), vec.end());
+
+        QStringList list;
+        for (int i = 0; i < vec.size(); ++i) {
+            list.push_back(QString::fromStdString(vec[i]));
+        }
+
         box->addItems(list);
         box->setCurrentIndex(create ? 0 : val);
         layout->addRow(QWidget::tr(label), box);
@@ -506,10 +610,10 @@ bool Database::config(bool create) {
     pass->setEchoMode(QLineEdit::Password);
     layout->addRow(QWidget::tr("Password:"), pass);
 
-    auto lineEdit = [layout](const char *text, std::string defText, const char *label) -> QLineEdit* {
+    auto lineEdit = [layout](const char *text, QString defText, const char *label) -> QLineEdit* {
         QLineEdit *le = new QLineEdit;
         le->setPlaceholderText(QWidget::tr(text));
-        le->setText(QString::fromStdString(defText));
+        le->setText(defText);
 
         layout->addRow(QWidget::tr(label), le);
         return le;
@@ -519,12 +623,11 @@ bool Database::config(bool create) {
     QLineEdit *descEdit = lineEdit("Description", desc, "Description:");
 
     QComboBox *checksumBox = comboBox(checksumMatch, "Checksum Function:", checksum);
-    QComboBox *derivBox = comboBox(derivMatch, "Key Derivation Function:", deriv);
     QComboBox *hashBox = comboBox(hashMatch, "Password Hashing Function:", hash);
     QComboBox *encryptionBox = comboBox(encryptionMatch, "Data Encryption Function:", encryption);
 
-    if (verbose) {
-        qDebug() << checksum << deriv << hash << encryption;
+    if (debug) {
+        qDebug() << "Database params:" << checksum << hash << encryption;
     }
 
     int iterVal = create ? 8 : hashIters;
@@ -537,16 +640,16 @@ bool Database::config(bool create) {
     layout->addRow(QWidget::tr("Password Hashing Iterations:"), hashIterBox);
 
     QLineEdit *keyEdit = new QLineEdit;
-    keyEdit->setText(QString::fromStdString(kfp));
+    keyEdit->setText(keyFilePath);
 
     QPushButton *newKf = new QPushButton(QWidget::tr("New"));
     QWidget::connect(newKf, &QPushButton::clicked, [keyEdit] {
-        keyEdit->setText(QString::fromStdString(newKeyFile()));
+        keyEdit->setText(newKeyFile());
     });
 
     QPushButton *getKf = new QPushButton(QWidget::tr("Open"));
     QWidget::connect(getKf, &QPushButton::clicked, [keyEdit] {
-        keyEdit->setText(QString::fromStdString(getKeyFile()));
+        keyEdit->setText(getKeyFile());
     });
 
     QDialogButtonBox *keyBox = new QDialogButtonBox;
@@ -560,7 +663,7 @@ bool Database::config(bool create) {
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
     QWidget::connect(buttonBox, &QDialogButtonBox::accepted, [pass, di, create]() mutable {
-        std::string pw = pass->text().toStdString();
+        QString pw = pass->text();
         if (create && pw == "") {
             displayErr("Password must be provided.");
         } else {
@@ -577,7 +680,8 @@ bool Database::config(bool create) {
     layout->setMenuBar(bar);
 
     di->setLayout(layout);
-    pass->setCursorPosition(0);
+
+    pass->setFocus(Qt::MouseFocusReason);
     int ret = di->exec();
 
     if (ret == QDialog::Rejected) {
@@ -585,36 +689,37 @@ bool Database::config(bool create) {
     }
 
     if (create) {
-        stList = getCreate("default", {"name", "email", "url", "notes", "password"}, {QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString), QMetaType(QMetaType::QString)}, {"default", "default@createexample.com", "example.com", "This is a default, example entry.", "PASSWORDHERE"}).toStdString();
-        execAll(stList);
+        Entry *entry = new Entry({}, this);
+        entry->setDefaults();
+        for (Field *f : entry->fields) {
+            f->data = "EXAMPLE";
+        }
     }
 
-    std::string pw = pass->text().toStdString();
-    std::string kfPath = keyEdit->text().toStdString();
-    bool kf = !kfPath.empty();
+    QString pw = pass->text();
+    QString kfPath = keyEdit->text();
+    bool kf = !kfPath.isEmpty();
 
-    if (!std::experimental::filesystem::exists(kfPath)) {
+    if (kf && !QFile::exists(kfPath)) {
         genKey(kfPath);
     }
 
     if (!create) {
-        std::string dec = decrypt(" to save your new configuration");
-        if (pw.empty()) {
-            pw = dec;
-        }
-        if (dec.empty()) {
+        QString dec = decrypt(" to save your new configuration");
+        if (dec.isEmpty()) {
             return false;
         }
-        stList = saveSt();
+        if (pw.isEmpty()) {
+            pw = dec;
+        }
     }
 
     checksum = checksumBox->currentIndex();
-    deriv = derivBox->currentIndex();
     hash = hashBox->currentIndex();
     hashIters = hashIterBox->value();
     encryption = encryptionBox->currentIndex();
-    name = nameEdit->text().toStdString();
-    desc = descEdit->text().toStdString();
+    name = nameEdit->text();
+    desc = descEdit->text();
 
     if (kf) {
         keyFilePath = kfPath;
@@ -635,14 +740,14 @@ bool Database::config(bool create) {
 }
 
 bool Database::open() {
-    if (std::experimental::filesystem::exists(path)) {
+    if (QFile::exists(path)) {
         if (!parse()) {
             return false;
         }
         if (stList == "") {
             try {
-                std::string p = decrypt(" to login");
-                if (p.empty()) {
+                QString p = decrypt(" to login", "");
+                if (p.isEmpty()) {
                     return false;
                 }
             } catch (std::exception& e) {
@@ -650,11 +755,9 @@ bool Database::open() {
                 return false;
             }
         }
-        std::string line;
-        std::istringstream iss(stList);
-        while (std::getline(iss, line)) {
+        for (const QString &line : stList.split('\n')) {
             QSqlQuery q(db);
-            bool ok = q.exec(QString::fromStdString(line));
+            bool ok = q.exec(line);
             if (!ok) {
                 qDebug() << "Warning: Error during database initialization:" << q.lastError();
             }
@@ -666,7 +769,7 @@ bool Database::open() {
 }
 
 int Database::backup() {
-    QString fileName = QFileDialog::getSaveFileName(nullptr, QWidget::tr("Backup Location"), "", QWidget::tr(fileExt));
+    QString fileName = QFileDialog::getSaveFileName(nullptr, QWidget::tr("Backup Location"), "", fileExt);
     if (fileName.isEmpty()) {
         return 3;
     }
@@ -675,7 +778,7 @@ int Database::backup() {
         return 17;
     }
     try {
-        path = fileName.toStdString();
+        path = fileName;
         bool ok = save();
         if (!ok) {
             return false;
@@ -684,4 +787,23 @@ int Database::backup() {
         displayErr(e.what());
     }
     return true;
+}
+
+Entry *Database::entryNamed(const QString &name) {
+    for (Entry *e : entries) {
+        if (e->name == name) {
+            return e;
+        }
+    }
+
+    return nullptr;
+}
+
+template <typename Func>
+QAction *Database::addButton(QIcon icon, const char *whatsThis, QKeySequence shortcut, Func func) {
+    QAction *action = new QAction(icon, "");
+    action->setWhatsThis(tr(whatsThis));
+    action->setShortcut(shortcut);
+    QObject::connect(action, &QAction::triggered, func);
+    return action;
 }
