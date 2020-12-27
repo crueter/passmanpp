@@ -3,7 +3,7 @@ passman++ version 2.0 is coming soon. It will feature a massive suite of new sec
 
 While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any of the commits to work when directly cloned.
 
-2.0.0rc1 is currently out. It's completely stable and tested and working, containing nearly all of the major changes in 2.0, but does not include a full-featured GUI and is still a combined CLI/GUI app.
+2.0.0rc1 and 2.0.0rc2 are completely stable, tested, and working. You may use them if you please, as they contain nearly all the major changes from 2.0, but do not contain GUI or user-input attributes.
 
 # passman++
 An extremely simple, minimal, and easy-to-use yet just as secure and powerful command-line and GUI password manager.
@@ -95,6 +95,7 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
 - Add some help
 - Organize entry modifier into a table view thing
 - Reduce the use of SQLite and directly edit entry data
+- Create a proper command-line interface (PARTIALLY DONE?)
 
 # Relation to PyPassMan
 I would NOT recommend using PyPassMan currently. As you've read, 2.0 will be a MASSIVE update, so much so that it'll be superior in every single conceivable way imaginable to PyPassMan. Plus, I stopped development of that a while ago and removed it from the AUR.

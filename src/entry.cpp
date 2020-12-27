@@ -15,10 +15,10 @@
 
 void redrawTable(QTableWidget *table, Database *tdb) {
     int j = 0;
-    table->setRowCount(tdb->entries.length());
-    for (Entry *e : tdb->entries) {
-        for (int i = 0; i < e->fields.size(); ++i) {
-            table->setItem(j, i, new QTableWidgetItem(e->fields[i]->data.toString().replace(" || char(10) || ", "\n")));
+    table->setRowCount(tdb->entryLength());
+    for (Entry *e : tdb->getEntries()) {
+        for (int i = 0; i < e->fieldLength(); ++i) {
+            table->setItem(j, i, new QTableWidgetItem(e->fieldAt(i)->dataStr()));
         }
         ++j;
     }
@@ -28,7 +28,7 @@ Entry::Entry(QList<Field *> fields, Database *tdb) {
     this->fields = fields;
     this->database = tdb;
     if (!fields.empty()) {
-        this->name = fields[0]->name;
+        this->name = fields[0]->dataStr();
     }
 }
 
@@ -46,11 +46,46 @@ int Entry::indexOf(Field *field) {
 
 Field *Entry::fieldNamed(QString name) {
     for (Field *f : fields) {
-        if (f->name == name) {
+        if (f->getName() == name) {
             return f;
         }
     }
     return nullptr;
+}
+
+Field *Entry::fieldAt(int index) {
+    return fields[index];
+}
+
+QList<Field *> &Entry::getFields() {
+    return fields;
+}
+
+QList<Field *> &Entry::setFields(QList<Field *> &fields) {
+    this->fields = fields;
+    return fields;
+}
+
+int Entry::fieldLength() {
+    return fields.length();
+}
+
+Database *Entry::getDb() {
+    return database;
+}
+
+Database *Entry::setDb(Database *database) {
+    this->database = database;
+    return database;
+}
+
+QString &Entry::getName() {
+    return name;
+}
+
+QString &Entry::setName(QString &name) {
+    this->name = name;
+    return name;
 }
 
 int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
@@ -58,16 +93,14 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
 
     QString origPass, origName;
     for (Field *field : fields) {
-        if (field->type == QMetaType::QByteArray) {
-            QString data = field->data.toString();
+        if (field->getType() == QMetaType::QByteArray) {
+            QString data = field->dataStr();
             data.replace(" || char(10) || ", "\n");
-            field->data = data;
-        }
-        if (field->name.toLower() == "name") {
-            origName = field->data.toString();
-        }
-        if (field->name.toLower() == "password") {
-            origPass = field->data.toString();
+            field->setData(data);
+        } else if (field->lowerName() == "name") {
+            origName = field->dataStr();
+        } else if (field->lowerName() == "password") {
+            origPass = field->dataStr();
         }
     }
 
@@ -81,14 +114,14 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
 
     for (Field *field : fields) {
         int i = indexOf(field);
-        switch (field->type) {
+        switch (field->getType()) {
             case QMetaType::QString: {
-                QLineEdit *edit = new QLineEdit(field->data.toString());
-                layout->addRow(field->name + ":", edit);
+                QLineEdit *edit = new QLineEdit(field->dataStr());
+                layout->addRow(field->getName() + ":", edit);
 
-                if (field->name.toLower() == "name") {
-                    edit->setFocus(Qt::FocusReason::MouseFocusReason);
-                } else if (field->name.toLower() == "password") {
+                if (field->isName()) {
+                    edit->setFocus(Qt::MouseFocusReason);
+                } else if (field->isPass()) {
                     edit->setEchoMode(QLineEdit::Password);
 
                     QToolButton *random = new QToolButton;
@@ -127,29 +160,30 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
                 break;
             } case QMetaType::Int: {
                 QCheckBox *box = new QCheckBox;
-                box->setChecked(field->data.toBool());
+                box->setChecked(field->getData().toBool());
 
-                layout->addRow(field->name + ":", box);
+                layout->addRow(field->getName() + ":", box);
 
                 boxes[i] = box;
                 break;
             } case QMetaType::Double: {
                 QDoubleSpinBox *spin = new QDoubleSpinBox;
                 spin->setSingleStep(1.);
-                spin->setValue(field->data.toDouble());
+                spin->setValue(field->getData().toDouble());
 
-                layout->addRow(field->name + ":", spin);
+                layout->addRow(field->getName() + ":", spin);
 
                 spins[i] = spin;
                 break;
             } case QMetaType::QByteArray: {
-                QTextEdit *edit = new QTextEdit(field->data.toString());
+                QTextEdit *edit = new QTextEdit(field->dataStr());
 
-                layout->addRow(field->name + ":", edit);
+                layout->addRow(field->getName() + ":", edit);
 
                 edits[i] = edit;
                 break;
             } default: {
+                qDebug() << "Something has gone horribly wrong. Field type is invalid:" << field->getType() << " where valid values are: 2, 6, 10, and 12. Report this issue immediately to" << QString::fromStdString(github);
                 break;
             }
         }
@@ -162,19 +196,19 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
         for (Field *f : fields) {
             int i = indexOf(f);
 
-            switch(f->type) {
+            switch(f->getType()) {
                 case QMetaType::QString: {
-                    f->data = lines[i]->text();
+                    f->setData(lines[i]->text());
                     QString txt = lines[i]->text();
 
-                    if (f->name.toLower() == "name") {
+                    if (f->isName()) {
                         if (txt == "") {
                             return displayErr("Entry must have a name.");
                         } else if (txt != origName && exists("name", txt)) {
                             return displayErr("An entry named \"" + txt + "\" already exists.");
                         }
                         lines[i]->setFocus(Qt::OtherFocusReason);
-                    } else if (f->name.toLower() == "password") {
+                    } else if (f->isPass()) {
                         if (txt != origPass && exists("password", txt)) {
                             return displayErr(reuseWarning);
                         } else if (txt.length() < 8) {
@@ -184,14 +218,14 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
 
                     break;
                 } case QMetaType::Int: {
-                    f->data = boxes[i]->isChecked();
+                    f->setData(boxes[i]->isChecked());
                     break;
                 } case QMetaType::Double: {
-                    f->data = spins[i]->value();
+                    f->setData(spins[i]->value());
                     break;
                 } case QMetaType::QByteArray: {
                     QString txt = edits[i]->toPlainText();
-                    f->data = txt.replace("\n", " || char(10) || ");
+                    f->setData(txt.replace("\n", " || char(10) || "));
                     break;
                 } default: {
                     break;
@@ -220,7 +254,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
         redrawTable(table, database);
     }
 
-    this->name = fields[0]->data.toString();
+    this->name = fields[0]->dataStr();
 
     return ok;
 }
@@ -248,25 +282,27 @@ QString Entry::getCreate() {
     QList<QMetaType::Type> varTypes = {QMetaType::QString, QMetaType::Double, QMetaType::Int, QMetaType::QByteArray};
     QList<QString> sqlTypes = {"text", "real", "integer", "blob"};
 
-    QString saveStr = "CREATE TABLE '" + fields[0]->data.toString() + "' (";
+    QString saveStr = "CREATE TABLE '" + fields[0]->dataStr() + "' (";
 
     for (int i = 0; i < fields.size(); ++i) {
         Field *field = fields[i];
+        QString fName = field->getName();
 
-        int index = varTypes.indexOf(field->type);
-        saveStr += field->name.replace("\"", "'") + " " + sqlTypes[index];
+        int index = varTypes.indexOf(field->getType());
+        saveStr += fName.replace("\"", "'") + " " + sqlTypes[index];
 
         if (i != fields.size() - 1) {
             saveStr += ", ";
         } else {
-            saveStr += ")\nINSERT INTO '" + fields[0]->data.toString().replace("\"", "'") + "' (";
+            saveStr += ")\nINSERT INTO '" + fields[0]->dataStr().replace("\"", "'") + "' (";
         }
     }
 
     for (int i = 0; i < fields.size(); ++i) {
         Field *field = fields[i];
+        QString fName = field->getName();
 
-        saveStr += field->name.replace("\"", "'");
+        saveStr += fName.replace("\"", "'");
 
         if (i < fields.size() - 1) {
             saveStr += ", ";
@@ -278,10 +314,10 @@ QString Entry::getCreate() {
     for (int i = 0; i < fields.size(); ++i) {
         Field *field = fields[i];
 
-        QVariant val = field->data;
+        QVariant val = field->getData();
         QString quote = "";
 
-        if (field->type == QMetaType::QString || field->type == QMetaType::QByteArray) {
+        if (field->getType() == QMetaType::QString || field->isMultiLine()) {
             quote = "\"";
         }
 

@@ -18,6 +18,7 @@ std::string getCS(uint8_t cs, uint8_t encr);
 
 class Database
 {
+    QList<Entry *> entries;
 public:
     Database();
 
@@ -43,7 +44,12 @@ public:
 
     bool saveSt(bool exec = true);
 
-    Entry *entryNamed(const QString &name);
+    Entry *entryNamed(QString &name);
+    void addEntry(Entry *entry);
+    bool removeEntry(Entry *entry);
+    int entryLength();
+    QList<Entry *> &getEntries();
+    void setEntries(QList<Entry *> entries);
 
     template <typename Func>
     QAction *addButton(QIcon icon, const char *whatsThis, QKeySequence shortcut, Func func);
@@ -69,7 +75,7 @@ public:
     QString path;
     QString keyFilePath;
 
-    QList<Entry *> entries;
+    //QList<Entry *> entries;
 };
 
 #endif // DATABASE_H

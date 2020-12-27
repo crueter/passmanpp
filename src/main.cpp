@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QAbstractButton>
 
 #include "util/extra.h"
 #include "util/sql.h"
@@ -49,6 +50,7 @@ bool choiceHandle(QString choice, Database *db) {
 
 int main(int argc, char** argv) {
     QApplication app (argc, argv);
+
     if (getenv("PASSMAN_DEBUG")) {
         std::cout << "Debug mode activated. Do NOT use this unless you are testing stuff." << std::endl;
         debug = true;
@@ -60,74 +62,78 @@ int main(int argc, char** argv) {
 
     dbInit();
     Database *db = new Database;
-    QString choice, path;
+    QString path;
 
-    if (argc <= 1) {
-        while (1) {
-            QMessageBox newChoice;
-            newChoice.setText(QWidget::tr("Would you like to create a new database?"));
-            newChoice.setStandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-            int ret = newChoice.exec();
+    bool createNew = false;
 
-            if (ret == QMessageBox::Yes) {
+    auto create = [path, db](QString spath = "") mutable {
+            if (spath == "") {
                 path = newLoc();
                 if (path == "") {
-                    return 1;
+                    delete db;
+                    exit(1);
                 }
-                db->path = path;
-                bool cr = db->config();
-                if (!cr) {
-                    return 1;
-                }
-                break;
-            } else if (ret == QMessageBox::No) {
-                path = getDb();
-                db->path = path;
-                if (!db->open()) {
-                    std::cout << "Aborted." << std::endl;
-                    continue;
-                }
-                break;
-            } else if (ret == QMessageBox::Cancel) {
-                return 1;
+            } else {
+                path = spath;
             }
+            db->path = path;
+            bool cr = db->config();
+            if (!cr) {
+                delete db;
+                exit(1);
+            }
+            return true;
+    };
+
+    auto open = [db](QString spath) {
+        db->path = spath;
+
+        if (!db->open()) {
+            qDebug() << "Aborted.";
+            exit(1);
         }
-    } else if (QString(argv[1]) == "new") {
-        if (argc < 3) {
-            path = newLoc();
-            if (path == "") {
-                return 1;
-            }
+    };
+
+    if (argc <= 1) {
+        QMessageBox newChoice;
+        newChoice.setText(QWidget::tr("Create new database, or open existing?"));
+        newChoice.setStandardButtons(QMessageBox::Save | QMessageBox::Open | QMessageBox::Cancel);
+        newChoice.button(QMessageBox::Save)->setText(tr("New"));
+        int ret = newChoice.exec();
+
+        if (ret == QMessageBox::Save) {
+            create();
+        } else if (ret == QMessageBox::Open) {
+            open(getDb());
         } else {
-            path = QString(argv[2]);
-        }
-        db->path = path;
-        bool cr = db->config();
-        if (!cr) {
+            delete db;
             return 1;
         }
-    } else if (QString(argv[1]) == "help") {
-        std::cout << usage << std::endl;
-        return 1;
     } else {
-        db->path = argv[1];
-        db->parse();
-        bool o = db->open();
-
-        if (!o) {
-            return 1;
+        for (int i = 1; i < argc; ++i) {
+            QString arg(argv[i]);
+            if (arg == "new") {
+                createNew = true;
+            } else if (arg == "help") {
+                qDebug() << usage.data();
+                delete db;
+                return 1;
+            } else if (arg == "tips") {
+                qDebug() << tips.data();
+                delete db;
+                return 1;
+            } else if (arg == "info") {
+                qDebug() << info.data();
+                delete db;
+                return 1;
+            } else if (createNew) {
+                path = arg;
+            } else if (!choices.contains(arg)) {
+                open(arg);
+            } else {
+                choiceHandle(arg, db);
+            }
         }
-
-        path = argv[1];
-        db->path = path;
-    }
-
-    if (!db->parse()) {
-        return 1;
-    }
-
-    if (argc >= 3 && QString(argv[1]) != "new") {
-        choiceHandle(argv[2], db);
     }
 
     std::cout << welcomeMessage << std::endl;

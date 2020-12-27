@@ -41,7 +41,7 @@ void Database::get() {
             for (int i = 0; i < q.record().count(); ++i) {
                 QVariant val = q.record().value(i);
                 QString vName = q.record().fieldName(i);
-                QMetaType::Type id = (QMetaType::Type)q.record().field(i).typeID();
+                QMetaType::Type id = (QMetaType::Type)q.record().field(i).metaType().id();
 
                 Field *f = new Field(vName, val, id);
                 fields.push_back(f);
@@ -115,6 +115,8 @@ int Database::edit() {
     dialog->setWindowTitle(tr("Select an entry"));
 
     dialog->resize(800, 450);
+    redrawTable(table, this);
+
     dialog->exec();
 
     return true;
@@ -135,8 +137,9 @@ bool Database::saveSt(bool exec) {
         while (delQuery.next()) {
             delSt += delQuery.value(0).toString() + "\n";
         }
+
         delQuery.finish();
-        db.exec(delSt);
+        execAll(delSt);
 
         execAll(execSt);
     }
@@ -212,8 +215,16 @@ void Database::encrypt(const QString &password) {
     secvec vPassword = getPw(password);
 
     enc->set_key(vPassword);
+    if (verbose) {
+        qDebug() << "STList before saveSt:" << stList.toStdString().data();
+    }
 
     saveSt();
+
+    if (verbose) {
+        qDebug() << "STList after saveSt:" << stList.toStdString().data();
+    }
+
     std::string stl = stList.toStdString();
     secvec pt(stl.data(), stl.data() + stl.length());
 
@@ -289,6 +300,9 @@ int Database::verify(const QString &mpass) {
         dataDe->finish(pData);
 
         this->stList = toStr(pData);
+        if (verbose) {
+            qDebug() << "STList (verification):" << stList.toStdString().data();
+        }
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
         return 2;
@@ -315,7 +329,6 @@ QString Database::decrypt(const QString &txt, const QString &password) {
         QDialogButtonBox *keyBox = new QDialogButtonBox;
 
         if (keyFile) {
-
             QWidget::connect(getKf, &QPushButton::clicked, [keyEdit, this]() mutable {
                 keyFilePath = getKeyFile();
                 if (keyFilePath != "") {
@@ -325,6 +338,11 @@ QString Database::decrypt(const QString &txt, const QString &password) {
             });
 
             keyBox->addButton(getKf, QDialogButtonBox::ActionRole);
+        } else {
+            delete keyEdit;
+            delete keyLabel;
+            delete getKf;
+            delete keyBox;
         }
 
         QDialogButtonBox *passButtons = new QDialogButtonBox(QDialogButtonBox::Ok);
@@ -336,9 +354,11 @@ QString Database::decrypt(const QString &txt, const QString &password) {
 
         QPalette palette;
 
-        palette.setColor(QPalette::Light, QColor("#DA4453"));
-        palette.setColor(QPalette::Dark, QColor("#DA4453"));
-        palette.setColor(QPalette::Window, QColor("#C4DA4453"));
+        QColor _cl = QColor(218, 68, 83);
+
+        palette.setColor(QPalette::Light, _cl);
+        palette.setColor(QPalette::Dark, _cl);
+        palette.setColor(QPalette::Window, QColor(218, 68, 83, 196));
         palette.setColor(QPalette::Text, Qt::white);
 
         QWidget::connect(passButtons->button(QDialogButtonBox::Ok), &QPushButton::clicked, [passEdit, passLabel, passDi, passButtons, errLabel, layout, palette, keyEdit, this]() mutable -> void {
@@ -409,7 +429,9 @@ QString Database::decrypt(const QString &txt, const QString &password) {
             return "";
         }
 
-        keyFilePath = keyEdit->text();
+        if (keyFile) {
+            keyFilePath = keyEdit->text();
+        }
 
         return passEdit->text();
     } else {
@@ -691,8 +713,8 @@ bool Database::config(bool create) {
     if (create) {
         Entry *entry = new Entry({}, this);
         entry->setDefaults();
-        for (Field *f : entry->fields) {
-            f->data = "EXAMPLE";
+        for (Field *f : entry->getFields()) {
+            f->setData("EXAMPLE");
         }
     }
 
@@ -744,6 +766,7 @@ bool Database::open() {
         if (!parse()) {
             return false;
         }
+
         if (stList == "") {
             try {
                 QString p = decrypt(" to login", "");
@@ -755,13 +778,18 @@ bool Database::open() {
                 return false;
             }
         }
+
         for (const QString &line : stList.split('\n')) {
+            if (line == "") {
+                continue;
+            }
             QSqlQuery q(db);
             bool ok = q.exec(line);
             if (!ok) {
                 qDebug() << "Warning: Error during database initialization:" << q.lastError();
             }
         }
+        get();
         return true;
     }
     displayErr("Please enter a valid path!");
@@ -789,14 +817,34 @@ int Database::backup() {
     return true;
 }
 
-Entry *Database::entryNamed(const QString &name) {
+Entry *Database::entryNamed(QString &name) {
     for (Entry *e : entries) {
-        if (e->name == name) {
+        if (e->getName() == name) {
             return e;
         }
     }
 
     return nullptr;
+}
+
+void Database::addEntry(Entry *entry) {
+    entries.push_back(entry);
+}
+
+bool Database::removeEntry(Entry *entry) {
+    return entries.removeOne(entry);
+}
+
+int Database::entryLength() {
+    return entries.length();
+}
+
+QList<Entry *> &Database::getEntries() {
+    return entries;
+}
+
+void Database::setEntries(QList<Entry *> entries) {
+    this->entries = entries;
 }
 
 template <typename Func>

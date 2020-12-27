@@ -4,6 +4,7 @@
 
 | Version   | Supported          |
 | -------   | ------------------ |
+| 2.0.0rc2  | Debug support only |
 | 2.0.0rc1  | Debug support only |
 | 1.4.0p    | :white_check_mark:, LTS |
 | <= 1.3.0  | :x: |

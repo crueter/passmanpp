@@ -10,6 +10,9 @@ void redrawTable(QTableWidget *table, Database *tdb);
 
 class Entry : public QObject
 {
+    QList<Field *> fields;
+    Database *database;
+    QString name;
 public:
     Entry(QList<Field *> fields, Database *tdb);
 
@@ -17,6 +20,17 @@ public:
     bool removeField(Field *field);
     int indexOf(Field *field);
     Field *fieldNamed(QString name);
+    Field *fieldAt(int index);
+
+    QList<Field *> &getFields();
+    QList<Field *> &setFields(QList<Field *> &fields);
+    int fieldLength();
+
+    Database *getDb();
+    Database *setDb(Database *database);
+
+    QString &getName();
+    QString &setName(QString &name);
 
     int edit(QTableWidgetItem *item = nullptr, QTableWidget *table = nullptr);
     int del(QTableWidgetItem *item);
@@ -25,10 +39,6 @@ public:
     bool details(QString &stmt, QSqlQuery &q);
 
     void setDefaults();
-
-    QList<Field *> fields;
-    Database *database;
-    QString name;
 };
 
 #endif // ENTRY_H
