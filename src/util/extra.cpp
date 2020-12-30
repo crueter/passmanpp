@@ -31,6 +31,10 @@ QString tr(QString s) {
     return tr(s.toStdString().data());
 }
 
+QString tr(std::string s) {
+    return tr(s.data());
+}
+
 QString tr(const char *s) {
     return QObject::tr(s);
 }

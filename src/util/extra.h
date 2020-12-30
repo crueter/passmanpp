@@ -22,6 +22,7 @@ QString toStr(secvec vec);
 std::string toStdStr(secvec vec);
 
 QString tr(QString s);
+QString tr(std::string s);
 QString tr(const char *s);
 
 QString newLoc();

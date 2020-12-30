@@ -1,5 +1,8 @@
 #include <QApplication>
 #include <QAbstractButton>
+#include <QGridLayout>
+#include <QPushButton>
+#include <QLabel>
 
 #include "util/extra.h"
 #include "util/sql.h"
@@ -7,7 +10,7 @@
 bool debug = false;
 bool verbose = false;
 
-bool choiceHandle(QString choice, Database *db) {
+bool choiceHandle(std::string choice, Database *db) {
     if (choice == "help") {
         std::cout << help << std::endl;
     } else if (choice == "edit") {
@@ -95,25 +98,44 @@ int main(int argc, char** argv) {
     };
 
     if (argc <= 1) {
-        QMessageBox newChoice;
-        newChoice.setText(tr("Create new database, or open existing?"));
-        newChoice.setStandardButtons(QMessageBox::Save | QMessageBox::Open | QMessageBox::Cancel);
-        newChoice.button(QMessageBox::Save)->setText(tr("New"));
-        int ret = newChoice.exec();
+        QGridLayout *layout = new QGridLayout;
+        layout->setContentsMargins(0, 0, 0, 0);
 
-        switch (ret) {
-            case QMessageBox::Save: {
-                create();
-                break;
-            }
-            case QMessageBox::Open: {
-                open(getDb());
-                break;
-            } default: {
-                delete db;
-                return 1;
-                break;
-            }
+        QDialog *openDiag = new QDialog;
+        openDiag->resize(600, 300);
+
+        QPushButton *btnCreate = new QPushButton(tr("Create new database"));
+        QObject::connect(btnCreate, &QPushButton::clicked, [create, openDiag]() mutable {
+            openDiag->accept();
+            create();
+        });
+
+        QPushButton *btnOpen = new QPushButton(tr("Open existing database"));
+        QObject::connect(btnOpen, &QPushButton::clicked, [open, openDiag]() mutable {
+            openDiag->accept();
+            open(getDb());
+        });
+
+        QLabel *label = new QLabel(tr("Welcome to passman++ " + PASSMAN_VERSION));
+        QFont font;
+        font.setPointSize(16);
+        font.setBold(true);
+        label->setFont(font);
+
+        layout->addWidget(btnCreate, 3, 0);
+        layout->addWidget(btnOpen, 2, 0);
+
+        label->setLayoutDirection(Qt::LeftToRight);
+        label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+
+        layout->addWidget(label, 1, 0);
+
+        openDiag->setLayout(layout);
+        int ret = openDiag->exec();
+
+        if (ret == QDialog::Rejected) {
+            delete db;
+            return 1;
         }
     } else {
         for (int i = 1; i < argc; ++i) {
@@ -137,18 +159,24 @@ int main(int argc, char** argv) {
             } else if (!choices.contains(arg)) {
                 open(arg);
             } else {
-                choiceHandle(arg, db);
+                choiceHandle(arg.toStdString(), db);
             }
         }
     }
 
+    if (createNew) {
+        create(path);
+    }
+
+    std::string choice;
+
     while (1) {
         std::cout << "passman> ";
-        QTextStream in(stdin);
-        QString choice = in.readLine();
+        std::getline(std::cin, choice);
 
-        in.flush();
-        in.reset();
+        if (choice == "") {
+            continue;
+        }
 
         choiceHandle(choice, db);
     }
