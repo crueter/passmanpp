@@ -28,11 +28,11 @@ std::string toStdStr(secvec vec) {
 }
 
 QString tr(QString s) {
-    return QWidget::tr(s.toStdString().data());
+    return tr(s.toStdString().data());
 }
 
 QString tr(const char *s) {
-    return QWidget::tr(s);
+    return QObject::tr(s);
 }
 
 QString newKeyFile() {
@@ -57,7 +57,7 @@ QString getDb() {
 
 void displayErr(QString msg) {
     QMessageBox err;
-    err.setText(QWidget::tr(msg.toStdString().data()));
+    err.setText(tr(msg.toStdString().data()));
     err.setStandardButtons(QMessageBox::Ok);
     err.exec();
 }

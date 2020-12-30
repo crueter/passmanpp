@@ -11,7 +11,7 @@
 #include <QSpinBox>
 
 #include "entry.h"
-#include "generators.h"
+#include "util/generators.h"
 
 void redrawTable(QTableWidget *table, Database *tdb) {
     int j = 0;
@@ -120,7 +120,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
                 layout->addRow(field->getName() + ":", edit);
 
                 if (field->isName()) {
-                    edit->setFocus(Qt::MouseFocusReason);
+                    edit->setFocus();
                 } else if (field->isPass()) {
                     edit->setEchoMode(QLineEdit::Password);
 
@@ -128,7 +128,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
                     random->setIcon(QIcon::fromTheme(tr("roll")));
                     random->setStatusTip(tr("Generate a random password."));
 
-                    connect(random, &QToolButton::clicked, [edit]{
+                    QObject::connect(random, &QToolButton::clicked, [edit]{
                         QString rand = randomPass();
                         if (rand != "") {
                             edit->setText(rand);
@@ -140,7 +140,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
                     view->setIcon(QIcon::fromTheme(tr("view-visible")));
                     random->setStatusTip(tr("Toggle password view."));
 
-                    connect(view, &QToolButton::clicked, [edit](bool checked) {
+                    QObject::connect(view, &QToolButton::clicked, [edit](bool checked) {
                         QLineEdit::EchoMode echo;
                         if (checked) {
                             echo = QLineEdit::Normal;
@@ -192,7 +192,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
     QDialogButtonBox *buttonBox = new QDialogButtonBox(opt);
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
-    connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, [lines, boxes, spins, edits, origName, origPass, opt, this] {
+    QObject::connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, [lines, boxes, spins, edits, origName, origPass, opt, this] {
         for (Field *f : fields) {
             int i = indexOf(f);
 
@@ -207,7 +207,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
                         } else if (txt != origName && exists("name", txt)) {
                             return displayErr("An entry named \"" + txt + "\" already exists.");
                         }
-                        lines[i]->setFocus(Qt::OtherFocusReason);
+                        lines[i]->setFocus();
                     } else if (f->isPass()) {
                         if (txt != origPass && exists("password", txt)) {
                             return displayErr(reuseWarning);
@@ -234,7 +234,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
         }
         opt->accept();
     });
-    connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, opt, &QDialog::reject);
+    QObject::connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, opt, &QDialog::reject);
 
     layout->addWidget(buttonBox);
 
@@ -337,9 +337,9 @@ void Entry::setDefaults() {
     QStringList names = {"Name", "Email", "URL", "Password", "Notes"};
     for (const QString &s : names) {
         if (s == "Notes") {
-            fields.push_back(new Field(s, QVariant(""), QMetaType::QByteArray));
+            fields.push_back(new Field(s, "", QMetaType::QByteArray));
         } else {
-            fields.push_back(new Field(s, QVariant(""), QMetaType::QString));
+            fields.push_back(new Field(s, "", QMetaType::QString));
         }
     }
 }

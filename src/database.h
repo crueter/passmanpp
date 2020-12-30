@@ -74,8 +74,6 @@ public:
     QString stList;
     QString path;
     QString keyFilePath;
-
-    //QList<Entry *> entries;
 };
 
 #endif // DATABASE_H

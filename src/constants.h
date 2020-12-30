@@ -11,18 +11,18 @@ static const std::string PASSMAN_VERSION = "2.0.0rc2";
 static const std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH);
 
 static const std::string tips = "A good password contains:\n"
-                          "- At least 8 characters\n"
+                          "- At least 8 characters, but prefer 15 or more\n"
                           "- No easy-to-guess phrases or common passwords (See https://github.com/danielmiessler/SecLists/tree/master/Passwords/Common-Credentials)\n"
                           "- At least one each of a lowercase and uppercase letter, a number, and a special character\n"
                           "- A sequence of characters with no observable pattern (example: things like a1b2c3d4 shouldn't be used over something like d.Y2/90a)\n"
-                          "- Some sort of meaning that you can use to remember it (i.e mbodHis12 = \"my big old dog Harris is 12\")\n\n"
+                          "- Some sort of meaning that you can use to remember it (i.e mbodHis12! = \"my big old dog Harris is 12!\")\n\n"
                           "A bad password contains:\n"
                           "- Less than 8 characters\n"
                           "- Common, easy-to-guess phrases\n"
                           "- Sequences of repeated characters or obvious patterns\n"
                           "- Little variety in the characters\n\n"
                           "Never, ever share your passwords. Ever. They are the single most important piece of security in almost everything online. A single person getting your password can cause it to be shared all over the internet, potentially leaking sensitive info.\n\n"
-                          "If you can't think of a good password, hundreds of tools online can help you with that, including on here.\n\n"
+                          "If you can't think of a good password, hundreds of tools online can help you with that, or you can use the random password generator on here.\n\n"
                           "Change your password often. Leaks occur often. Remember to occasionally check https://haveibeenpwned.com/ and enter your email to see if your password may have been leaked.\n"
                           "Do not use the same password for everything. At the very most, use a password on 2 different sites. If someone gets your password and you use the same one for everything, then your accounts will likely be compromised and sensitive info could be leaked.\n\n"
                           "Do not store your passwords in an easy-to-find location. Either use a password manager like this one, or store it in a place nobody can find. Never just try to \"remember\" them, either--your memory is volatile. A password manager is far better at remembering things than you ever will be.\n\n"
@@ -52,9 +52,6 @@ static const std::string usage = "usage: ./passman [PATH] (COMMANDS...)\n"
                                  "tips: view tips for password management\n"
                                  "info: some info about passman++\n\n"
                                  "submit all bug reports, or take a look at the source code, at " + github + ".";
-
-static const std::string welcomeMessage = "You may find the source code at " + github + ".\n"
-                                          "Type help for available commands.";
 
 static const QString reuseWarning = "This password has already been used. DO NOT REUSE PASSWORDS! If somebody gets your password on one account, and you have the same password everywhere, all of your accounts could be compromised and sensitive info could be leaked!";
 static const QString shortWarning = "Please make your password at least 8 characters. This is the common bare minimum for many websites, and is the shortest password you can have that can't be easily bruteforced.";

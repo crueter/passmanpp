@@ -2,13 +2,13 @@
 #define ENTRY_H
 #include <QTableWidgetItem>
 
-#include "sql.h"
+#include "util/sql.h"
 #include "field.h"
 #include "database.h"
 
 void redrawTable(QTableWidget *table, Database *tdb);
 
-class Entry : public QObject
+class Entry
 {
     QList<Field *> fields;
     Database *database;

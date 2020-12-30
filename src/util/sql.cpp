@@ -6,7 +6,7 @@ void dbInit() {
     db = QSqlDatabase::addDatabase("QSQLITE", ":memory:");
     bool dbOk = db.open();
     if (!dbOk) {
-        std::cerr << "Error while opening database: " << db.lastError().text().toStdString() << std::endl << "Please open an issue on https://github.com/binex-dsk/passmanpp for help with this.";
+        std::cerr << "Error while opening database: " << db.lastError().text().toStdString() << std::endl << "Please open an issue on " << github << " for help with this.";
         exit(1);
     }
 }
@@ -14,7 +14,7 @@ void dbInit() {
 
 QList<QSqlQuery> selectAll() {
     QSqlQuery selQuery(db);
-    selQuery.exec("SELECT tbl_name FROM 'sqlite_master' WHERE type='table' ORDER BY tbl_name");
+    selQuery.exec("SELECT tbl_name FROM 'sqlite_master' WHERE type='table'");
     QList<QSqlQuery> queries;
 
     while (selQuery.next()) {

@@ -311,133 +311,131 @@ int Database::verify(const QString &mpass) {
 }
 
 QString Database::decrypt(const QString &txt, const QString &password) {
-    if (password == "") {
-        QDialog *passDi = new QDialog;
-        passDi->setWindowTitle(QWidget::tr("Enter your password"));
+    if (password != "") {
+        verify(password);
+        return password;
+    }
 
-        QGridLayout *layout = new QGridLayout;
+    QDialog *passDi = new QDialog;
+    passDi->setWindowTitle(tr("Enter your password"));
 
-        QLabel *passLabel = new QLabel("Please enter your master password" + txt + ".");
+    QGridLayout *layout = new QGridLayout;
 
-        QLineEdit *passEdit = new QLineEdit;
-        passEdit->setEchoMode(QLineEdit::Password);
-        passEdit->setCursorPosition(0);
+    QLabel *passLabel = new QLabel("Please enter your master password" + txt + ".");
 
-        QLineEdit *keyEdit = new QLineEdit;
-        QLabel *keyLabel = new QLabel(QWidget::tr("Key File:"));
-        QPushButton *getKf = new QPushButton(QWidget::tr("Open"));
-        QDialogButtonBox *keyBox = new QDialogButtonBox;
+    QLineEdit *passEdit = new QLineEdit;
+    passEdit->setEchoMode(QLineEdit::Password);
+    passEdit->setCursorPosition(0);
 
-        if (keyFile) {
-            QWidget::connect(getKf, &QPushButton::clicked, [keyEdit, this]() mutable {
-                keyFilePath = getKeyFile();
-                if (keyFilePath != "") {
-                    keyFile = true;
-                }
-                keyEdit->setText(keyFilePath);
-            });
+    QLineEdit *keyEdit = new QLineEdit;
+    QLabel *keyLabel = new QLabel(tr("Key File:"));
+    QPushButton *getKf = new QPushButton(tr("Open"));
+    QDialogButtonBox *keyBox = new QDialogButtonBox;
 
-            keyBox->addButton(getKf, QDialogButtonBox::ActionRole);
-        } else {
-            delete keyEdit;
-            delete keyLabel;
-            delete getKf;
-            delete keyBox;
-        }
-
-        QDialogButtonBox *passButtons = new QDialogButtonBox(QDialogButtonBox::Ok);
-        QLabel *errLabel = new QLabel;
-        errLabel->setFrameStyle(QFrame::Panel | QFrame::Raised);
-        errLabel->setLineWidth(2);
-
-        errLabel->setMargin(5);
-
-        QPalette palette;
-
-        QColor _cl = QColor(218, 68, 83);
-
-        palette.setColor(QPalette::Light, _cl);
-        palette.setColor(QPalette::Dark, _cl);
-        palette.setColor(QPalette::Window, QColor(218, 68, 83, 196));
-        palette.setColor(QPalette::Text, Qt::white);
-
-        QWidget::connect(passButtons->button(QDialogButtonBox::Ok), &QPushButton::clicked, [passEdit, passLabel, passDi, passButtons, errLabel, layout, palette, keyEdit, this]() mutable -> void {
-            QString pw = passEdit->text();
-
-            passDi->setCursor(QCursor(Qt::WaitCursor));
-
-            QPalette textPal;
-            textPal.setColor(QPalette::WindowText, Qt::darkGray);
-            textPal.setColor(QPalette::ButtonText, Qt::darkGray);
-
-            passLabel->setPalette(textPal);
-            passButtons->setPalette(textPal);
-
-            errLabel->setPalette(textPal);
-
-            passDi->repaint();
-
-            if (keyFile) {
-                keyFilePath = keyEdit->text();
-            }
-
-            if (pw == "") {
-                return passDi->reject();
-            }
-
-            int ok = verify(pw);
-            if (ok == 1) {
-                return passDi->accept();
-            }
-
-            if (ok == 3) {
-                errLabel->setText(QWidget::tr("Key File is invalid."));
-            } else {
-                errLabel->setText(QWidget::tr("Password is incorrect.\nIf this problem continues, the database may be corrupt."));
-            }
-
-            if (keyFile) {
-                layout->addWidget(errLabel, 4, 0);
-            } else {
-                layout->addWidget(errLabel, 2, 0);
-            }
-
-            errLabel->setPalette(palette);
-
-            passLabel->setPalette(QPalette());
-            passButtons->setPalette(QPalette());
-
-            passDi->unsetCursor();
+    if (keyFile) {
+        QObject::connect(getKf, &QPushButton::clicked, [keyEdit, this]() mutable {
+            keyFilePath = getKeyFile();
+            keyFile = keyFilePath != "";
+            keyEdit->setText(keyFilePath);
         });
 
-        layout->addWidget(passLabel);
-        layout->addWidget(passEdit, 1, 0);
-        if (keyFile) {
-            layout->addWidget(keyLabel, 2, 0);
-            layout->addWidget(keyEdit, 3, 0);
-            layout->addWidget(keyBox, 3, 1);
-            layout->addWidget(passButtons, 5, 0);
-        } else {
-            layout->addWidget(passButtons, 3, 0);
-        }
+        keyBox->addButton(getKf, QDialogButtonBox::ActionRole);
+    } else {
+        delete keyEdit;
+        delete keyLabel;
+        delete getKf;
+        delete keyBox;
+    }
 
-        passDi->setLayout(layout);
+    QDialogButtonBox *passButtons = new QDialogButtonBox(QDialogButtonBox::Ok);
+    QLabel *errLabel = new QLabel;
+    errLabel->setFrameStyle(QFrame::Panel | QFrame::Raised);
+    errLabel->setLineWidth(2);
 
-        int ret = passDi->exec();
+    errLabel->setMargin(5);
 
-        if (ret == QDialog::Rejected) {
-            return "";
-        }
+    QPalette palette;
+
+    QColor _cl = QColor(218, 68, 83);
+
+    palette.setColor(QPalette::Light, _cl);
+    palette.setColor(QPalette::Dark, _cl);
+    palette.setColor(QPalette::Window, QColor(218, 68, 83, 196));
+    palette.setColor(QPalette::Text, Qt::white);
+
+    QObject::connect(passButtons->button(QDialogButtonBox::Ok), &QPushButton::clicked, [passEdit, passLabel, passDi, passButtons, errLabel, layout, palette, keyEdit, this]() mutable {
+        QString pw = passEdit->text();
+
+        passDi->setCursor(QCursor(Qt::WaitCursor));
+
+        QPalette textPal;
+        textPal.setColor(QPalette::WindowText, Qt::darkGray);
+        textPal.setColor(QPalette::ButtonText, Qt::darkGray);
+
+        passLabel->setPalette(textPal);
+        passButtons->setPalette(textPal);
+
+        errLabel->setPalette(textPal);
+
+        passDi->repaint();
 
         if (keyFile) {
             keyFilePath = keyEdit->text();
         }
 
-        return passEdit->text();
+        if (pw == "") {
+            return passDi->reject();
+        }
+
+        int ok = verify(pw);
+        if (ok == 1) {
+            return passDi->accept();
+        }
+
+        if (ok == 3) {
+            errLabel->setText(tr("Key File is invalid."));
+        } else {
+            errLabel->setText(tr("Password is incorrect.\nIf this problem continues, the database may be corrupt."));
+        }
+
+        if (keyFile) {
+            layout->addWidget(errLabel, 4, 0);
+        } else {
+            layout->addWidget(errLabel, 2, 0);
+        }
+
+        errLabel->setPalette(palette);
+
+        passLabel->setPalette(QPalette());
+        passButtons->setPalette(QPalette());
+
+        passDi->unsetCursor();
+    });
+
+    layout->addWidget(passLabel);
+    layout->addWidget(passEdit, 1, 0);
+    if (keyFile) {
+        layout->addWidget(keyLabel, 2, 0);
+        layout->addWidget(keyEdit, 3, 0);
+        layout->addWidget(keyBox, 3, 1);
+        layout->addWidget(passButtons, 5, 0);
     } else {
-        verify(password);
-        return password;
+        layout->addWidget(passButtons, 3, 0);
     }
+
+    passDi->setLayout(layout);
+
+    int ret = passDi->exec();
+
+    if (ret == QDialog::Rejected) {
+        return "";
+    }
+
+    if (keyFile) {
+        keyFilePath = keyEdit->text();
+    }
+
+    return passEdit->text();
 }
 
 bool Database::save(const QString &password) {
@@ -484,7 +482,7 @@ bool Database::convert() {
 
     while (true) {
         vData = toVec(r);
-        password = QInputDialog::getText(nullptr, QWidget::tr("Enter your password"), QWidget::tr("Please enter your master password to convert the database."), QLineEdit::Password);
+        password = QInputDialog::getText(nullptr, tr("Enter your password"), tr("Please enter your master password to convert the database."), QLineEdit::Password);
 
         secvec mptr(32);
         std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create("PBKDF2(SHA-256)")->default_params();
@@ -608,8 +606,8 @@ bool Database::config(bool create) {
 
     QFormLayout *layout = new QFormLayout;
     QMenuBar *bar = new QMenuBar;
-    QMenu *help = bar->addMenu(QWidget::tr("Help"));
-    help->addAction(QWidget::tr("Choosing Options"), []{
+    QMenu *help = bar->addMenu(tr("Help"));
+    help->addAction(tr("Choosing Options"), []{
         QDesktopServices::openUrl(QUrl(choosingUrl));
     });
 
@@ -623,21 +621,21 @@ bool Database::config(bool create) {
 
         box->addItems(list);
         box->setCurrentIndex(create ? 0 : val);
-        layout->addRow(QWidget::tr(label), box);
+        layout->addRow(tr(label), box);
         return box;
     };
 
     QLineEdit *pass = new QLineEdit;
-    pass->setPlaceholderText(QWidget::tr("Password"));
+    pass->setPlaceholderText(tr("Password"));
     pass->setEchoMode(QLineEdit::Password);
-    layout->addRow(QWidget::tr("Password:"), pass);
+    layout->addRow(tr("Password:"), pass);
 
     auto lineEdit = [layout](const char *text, QString defText, const char *label) -> QLineEdit* {
         QLineEdit *le = new QLineEdit;
-        le->setPlaceholderText(QWidget::tr(text));
+        le->setPlaceholderText(tr(text));
         le->setText(defText);
 
-        layout->addRow(QWidget::tr(label), le);
+        layout->addRow(tr(label), le);
         return le;
     };
 
@@ -659,18 +657,18 @@ bool Database::config(bool create) {
     hashIterBox->setSingleStep(1);
     hashIterBox->setValue(iterVal);
 
-    layout->addRow(QWidget::tr("Password Hashing Iterations:"), hashIterBox);
+    layout->addRow(tr("Password Hashing Iterations:"), hashIterBox);
 
     QLineEdit *keyEdit = new QLineEdit;
     keyEdit->setText(keyFilePath);
 
-    QPushButton *newKf = new QPushButton(QWidget::tr("New"));
-    QWidget::connect(newKf, &QPushButton::clicked, [keyEdit] {
+    QPushButton *newKf = new QPushButton(tr("New"));
+    QObject::connect(newKf, &QPushButton::clicked, [keyEdit] {
         keyEdit->setText(newKeyFile());
     });
 
-    QPushButton *getKf = new QPushButton(QWidget::tr("Open"));
-    QWidget::connect(getKf, &QPushButton::clicked, [keyEdit] {
+    QPushButton *getKf = new QPushButton(tr("Open"));
+    QObject::connect(getKf, &QPushButton::clicked, [keyEdit] {
         keyEdit->setText(getKeyFile());
     });
 
@@ -678,13 +676,13 @@ bool Database::config(bool create) {
     keyBox->addButton(newKf, QDialogButtonBox::ActionRole);
     keyBox->addButton(getKf, QDialogButtonBox::ActionRole);
 
-    layout->addRow(QWidget::tr("Key File:"), keyEdit);
+    layout->addRow(tr("Key File:"), keyEdit);
     layout->addWidget(keyBox);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(di);
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
-    QWidget::connect(buttonBox, &QDialogButtonBox::accepted, [pass, di, create]() mutable {
+    QObject::connect(buttonBox, &QDialogButtonBox::accepted, [pass, di, create]() mutable {
         QString pw = pass->text();
         if (create && pw == "") {
             displayErr("Password must be provided.");
@@ -696,14 +694,14 @@ bool Database::config(bool create) {
         }
     });
 
-    QWidget::connect(buttonBox, &QDialogButtonBox::rejected, di, &QDialog::reject);
+    QObject::connect(buttonBox, &QDialogButtonBox::rejected, di, &QDialog::reject);
 
     layout->addWidget(buttonBox);
     layout->setMenuBar(bar);
 
     di->setLayout(layout);
 
-    pass->setFocus(Qt::MouseFocusReason);
+    pass->setFocus();
     int ret = di->exec();
 
     if (ret == QDialog::Rejected) {
@@ -797,7 +795,7 @@ bool Database::open() {
 }
 
 int Database::backup() {
-    QString fileName = QFileDialog::getSaveFileName(nullptr, QWidget::tr("Backup Location"), "", fileExt);
+    QString fileName = QFileDialog::getSaveFileName(nullptr, tr("Backup Location"), "", fileExt);
     if (fileName.isEmpty()) {
         return 3;
     }

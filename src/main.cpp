@@ -96,18 +96,24 @@ int main(int argc, char** argv) {
 
     if (argc <= 1) {
         QMessageBox newChoice;
-        newChoice.setText(QWidget::tr("Create new database, or open existing?"));
+        newChoice.setText(tr("Create new database, or open existing?"));
         newChoice.setStandardButtons(QMessageBox::Save | QMessageBox::Open | QMessageBox::Cancel);
         newChoice.button(QMessageBox::Save)->setText(tr("New"));
         int ret = newChoice.exec();
 
-        if (ret == QMessageBox::Save) {
-            create();
-        } else if (ret == QMessageBox::Open) {
-            open(getDb());
-        } else {
-            delete db;
-            return 1;
+        switch (ret) {
+            case QMessageBox::Save: {
+                create();
+                break;
+            }
+            case QMessageBox::Open: {
+                open(getDb());
+                break;
+            } default: {
+                delete db;
+                return 1;
+                break;
+            }
         }
     } else {
         for (int i = 1; i < argc; ++i) {
@@ -136,7 +142,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    std::cout << welcomeMessage << std::endl;
     while (1) {
         std::cout << "passman> ";
         QTextStream in(stdin);
