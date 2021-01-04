@@ -9,6 +9,8 @@
 #include <QPushButton>
 #include <QMenuBar>
 #include <QHeaderView>
+#include <QToolButton>
+#include <QApplication>
 
 #include "util/generators.h"
 #include "entry.h"
@@ -17,8 +19,11 @@ Database::Database() {}
 
 void showMessage(const QString &msg) {
     QMessageBox box;
+
     box.setText(msg);
     box.setStandardButtons(QMessageBox::Ok);
+    box.setTextInteractionFlags(Qt::LinksAccessibleByMouse | Qt::TextSelectableByMouse);
+
     box.exec();
 }
 
@@ -81,35 +86,152 @@ int Database::edit() {
     table->setHorizontalHeaderLabels(labels);
 
     auto getNamed = [this](QTableWidget *table) -> Entry *{
-        QString name = table->item(table->currentItem()->row(), 0)->text();
+        QString eName = table->item(table->currentItem()->row(), 0)->text();
 
-        return entryNamed(name);
+        return entryNamed(eName);
     };
 
     QObject::connect(table, &QTableWidget::itemDoubleClicked, [getNamed](QTableWidgetItem *item) {
         getNamed(item->tableWidget())->edit(item);
     });
 
-    QAction *addButton = this->addButton(QIcon::fromTheme(tr("list-add")), "Creates a new entry in the database.", QKeySequence(tr("Ctrl+N")), [table, this]{
+    QMenuBar *bar = new QMenuBar;
+
+    QAction *saveButton = this->addButton("Save", "document-save", "Save the database as is.", QKeySequence(tr("Ctrl+S")), [this] {
+        this->save();
+    });
+
+    QAction *saveAsButton = this->addButton("Save as...", "document-save-as", "Save the database to a different location.", QKeySequence(tr("Ctrl+Shift+S")), [this] {
+        int br = this->backup();
+        if (br == 3) {
+            displayErr("Invalid backup location.");
+        } else if (br == 17) {
+            displayErr("Improper permissions for file. Please select a location where the current user has write permissions.");
+        }
+    });
+
+    QMenu *fileMenu = bar->addMenu(tr("File"));
+    fileMenu->addActions(QList<QAction *>{saveButton, saveAsButton});
+    fileMenu->addSeparator();
+
+    QAction *configButton = this->addButton("Edit Database", "document-edit", "Edit database options.", QKeySequence(tr("Ctrl+Shift+E")), [this] {
+        this->config(false);
+    });
+
+    fileMenu->addAction(configButton);
+
+    QAction *addButton = this->addButton("New", "list-add", "Creates a new entry in the database.", QKeySequence(tr("Ctrl+N")), [table, this]{
         add(table);
     });
 
-    QAction *delButton = this->addButton(QIcon::fromTheme(tr("edit-delete")), "Deletes the currently selected entry.", QKeySequence::Delete, [table, getNamed]{
+    QAction *delButton = this->addButton("Delete", "edit-delete", "Deletes the currently selected entry.", QKeySequence::Delete, [table, getNamed]{
         getNamed(table)->del(table->currentItem());
     });
 
-    QAction *editButton = this->addButton(QIcon::fromTheme(tr("document-edit")), "Edit or view all the information of the current entry.", QKeySequence(tr("Ctrl+E")), [table, getNamed]{
+    QAction *editButton = this->addButton("Edit", "document-edit", "Edit or view all the information of the current entry.", QKeySequence(tr("Ctrl+E")), [table, getNamed]{
         getNamed(table)->edit(table->currentItem());
     });
 
-    QMenuBar *bar = new QMenuBar;
-    QMenu *menu = bar->addMenu(tr("Edit"));
-    menu->addActions(QList<QAction *>{addButton, delButton, editButton});
+    QMenu *editMenu = bar->addMenu(tr("Edit"));
+    editMenu->addActions(QList<QAction *>{addButton, delButton, editButton});
+
+    QAction *aboutButton = this->addButton("About", "help-about", "About passman++", QKeySequence(tr("Ctrl+H")), [] {
+        showMessage(info);
+    });
+
+    QAction *tipsButton = this->addButton("Tips", "help-hint", "Tips for good password management.", QKeySequence(), [] {
+        QDesktopServices::openUrl(QUrl("https://github.com/binex-dsk/passmanpp/blob/main/tips.md"));
+    });
+
+    QMenu *aboutMenu = bar->addMenu(tr("About"));
+    aboutMenu->addActions(QList<QAction *>{aboutButton, tipsButton});
+    aboutMenu->addAction(tr("About Qt..."), qApp, &QApplication::aboutQt);
 
     layout->addWidget(table);
     layout->setMenuBar(bar);
 
-    layout->addWidget(ok);
+    QFont font;
+    font.setBold(true);
+
+    QWidget *prevWidg = new QWidget;
+    QGridLayout *preview = new QGridLayout(prevWidg);
+
+    QLabel *nameValue = new QLabel(prevWidg);
+    preview->addWidget(nameValue, 0, 2);
+
+    QLabel *emailValue = new QLabel(prevWidg);
+    preview->addWidget(emailValue, 1, 2);
+
+    QLabel *urlValue = new QLabel(prevWidg);
+    preview->addWidget(urlValue, 2, 2);
+
+    QLabel *passValue = new QLabel(prevWidg);
+    preview->addWidget(passValue, 3, 2);
+
+    QLabel *nameLabel = new QLabel(tr("Name"), prevWidg);
+    nameLabel->setFont(font);
+    preview->addWidget(nameLabel, 0, 0);
+
+    QLabel *emailLabel = new QLabel(tr("Email"), prevWidg);
+    emailLabel->setFont(font);
+    preview->addWidget(emailLabel, 1, 0);
+
+    QLabel *urlLabel = new QLabel(tr("URL"), prevWidg);
+    urlLabel->setFont(font);
+    preview->addWidget(urlLabel, 2, 0);
+
+    QLabel *passLabel = new QLabel(tr("Password"), prevWidg);
+    passLabel->setFont(font);
+    preview->addWidget(passLabel, 3, 0);
+
+    layout->addWidget(ok, 2, 0);
+
+    QObject::connect(table, &QTableWidget::itemSelectionChanged, [table, layout, prevWidg, nameValue, emailValue, urlValue, passValue, this] {
+        bool anySelected = table->selectedItems().length() > 0;
+
+        prevWidg->setVisible(anySelected);
+        if (!anySelected) {
+            return layout->removeWidget(prevWidg);
+        }
+
+        QString eName = table->item(table->currentRow(), 0)->text();
+
+        Entry *selected = entryNamed(eName);
+        nameValue->setText(selected->getName());
+        emailValue->setText(selected->fieldNamed("Email")->dataStr());
+        urlValue->setText(selected->fieldNamed("URL")->dataStr());
+
+        QString passText;
+        for (int i = 0; i < selected->fieldNamed("Password")->dataStr().length(); ++i) {
+            passText += "●";
+        }
+        passValue->setText(passText);
+
+        layout->addWidget(prevWidg, 1, 0);
+    });
+
+    QToolButton *passView = new QToolButton(prevWidg);
+    passView->setIcon(QIcon::fromTheme("view-visible"));
+    passView->setCheckable(true);
+
+    QObject::connect(passView, &QToolButton::clicked, [table, passValue, this](bool checked) {
+        QString eName = table->item(table->currentRow(), 0)->text();
+
+        Entry *selected = entryNamed(eName);
+        QString pass = selected->fieldNamed("Password")->dataStr();
+
+        if (checked) {
+            passValue->setText(pass);
+        } else {
+            QString passText;
+            for (int i = 0; i < pass.length(); ++i) {
+                passText += "●";
+            }
+            passValue->setText(passText);
+        }
+    });
+
+    preview->addWidget(passView, 3, 1);
 
     dialog->setLayout(layout);
     dialog->setWindowTitle(tr("Select an entry"));
@@ -143,7 +265,7 @@ bool Database::saveSt(bool exec) {
 
         execAll(execSt);
     }
-    this->stList = execSt;
+    this->stList = toVec(execSt);
     return true;
 }
 
@@ -151,24 +273,24 @@ secvec Database::getPw(QString password) {
     std::string checksumChoice = getCS(checksum, encryption);
     std::string hashChoice = hashMatch[hash];
 
-    if (hashChoice != "No hashing, only derivation") {
+    if (hash < 2) {
         std::unique_ptr<Botan::PasswordHashFamily> pfHash = Botan::PasswordHashFamily::create(hashChoice);
         std::unique_ptr<Botan::PasswordHash> pHash;
-        if (hashChoice == "Argon2id") {
+        if (hash == 0) {
             pHash = pfHash->from_params(80000, hashIters, 1);
         } else {
             pHash = pfHash->from_params(hashIters);
         }
 
         if (verbose) {
-            qDebug() << hashIters << QString::fromStdString(hashChoice) << QString::fromStdString(checksumChoice) << iv << password << Qt::endl;
+            qDebug() << hashIters << hashChoice.data() << checksumChoice.data() << iv << password << Qt::endl;
         }
 
         secvec ptr(512);
         pHash->derive_key(ptr.data(), ptr.size(), password.toStdString().data(), password.size(), iv.data(), ivLen);
         password = toStr(ptr);
         if(verbose) {
-            qDebug() << "After Hashing:" << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
+            qDebug() << "After Hashing:" << Botan::hex_encode(ptr).data() << Qt::endl;
         }
     }
 
@@ -177,13 +299,13 @@ secvec Database::getPw(QString password) {
 
     ph->derive_key(ptr.data(), ptr.size(), password.toStdString().data(), password.size(), iv.data(), ivLen);
     if (verbose) {
-        qDebug() << "After Derivation:" << QString::fromStdString(Botan::hex_encode(ptr)) << Qt::endl;
+        qDebug() << "After Derivation:" << Botan::hex_encode(ptr).data() << Qt::endl;
     }
 
     return ptr;
 }
 
-void Database::encrypt(const QString &password) {
+void Database::encrypt() {
     std::ofstream pd(path.toStdString(), std::fstream::binary | std::fstream::trunc);
     pd.seekp(0);
 
@@ -198,12 +320,6 @@ void Database::encrypt(const QString &password) {
 
     std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption), Botan::ENCRYPTION);
 
-    if (iv.empty()) {
-        Botan::AutoSeeded_RNG rng;
-        ivLen = enc->default_nonce_length();
-        iv = rng.random_vec(ivLen);
-    }
-
     pd << iv.data();
 
     pd << name.toStdString();
@@ -212,21 +328,18 @@ void Database::encrypt(const QString &password) {
     pd << desc.toStdString();
     pd.put(10);
 
-    secvec vPassword = getPw(password);
-
-    enc->set_key(vPassword);
+    enc->set_key(passw);
     if (verbose) {
-        qDebug() << "STList before saveSt:" << stList.toStdString().data();
+        qDebug() << "STList before saveSt:" << toStr(stList);
     }
 
     saveSt();
 
     if (verbose) {
-        qDebug() << "STList after saveSt:" << stList.toStdString().data();
+        qDebug() << "STList after saveSt:" << toStr(stList);
     }
 
-    std::string stl = stList.toStdString();
-    secvec pt(stl.data(), stl.data() + stl.length());
+    secvec pt = stList;
 
     std::unique_ptr<Botan::Compression_Algorithm> ptComp = Botan::Compression_Algorithm::create("gzip");
 
@@ -251,11 +364,10 @@ void Database::encrypt(const QString &password) {
 
     data = pt;
     if (verbose) {
-        qDebug() << "Data (Encryption):" << QString::fromStdString(Botan::hex_encode(pt));
+        qDebug() << "Data (Encryption):" << Botan::hex_encode(pt).data();
     }
-    std::string pts = toStdStr(pt);
 
-    pd << pts;
+    pd << pt.data();
 
     pd.flush();
     pd.close();
@@ -299,9 +411,10 @@ int Database::verify(const QString &mpass) {
         dataDe->start();
         dataDe->finish(pData);
 
-        this->stList = toStr(pData);
+        this->stList = pData;
+        this->passw = vPtr;
         if (verbose) {
-            qDebug() << "STList (verification):" << stList.toStdString().data();
+            qDebug() << "STList (verification):" << toStr(stList);
         }
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
@@ -310,12 +423,7 @@ int Database::verify(const QString &mpass) {
     return true;
 }
 
-QString Database::decrypt(const QString &txt, const QString &password) {
-    if (password != "") {
-        verify(password);
-        return password;
-    }
-
+QString Database::decrypt(const QString &txt) {
     QDialog *passDi = new QDialog;
     passDi->setWindowTitle(tr("Enter your password"));
 
@@ -383,7 +491,7 @@ QString Database::decrypt(const QString &txt, const QString &password) {
             keyFilePath = keyEdit->text();
         }
 
-        if (pw == "") {
+        if (pw.isEmpty()) {
             return passDi->reject();
         }
 
@@ -438,20 +546,8 @@ QString Database::decrypt(const QString &txt, const QString &password) {
     return passEdit->text();
 }
 
-bool Database::save(const QString &password) {
-    QString pw = decrypt(" to save");
-    if (pw.isEmpty()) {
-        return false;
-    }
-
-    QString mpass;
-    if (pw != "") {
-        mpass = pw;
-    } else {
-        mpass = password;
-    }
-
-    encrypt(mpass);
+bool Database::save() {
+    encrypt();
 
     modified = false;
     return true;
@@ -496,12 +592,13 @@ bool Database::convert() {
 
         try {
             decr->finish(vData);
+            this->passw = mptr;
             break;
         }  catch (...) {
             displayErr("Wrong password, try again.");
         }
     }
-    QString name = QString(basename(path.toStdString().data())).split(".")[0];
+
     QString rdata = toStr(vData);
 
     this->checksum = 0;
@@ -510,15 +607,15 @@ bool Database::convert() {
     this->keyFile = false;
     this->encryption = 0;
     this->iv = secvec(ivd.begin(), ivd.end());
-    this->name = name;
+    this->name = QString(basename(path.toStdString().data())).split(".")[0];;
     this->desc = "Converted from old database format.";
-    this->stList = rdata;
+    this->stList = vData;
     execAll(rdata);
     get();
     saveSt();
     db.exec("DROP TABLE data");
 
-    encrypt(password);
+    encrypt();
     f.close();
     return true;
 }
@@ -556,8 +653,7 @@ bool Database::parse() {
     }
 
     if (version < 6) {
-        uint8_t n;
-        q >> n;
+        q.skipRawData(1);
     }
 
     q >> hash;
@@ -580,9 +676,7 @@ bool Database::parse() {
     q.readRawData(ivc, ivLen);
     iv = toVec(ivc, ivLen);
 
-    char namec[255], descc[255];
-    f.readLine(namec, 255);
-    f.readLine(descc, 255);
+    QByteArray namec = f.readLine(), descc = f.readLine();
 
     desc = QString(namec).trimmed();
     name = QString(descc).trimmed();
@@ -608,7 +702,7 @@ bool Database::config(bool create) {
     QMenuBar *bar = new QMenuBar;
     QMenu *help = bar->addMenu(tr("Help"));
     help->addAction(tr("Choosing Options"), []{
-        QDesktopServices::openUrl(QUrl(choosingUrl));
+        QDesktopServices::openUrl(QUrl("https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md"));
     });
 
     auto comboBox = [layout, create](QList<std::string> vec, const char *label, int val) -> QComboBox* {
@@ -632,6 +726,7 @@ bool Database::config(bool create) {
 
     auto lineEdit = [layout](const char *text, QString defText, const char *label) -> QLineEdit* {
         QLineEdit *le = new QLineEdit;
+
         le->setPlaceholderText(tr(text));
         le->setText(defText);
 
@@ -684,7 +779,8 @@ bool Database::config(bool create) {
 
     QObject::connect(buttonBox, &QDialogButtonBox::accepted, [pass, di, create]() mutable {
         QString pw = pass->text();
-        if (create && pw == "") {
+
+        if (create && pw.isEmpty()) {
             displayErr("Password must be provided.");
         } else {
             if (create && pw.length() < 8) {
@@ -717,21 +813,12 @@ bool Database::config(bool create) {
     }
 
     QString pw = pass->text();
-    QString kfPath = keyEdit->text();
-    bool kf = !kfPath.isEmpty();
 
-    if (kf && !QFile::exists(kfPath)) {
-        genKey(kfPath);
-    }
+    keyFilePath = keyEdit->text();
+    keyFile = !keyFilePath.isEmpty();
 
-    if (!create) {
-        QString dec = decrypt(" to save your new configuration");
-        if (dec.isEmpty()) {
-            return false;
-        }
-        if (pw.isEmpty()) {
-            pw = dec;
-        }
+    if (keyFile && !QFile::exists(keyFilePath)) {
+        genKey(keyFilePath);
     }
 
     checksum = checksumBox->currentIndex();
@@ -741,20 +828,27 @@ bool Database::config(bool create) {
     name = nameEdit->text();
     desc = descEdit->text();
 
-    if (kf) {
-        keyFilePath = kfPath;
-    }
-    keyFile = kf;
-
-    if (name == "") {
+    if (name.isEmpty()) {
         name = "None";
     }
 
-    if (desc == "") {
+    if (desc.isEmpty()) {
         desc = "None";
     }
 
-    encrypt(pw);
+    if (create) {
+        std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption), Botan::ENCRYPTION);
+
+        Botan::AutoSeeded_RNG rng;
+        ivLen = enc->default_nonce_length();
+        iv = rng.random_vec(ivLen);
+
+        passw = getPw(pw);
+    }
+    save();
+    if (!create && !pw.isEmpty()) {
+        passw = getPw(pw);
+    }
 
     return true;
 }
@@ -765,9 +859,9 @@ bool Database::open() {
             return false;
         }
 
-        if (stList == "") {
+        if (stList.empty()) {
             try {
-                QString p = decrypt(" to login", "");
+                QString p = decrypt(" to login");
                 if (p.isEmpty()) {
                     return false;
                 }
@@ -777,14 +871,14 @@ bool Database::open() {
             }
         }
 
-        for (const QString &line : stList.split('\n')) {
-            if (line == "") {
+        for (const QString &line : toStr(stList).split('\n')) {
+            if (line.isEmpty()) {
                 continue;
             }
             QSqlQuery q(db);
             bool ok = q.exec(line);
             if (!ok) {
-                qDebug() << "Warning: Error during database initialization:" << q.lastError();
+               displayErr("Warning: Error during database initialization: " + q.lastError().text());
             }
         }
         get();
@@ -846,8 +940,8 @@ void Database::setEntries(QList<Entry *> entries) {
 }
 
 template <typename Func>
-QAction *Database::addButton(QIcon icon, const char *whatsThis, QKeySequence shortcut, Func func) {
-    QAction *action = new QAction(icon, "");
+QAction *Database::addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func) {
+    QAction *action = new QAction(QIcon::fromTheme(tr(icon)), tr(text));
     action->setWhatsThis(tr(whatsThis));
     action->setShortcut(shortcut);
     QObject::connect(action, &QAction::triggered, func);

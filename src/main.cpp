@@ -10,47 +10,6 @@
 bool debug = false;
 bool verbose = false;
 
-bool choiceHandle(std::string choice, Database *db) {
-    if (choice == "help") {
-        std::cout << help << std::endl;
-    } else if (choice == "edit") {
-        db->edit();
-        db->saveSt();
-    } else if (choice == "tips") {
-        std::cout << tips << std::endl;
-    } else if (choice == "info") {
-        std::cout << info << std::endl;
-    } else if (choice == "save") {
-        if (!db->save()) {
-            std::cerr << "Cancelled." << std::endl;
-        }
-    } else if (choice == "backup") {
-        int br = db->backup();
-        if (br == 3) {
-            displayErr("Invalid backup location.");
-        } else if (br == 17) {
-            displayErr("Improper permissions for file. Please select a location where the current user has write permissions.");
-        } else if (!br) {
-            std::cerr << "Cancelled." << std::endl;
-        } else {
-            std::cout << "Database backed up successfully." << std::endl;
-        }
-    } else if (choice == "config") {
-        if (!db->config(false)) {
-            return false;
-        }
-    } else if (choice == "exit") {
-        if (db->modified) {
-            std::cout << "Please save your work before leaving." << std::endl;
-        } else {
-            exit(0);
-        }
-    } else {
-        std::cerr << "Invalid choice. Type help for available commands." << std::endl;
-    }
-    return true;
-}
-
 int main(int argc, char** argv) {
     QApplication app (argc, argv);
 
@@ -70,9 +29,9 @@ int main(int argc, char** argv) {
     bool createNew = false;
 
     auto create = [path, db](QString spath = "") mutable {
-            if (spath == "") {
+            if (spath.isEmpty()) {
                 path = newLoc();
-                if (path == "") {
+                if (path.isEmpty()) {
                     delete db;
                     exit(1);
                 }
@@ -92,7 +51,6 @@ int main(int argc, char** argv) {
         db->path = spath;
 
         if (!db->open()) {
-            qDebug() << "Aborted.";
             exit(1);
         }
     };
@@ -146,20 +104,14 @@ int main(int argc, char** argv) {
                 qDebug() << usage.data();
                 delete db;
                 return 1;
-            } else if (arg == "tips") {
-                qDebug() << tips.data();
-                delete db;
-                return 1;
             } else if (arg == "info") {
                 qDebug() << info.data();
                 delete db;
                 return 1;
             } else if (createNew) {
                 path = arg;
-            } else if (!choices.contains(arg)) {
-                open(arg);
             } else {
-                choiceHandle(arg.toStdString(), db);
+                open(arg);
             }
         }
     }
@@ -168,17 +120,8 @@ int main(int argc, char** argv) {
         create(path);
     }
 
-    std::string choice;
+    db->edit();
+    db->save();
 
-    while (1) {
-        std::cout << "passman> ";
-        std::getline(std::cin, choice);
-
-        if (choice == "") {
-            continue;
-        }
-
-        choiceHandle(choice, db);
-    }
-    return app.exec();
+    return 0;
 }

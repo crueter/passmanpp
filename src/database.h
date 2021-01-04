@@ -26,14 +26,14 @@ public:
     bool showErr(QString msg);
     bool parse();
 
-    void encrypt(const QString &password);
-    QString decrypt(const QString &txt = "", const QString &password = "");
+    void encrypt();
+    QString decrypt(const QString &txt = "");
     bool config(bool create = true);
 
     bool open();
     int backup();
 
-    bool save(const QString &password = "");
+    bool save();
     bool convert();
 
     int verify(const QString &mpass);
@@ -52,7 +52,7 @@ public:
     void setEntries(QList<Entry *> entries);
 
     template <typename Func>
-    QAction *addButton(QIcon icon, const char *whatsThis, QKeySequence shortcut, Func func);
+    QAction *addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func);
 
     bool keyFile;
     bool modified = false;
@@ -71,9 +71,11 @@ public:
     QString name;
     QString desc;
 
-    QString stList;
     QString path;
     QString keyFilePath;
+
+    secvec stList;
+    secvec passw;
 };
 
 #endif // DATABASE_H

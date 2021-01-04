@@ -15,16 +15,8 @@ secvec toVec(char *str, int length) {
     return secvec(str, str + length);
 }
 
-QByteArray toQBA(secvec vec) {
-    return QByteArray(reinterpret_cast<const char*>(vec.data()), vec.size());
-}
-
 QString toStr(secvec vec) {
-    return QString(toQBA(vec));
-}
-
-std::string toStdStr(secvec vec) {
-    return std::string(vec.begin(), vec.end());
+    return QString::fromStdString(std::string(vec.begin(), vec.end()));
 }
 
 QString tr(QString s) {

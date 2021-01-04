@@ -183,7 +183,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
                 edits[i] = edit;
                 break;
             } default: {
-                qDebug() << "Something has gone horribly wrong. Field type is invalid:" << field->getType() << " where valid values are: 2, 6, 10, and 12. Report this issue immediately to" << QString::fromStdString(github);
+                displayErr(tr("Something has gone horribly wrong. Field type (") + QString((QChar)field->getType()) + QString::fromStdString(") is invalid, where valid values are: 2, 6, 10, and 12. Report this issue immediately to" + github));
                 break;
             }
         }
@@ -202,7 +202,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
                     QString txt = lines[i]->text();
 
                     if (f->isName()) {
-                        if (txt == "") {
+                        if (txt.isEmpty()) {
                             return displayErr("Entry must have a name.");
                         } else if (txt != origName && exists("name", txt)) {
                             return displayErr("An entry named \"" + txt + "\" already exists.");
@@ -262,7 +262,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
 int Entry::del(QTableWidgetItem *item) {
     QString name = item->tableWidget()->item(item->row(), 0)->text();
     QMessageBox delChoice;
-    delChoice.setText(tr(std::string("Are you sure you want to delete entry \"" + name.toStdString() + "\"? This action is IRREVERSIBLE!").data()));
+    delChoice.setText(tr("Are you sure you want to delete entry \"" + name + "\"? This action is IRREVERSIBLE!"));
     delChoice.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
     delChoice.setDefaultButton(QMessageBox::No);
     int ret = delChoice.exec();
@@ -271,7 +271,6 @@ int Entry::del(QTableWidgetItem *item) {
         db.exec("DROP TABLE " + name);
         database->modified = true;
 
-        std::cout << "Entry \"" << name.toStdString() << "\" successfully deleted." << std::endl;
         return true;
     }
     redrawTable(item->tableWidget(), database);

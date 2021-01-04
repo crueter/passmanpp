@@ -6,7 +6,7 @@ void dbInit() {
     db = QSqlDatabase::addDatabase("QSQLITE", ":memory:");
     bool dbOk = db.open();
     if (!dbOk) {
-        std::cerr << "Error while opening database: " << db.lastError().text().toStdString() << std::endl << "Please open an issue on " << github << " for help with this.";
+        displayErr("Error while opening database: " + db.lastError().text() + QString::fromStdString("\nPlease open an issue on " + github + " for help with this."));
         exit(1);
     }
 }
@@ -20,7 +20,7 @@ QList<QSqlQuery> selectAll() {
     while (selQuery.next()) {
         QString val = selQuery.value(0).toString();
 
-        if (val == "") {
+        if (val.isEmpty()) {
             return {};
         }
         QString lSt = "SELECT * FROM '" + val + "'";
@@ -29,8 +29,7 @@ QList<QSqlQuery> selectAll() {
         bool ok = query.exec(lSt);
 
         if (!ok) {
-            qDebug() << "Warning: SQL execution error:" << query.lastError();
-            qDebug() << "Query:" << lSt;
+            displayErr("Warning: SQL execution error: " + query.lastError().text() + "\nQuery: " + lSt);
         }
         queries.push_back(query);
     }
@@ -41,7 +40,7 @@ QList<QSqlQuery> selectAll() {
 
 void execAll(const QString &stmt) {
     for (const QString &st : stmt.split("\n")) {
-        if (st == "") {
+        if (st.isEmpty()) {
             continue;
         }
 
@@ -49,8 +48,7 @@ void execAll(const QString &stmt) {
         bool ok = finalQ.exec(st);
 
         if (!ok) {
-            qDebug() << "Warning: SQL execution error:" << finalQ.lastError();
-            qDebug() << "Query:" << st;
+            displayErr("Warning: SQL execution error: " + finalQ.lastError().text() + "\nQuery: " + st);
         }
 
         finalQ.finish();

@@ -18,7 +18,7 @@ checklib "botan"
 checklib "sodium"
 checklib "qt6" "Qt 6"
 cmake src -Wno-dev
-make
+make || exit 1
 if [ "$1" == "clean" ]
 then
 	make clean

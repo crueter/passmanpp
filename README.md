@@ -3,15 +3,13 @@ passman++ version 2.0 is coming soon. It will feature a massive suite of new sec
 
 While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any of the commits to work when directly cloned.
 
-2.0.0rc1 and 2.0.0rc2 are completely stable, tested, and working. You may use them if you please, as they contain nearly all the major changes from 2.0, but do not contain GUI or user-input attributes.
+2.0.0rc3 is the latest pre-release build. It contains just about every planned feature change for 2.0, except for:
+- User-input attributes
+- Closing of database upon hibernation, sleep, etc.
+- Advanced password generator
 
 # passman++
 An extremely simple, minimal, and easy-to-use yet just as secure and powerful command-line and GUI password manager.
-
-# Relation to PyPassMan
-I would NOT recommend using PyPassMan currently. As you've read, 2.0 will be a MASSIVE update, so much so that it'll be superior in every single conceivable way imaginable to PyPassMan. Plus, I stopped development of that a while ago and removed it from the AUR.
-
-The .pdpp format that passman++ uses is **not** compatible with passman's .pdb format. They have different headers, config, password protection implementations, etc. Some day I'll write a pdb-to-pdpp converter.
 
 # Debug
 Define the environment variables `PASSMAN_DEBUG` and/or `PASSMAN_VERBOSE` to any value and you will activate debug/verbose mode, which will give you extra output. Sometimes I may ask you to use this in a bug report.
@@ -25,7 +23,7 @@ Your password and its hash are NEVER stored absolutely ANYWHERE. All operations 
 
 Password generation is done using libsodium's cryptographically secure random number generator. All your passwords will appear to be almost, if not completely random.
 
-However, someone can still delete your database, so keep backups using the `backup` command and store your databases in safe locations that only you have access to. You could even make a QR code of your database. Store it properly and you'll be fine.
+However, someone can still delete your database, so keep backups of your database by hitting Ctrl+Shift+S on the main screen, and store your databases in safe locations that only you have access to. You could even make a QR code of your database. Store it properly and you'll be fine.
 
 # Building
 ## Manually
@@ -48,7 +46,7 @@ $ make
 ```bash
 install -m755 passman /usr/local/bin/passman
 ```
-- Otherwise, for anything newer than 2.0.0rc2, simply run:
+- Otherwise, for 2.0.0rc3 and newer, simply run:
 ```bash
 $ bash build.sh
 ```
@@ -91,7 +89,7 @@ passman++ is made possible by:
 - Some sort of vault (like Plasma Vault)
 - Icons and attachments
 - Password health/entropy checker
-- More advanced password generator + EASCII
+- EASCII in password generator
 
 # Already Done
 Stuff I planned to do and have already done:
@@ -99,13 +97,29 @@ Stuff I planned to do and have already done:
 - Using Qt for a GUI
 - More error handling
 - Streamlined way to access your data (aka, the GUI)
-- More advanced password generator
-- Better entry modification tool
 
 # 2.0 UPDATE
+NOTE: Some of this stuff might be moved to version 2.1 or later.
+
 All planned updates for passman++ 2.0:
-- Create a full GUI interface
 - Allow for more stuff to be stored there, i.e. user-input attributes
+- More advanced password generator
+- When the computer is hibernated or put to sleep, close out the database
+- Locking out the database
+- Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
+- Even more error handling
+- Entry modification dates
+- Ability to disable encryption
+- Prompt for database location after configuration is complete
+- Allow for no password at all
+- Dedicated settings area with more options
+- Clear clipboard after a set amount of time when password is copied
+- Password copy button
+- Allow editing of Argon2id memory usage
+- Allow for duplicate entries, give each entry a "UUID" to allow for this (making the table name the UUID)
+- Change conversion dialog to use the regular password entry thingy
+- Locking away databases into encrypted archives
+- Show notes on the table thing
 
 # 2.0 UPDATE: Already Done
 Previously planned updates for passman++ 2.0 that have already been implemented:
@@ -124,7 +138,8 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
 - Add some help
 - Organize entry modifier into a table view thing
 - Reduce the use of SQLite and directly edit entry data
-- Create a proper command-line interface (PARTIALLY DONE?)
+- Add command-line options
+- Create a full GUI interface
 
 # Extras
 This program is only intended to work under Linux. Feel free, however, to compile this for Windows and use it yourself, or even distribute it separately. However, as per the BSD License, you are required to credit me, and include the same BSD License in your version.
