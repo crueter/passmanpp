@@ -109,7 +109,7 @@ All planned updates for passman++ 2.0:
 - Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
 - Even more error handling
 - Entry modification dates
-- Ability to disable encryption
+- Ability to disable compression
 - Prompt for database location after configuration is complete
 - Allow for no password at all
 - Dedicated settings area with more options
@@ -120,6 +120,7 @@ All planned updates for passman++ 2.0:
 - Change conversion dialog to use the regular password entry thingy
 - Locking away databases into encrypted archives
 - Show notes on the table thing
+- Store passwords in a secure vector
 
 # 2.0 UPDATE: Already Done
 Previously planned updates for passman++ 2.0 that have already been implemented:
