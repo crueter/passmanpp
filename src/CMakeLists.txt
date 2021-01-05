@@ -20,9 +20,8 @@ add_executable(passman
         field.cpp field.h
 )
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Sql REQUIRED)
+find_package(Qt6 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Sql REQUIRED)
 
 target_include_directories(passman PUBLIC /usr/include/botan-2)
 

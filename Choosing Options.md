@@ -7,6 +7,7 @@ Checksum functions:
 
 Password Hashing functions:
  - Argon2id was the winner of the Password Hashing Competition in July 2015. Hybrid of Argon2i and Argon2d combining the security functions of both. Extremely hard to bruteforce due to its very high memory requirements, but higher memory usage or hashing iterations can be very slow. Generally, you'll want to use this, as it's the best of the best, essentially. Default option for very obvious reasons.
+ - Scrypt can be used interchangeably with Argon2id, and can actually be better in some cases. Be warned, however; higher iteration/workload values may seriously affect authentication speed.
  - Bcrypt-PBKDF should be avoided because Argon2id is better against bruteforce attacks. It's still very secure, however, so use it if you please.
  - No hashing with only a derivation function should also generally be avoided, but with something such as Blake2b it's still secure. It's also significantly faster.
 
@@ -22,3 +23,8 @@ Choosing options:
  - Select others if you really have a reason to or want some sort of compatibility with other programs for whatever reason.
  - More hashing iterations makes it slower. Making it slower makes bruteforcing harder but it takes longer for your password to authenticate. Generally you'll want a value below 20, as anything higher can be very, very slow unless you've got a modern desktop Ryzen.
  - If your hardware does not have hardware AES encryption, avoid using AES-256/GCM. Go with anything else, as AES is (seemingly) more vulnerable without hardware acceleration.
+
+Other stuff:
+ - More memory usage will make bruteforcing even harder.
+ - Compression is seriously recommended as it will drastically reduce the size of your database.
+ - Clipboard clear delay indicates how long the delay will be when you copy an entry's password.

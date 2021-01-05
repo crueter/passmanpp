@@ -95,7 +95,6 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
     for (Field *field : fields) {
         if (field->getType() == QMetaType::QByteArray) {
             QString data = field->dataStr();
-            data.replace(" || char(10) || ", "\n");
             field->setData(data);
         } else if (field->lowerName() == "name") {
             origName = field->dataStr();
@@ -224,8 +223,7 @@ int Entry::edit(QTableWidgetItem *item, QTableWidget *table) {
                     f->setData(spins[i]->value());
                     break;
                 } case QMetaType::QByteArray: {
-                    QString txt = edits[i]->toPlainText();
-                    f->setData(txt.replace("\n", " || char(10) || "));
+                    f->setData(edits[i]->toPlainText());
                     break;
                 } default: {
                     break;
@@ -320,7 +318,7 @@ QString Entry::getCreate() {
             quote = "\"";
         }
 
-        saveStr += quote + val.toString().replace("\"", "'") + quote;
+        saveStr += quote + val.toString().replace("\"", "'").replace("\n", " || char(10) || ") + quote;
 
         if (i < fields.size() - 1) {
             saveStr += ", ";
@@ -333,7 +331,7 @@ QString Entry::getCreate() {
 }
 
 void Entry::setDefaults() {
-    QStringList names = {"Name", "Email", "URL", "Password", "Notes"};
+    QStringList names = {"Name", "Email", "URL", "Notes", "Password"};
     for (const QString &s : names) {
         if (s == "Notes") {
             fields.push_back(new Field(s, "", QMetaType::QByteArray));

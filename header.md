@@ -13,9 +13,10 @@ The header contains the magic number, version number, all information needed to 
   * 4 = SHA-512
   * The output length, in bytes, for all except SHA-512, is the maximum key length for the encryption option chosen.
 - 1 byte: hash choice:
-  * 0 = Argon2 + derivation
+  * 0 = Argon2id + derivation
   * 1 = Bcrypt + derivation
-  * 2 = no hash, only derivation
+  * 2 = Scrypt + derivation
+  * 3 = no hash, only derivation
 - 1 byte: number of hashing iterations
 - 1 byte: keyfile required (0 or 1 for off/on)
 - 1 byte: type of encryption
@@ -23,6 +24,9 @@ The header contains the magic number, version number, all information needed to 
   * 1 = TwoFish/GCM
   * 2 = SHACAL2/EAX
   * 3 = Serpent/GCM
+- 2 bytes (uint16_t): Argon2id memory usage (in MB)
+- 1 byte: "clear seconds" (delay before the clipboard is cleared when a password is copied)
+- 1 byte: compression on/off
 - database IV
   * length of IV is the default nonce length of the encryption option chosen
 - database name (terminated by a newline)

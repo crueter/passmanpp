@@ -82,14 +82,10 @@ passman++ is made possible by:
 # To Do
 - Separate users
 - My own encryption algorithm
-- pdb-to-pdpp file converter (i.e. converting the old PyPassMan format to this much more secure version)
 - Multiple different formats
 - Groups (sort of like KeePass's directories)
 - Maybe... just maybe... KeePass* format integration
 - Some sort of vault (like Plasma Vault)
-- Icons and attachments
-- Password health/entropy checker
-- EASCII in password generator
 
 # Already Done
 Stuff I planned to do and have already done:
@@ -99,27 +95,10 @@ Stuff I planned to do and have already done:
 - Streamlined way to access your data (aka, the GUI)
 
 # 2.0 UPDATE
-NOTE: Some of this stuff might be moved to version 2.1 or later.
-
 All planned updates for passman++ 2.0:
 - Allow for more stuff to be stored there, i.e. user-input attributes
 - More advanced password generator
-- When the computer is hibernated or put to sleep, close out the database
-- Locking out the database
-- Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
 - Even more error handling
-- Entry modification dates
-- Ability to disable compression
-- Prompt for database location after configuration is complete
-- Allow for no password at all
-- Dedicated settings area with more options
-- Clear clipboard after a set amount of time when password is copied
-- Password copy button
-- Allow editing of Argon2id memory usage
-- Allow for duplicate entries, give each entry a "UUID" to allow for this (making the table name the UUID)
-- Change conversion dialog to use the regular password entry thingy
-- Locking away databases into encrypted archives
-- Show notes on the table thing
 - Store passwords in a secure vector
 
 # 2.0 UPDATE: Already Done
@@ -133,7 +112,6 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
   * AES-256/GCM, Twofish/GCM, SHACAL2/EAX, Serpent/GCM
   * Blake2b, SHA-3, SHAKE-256, Skein-512, SHA-512
   * Argon2id, Bcrypt-PBKDF, or no hashing at all (only derivation)
-  * Potentially see if any more PBKD functions can be used
 - Database config and changing it on-the-fly
 - Switch to CMake
 - Add some help
@@ -141,6 +119,31 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
 - Reduce the use of SQLite and directly edit entry data
 - Add command-line options
 - Create a full GUI interface
+- Clear clipboard after a set amount of time when password is copied
+- Password copy button
+- Allow editing of Argon2id memory usage
+- Change conversion dialog to use the regular password entry thingy
+- Ability to disable compression
+- Show notes on the table thing
+
+# 2.1 UPDATE
+Plans for the passman++ 2.1 update:
+- Separate more things into real "menus" with tabs and such
+- Allow for no password at all
+- Dedicated settings area with more options
+- Locking out the database
+- Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
+- When the computer is hibernated or put to sleep, lock the database
+- Add a delay benchmark for hashing iterations
+
+# 3.0 UPDATE
+Plans for the passman++ 3.0 update:
+- Allow for duplicate entries, give each entry a "UUID" to allow for this (making the table name the UUID)
+- Entry modification dates
+- pdb-to-pdpp file converter (i.e. converting the old PyPassMan format to this much more secure version)
+- Icons and attachments
+- Password health/entropy checker
+- EASCII in password generator
 
 # Extras
 This program is only intended to work under Linux. Feel free, however, to compile this for Windows and use it yourself, or even distribute it separately. However, as per the BSD License, you are required to credit me, and include the same BSD License in your version.

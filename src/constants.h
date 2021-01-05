@@ -2,9 +2,9 @@
 #define CONSTANTS_H
 #include "util/extra.h"
 
-static const int MAX_SUPPORTED_VERSION_NUMBER = 6;
+static const int MAX_SUPPORTED_VERSION_NUMBER = 7;
 static const QList<std::string> checksumMatch = {"Blake2b", "SHA-3", "SHAKE-256", "Skein-512", "SHA-512"};
-static const QList<std::string> hashMatch = {"Argon2id", "Bcrypt-PBKDF", "No hashing, only derivation"};
+static const QList<std::string> hashMatch = {"Argon2id", "Bcrypt-PBKDF", "Scrypt", "No hashing, only derivation"};
 static const QList<std::string> encryptionMatch = {"AES-256/GCM", "Twofish/GCM", "SHACAL2/EAX", "Serpent/GCM"};
 
 static const std::string PASSMAN_VERSION = "2.0.0rc3";

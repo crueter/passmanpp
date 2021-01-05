@@ -17,9 +17,7 @@ secvec toVec(std::string str);
 secvec toVec(QString str);
 secvec toVec(char *str, int length);
 
-QByteArray toQBA(secvec vec);
 QString toStr(secvec vec);
-std::string toStdStr(secvec vec);
 
 QString tr(QString s);
 QString tr(std::string s);

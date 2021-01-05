@@ -27,7 +27,7 @@ public:
     bool parse();
 
     void encrypt();
-    QString decrypt(const QString &txt = "");
+    QString decrypt(const QString &txt = "", bool convert = false);
     bool config(bool create = true);
 
     bool open();
@@ -36,7 +36,7 @@ public:
     bool save();
     bool convert();
 
-    int verify(const QString &mpass);
+    int verify(const QString &mpass, bool convert = false);
     void get();
 
     int add(QTableWidget *table);
@@ -54,22 +54,27 @@ public:
     template <typename Func>
     QAction *addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func);
 
-    bool keyFile;
+    bool keyFile = false;
     bool modified = false;
 
     uint8_t checksum = 0;
     uint8_t hash = 0;
-    uint8_t hashIters = 0;
+    uint8_t hashIters = 8;
     uint8_t encryption = 0;
     uint8_t version = MAX_SUPPORTED_VERSION_NUMBER;
 
-    uint8_t ivLen;
+    uint8_t ivLen = 12;
+
+    uint16_t memoryUsage = 64;
+    uint8_t clearSecs = 15;
+
+    bool compress = true;
 
     secvec iv;
     secvec data;
 
-    QString name;
-    QString desc;
+    QString name = "None";
+    QString desc = "None";
 
     QString path;
     QString keyFilePath;
