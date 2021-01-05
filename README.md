@@ -3,7 +3,7 @@ passman++ version 2.0 is coming soon. It will feature a massive suite of new sec
 
 While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any of the commits to work when directly cloned.
 
-2.0.0rc3 is the latest pre-release build. It contains just about every planned feature change for 2.0, except for:
+2.0.0rc4 is the latest pre-release build. It contains just about every planned feature change for 2.0, except for a few things, including but not limited to:
 - User-input attributes
 - Closing of database upon hibernation, sleep, etc.
 - Advanced password generator
