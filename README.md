@@ -3,10 +3,9 @@ passman++ version 2.0 is coming soon. It will feature a massive suite of new sec
 
 While this is happening, no other updates will come out. Occasionally, however, I WILL commit my progress. Don't expect most if not any of the commits to work when directly cloned.
 
-2.0.0rc4 is the latest pre-release build. It contains just about every planned feature change for 2.0, except for a few things, including but not limited to:
-- User-input attributes
-- Closing of database upon hibernation, sleep, etc.
-- Advanced password generator
+2.0.0rc5 is the latest pre-release build. It contains just about every planned feature change for 2.0, except for a few things, including but not limited to:
+- A few GUI updates
+- Some extra password generator features
 
 # passman++
 An extremely simple, minimal, and easy-to-use yet just as secure and powerful command-line and GUI password manager.
@@ -48,9 +47,9 @@ install -m755 passman /usr/local/bin/passman
 ```
 - Otherwise, for 2.0.0rc3 and newer, simply run:
 ```bash
-$ bash build.sh
+$ ./build.sh
 ```
-- Or `install.sh` if you want to install
+- Or `./install.sh` if you want to install
 
 NOTE: Building and installing bleeding-edge versions (directly cloning) may fail. It's safer to go with the latest pre-release if you want "beta" builds.
 
@@ -76,7 +75,7 @@ passman++ is made possible by:
 - My friend Lenny for originally helping me create PyPassMan's AES version
 - The Qt devs and [docs](https://doc.qt.io)
 - CMake
-- [KeePassXC](https://github.com/keepassxreboot/keepassxc) for the idea
+- [KeePassXC](https://github.com/keepassxreboot/keepassxc) for the inspiration, boatloads of feature ideas, and a general help for when I need to implement a more complex feature
 - And of course, the Botan ([randombit](https://github.com/randombit)) and libsodium devs ([jedisct1](https://github.com/jedisct1)).
 
 # To Do
@@ -96,10 +95,12 @@ Stuff I planned to do and have already done:
 
 # 2.0 UPDATE
 All planned updates for passman++ 2.0:
-- Allow for more stuff to be stored there, i.e. user-input attributes
-- More advanced password generator
-- Even more error handling
-- Store passwords in a secure vector
+- Add extra included and excluded characters for random password generator via user input
+- Make password generator global
+- Make password generator buttons more evident whether they are pressed or not
+- Password health/entropy checker
+- Rather than deleting and creating a new entry, rename it
+- Utilize the password-show-* icons more
 
 # 2.0 UPDATE: Already Done
 Previously planned updates for passman++ 2.0 that have already been implemented:
@@ -125,6 +126,9 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
 - Change conversion dialog to use the regular password entry thingy
 - Ability to disable compression
 - Show notes on the table thing
+- More advanced password generator
+- Even more error handling
+- EASCII in password generator
 
 # 2.1 UPDATE
 Plans for the passman++ 2.1 update:
@@ -135,6 +139,9 @@ Plans for the passman++ 2.1 update:
 - Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
 - When the computer is hibernated or put to sleep, lock the database
 - Add a delay benchmark for hashing iterations
+- Allow for more stuff to be stored there, i.e. user-input attributes
+  * YES, I have moved this to here. Dont feel like doing it in 2.0
+- Store passwords in a secure vector
 
 # 3.0 UPDATE
 Plans for the passman++ 3.0 update:
@@ -142,8 +149,6 @@ Plans for the passman++ 3.0 update:
 - Entry modification dates
 - pdb-to-pdpp file converter (i.e. converting the old PyPassMan format to this much more secure version)
 - Icons and attachments
-- Password health/entropy checker
-- EASCII in password generator
 
 # Extras
 This program is only intended to work under Linux. Feel free, however, to compile this for Windows and use it yourself, or even distribute it separately. However, as per the BSD License, you are required to credit me, and include the same BSD License in your version.

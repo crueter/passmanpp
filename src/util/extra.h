@@ -23,10 +23,12 @@ QString tr(QString s);
 QString tr(std::string s);
 QString tr(const char *s);
 
-QString newLoc();
-QString getDb();
 QString newKeyFile();
 QString getKeyFile();
+void genKey(const QString &path);
+
+QString newLoc();
+QString getDb();
 
 void displayErr(QString msg);
 

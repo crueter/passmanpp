@@ -1,4 +1,3 @@
-
 #include "field.h"
 
 Field::Field(QString name, QVariant data, QMetaType::Type type) {

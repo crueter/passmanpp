@@ -1,4 +1,5 @@
 #include <QMessageBox>
+#include <botan/auto_rng.h>
 
 #include "extra.h"
 #include "constants.h"
@@ -39,6 +40,20 @@ QString newKeyFile() {
 QString getKeyFile() {
     QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", keyExt);
     return fileName;
+}
+
+void genKey(const QString &path) {
+    Botan::AutoSeeded_RNG rng;
+    secvec vec = rng.random_vec(128);
+
+    QFile f(path);
+    f.open(QIODevice::ReadWrite);
+    QDataStream q(&f);
+
+    for (uint8_t v : vec) {
+        q << v;
+    }
+    f.close();
 }
 
 QString newLoc() {

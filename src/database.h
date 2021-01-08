@@ -31,10 +31,9 @@ public:
     bool config(bool create = true);
 
     bool open();
-    int backup();
+    int saveAs();
 
     bool save();
-    bool convert();
 
     int verify(const QString &mpass, bool convert = false);
     void get();
@@ -51,9 +50,6 @@ public:
     QList<Entry *> &getEntries();
     void setEntries(QList<Entry *> entries);
 
-    template <typename Func>
-    QAction *addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func);
-
     bool keyFile = false;
     bool modified = false;
 
@@ -65,7 +61,7 @@ public:
 
     uint8_t ivLen = 12;
 
-    uint16_t memoryUsage = 64;
+    uint16_t memoryUsage;
     uint8_t clearSecs = 15;
 
     bool compress = true;

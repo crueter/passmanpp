@@ -33,7 +33,7 @@ public:
     QString &setName(QString &name);
 
     int edit(QTableWidgetItem *item = nullptr, QTableWidget *table = nullptr);
-    int del(QTableWidgetItem *item);
+    bool del(QTableWidgetItem *item);
 
     QString getCreate();
     bool details(QString &stmt, QSqlQuery &q);

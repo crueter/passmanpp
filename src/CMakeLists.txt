@@ -10,14 +10,22 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(passman
-        constants.h
-        database.cpp database.h
         main.cpp
-        util/extra.cpp util/extra.h
-        util/generators.cpp util/generators.h
-        util/sql.cpp util/sql.h
+        database.cpp database.h
         entry.cpp entry.h
         field.cpp field.h
+
+        constants.h
+
+        util/extra.cpp util/extra.h
+        util/sql.cpp util/sql.h
+
+        gui/database_edit_dialog.cpp gui/database_edit_dialog.h
+        gui/password_dialog.cpp gui/password_dialog.h
+        gui/config_dialog.cpp gui/config_dialog.h
+        gui/entry_edit_dialog.cpp gui/entry_edit_dialog.h
+        gui/welcome_dialog.cpp gui/welcome_dialog.h
+        gui/random_password_dialog.cpp gui/random_password_dialog.h
 )
 
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
@@ -34,4 +42,5 @@ target_link_libraries(passman PRIVATE
         sodium
         stdc++fs
 )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -march=native")
+
+target_compile_options(passman PUBLIC -O2 -march=native)

@@ -6,6 +6,7 @@
 
 #include "util/extra.h"
 #include "util/sql.h"
+#include "gui/welcome_dialog.h"
 
 bool debug = false;
 bool verbose = false;
@@ -39,7 +40,7 @@ int main(int argc, char** argv) {
                 path = spath;
             }
             db->path = path;
-            bool cr = db->config();
+            bool cr = db->config(true);
             if (!cr) {
                 delete db;
                 exit(1);
@@ -56,42 +57,11 @@ int main(int argc, char** argv) {
     };
 
     if (argc <= 1) {
-        QGridLayout *layout = new QGridLayout;
-        layout->setContentsMargins(0, 0, 0, 0);
+        WelcomeDialog *di = new WelcomeDialog(db);
+        di->init();
+        di->setup();
 
-        QDialog *openDiag = new QDialog;
-        openDiag->resize(600, 300);
-
-        QPushButton *btnCreate = new QPushButton(tr("Create new database"));
-        QObject::connect(btnCreate, &QPushButton::clicked, [create, openDiag]() mutable {
-            openDiag->accept();
-            create();
-        });
-
-        QPushButton *btnOpen = new QPushButton(tr("Open existing database"));
-        QObject::connect(btnOpen, &QPushButton::clicked, [open, openDiag]() mutable {
-            openDiag->accept();
-            open(getDb());
-        });
-
-        QLabel *label = new QLabel(tr("Welcome to passman++ " + PASSMAN_VERSION));
-        QFont font;
-        font.setPointSize(16);
-        font.setBold(true);
-        label->setFont(font);
-
-        layout->addWidget(btnCreate, 3, 0);
-        layout->addWidget(btnOpen, 2, 0);
-
-        label->setLayoutDirection(Qt::LeftToRight);
-        label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
-
-        layout->addWidget(label, 1, 0);
-
-        openDiag->setLayout(layout);
-        int ret = openDiag->exec();
-
-        if (ret == QDialog::Rejected) {
+        if (di->show() == QDialog::Rejected) {
             delete db;
             return 1;
         }

@@ -2,15 +2,16 @@
 #define CONSTANTS_H
 #include "util/extra.h"
 
-static const int MAX_SUPPORTED_VERSION_NUMBER = 7;
+constexpr int MAX_SUPPORTED_VERSION_NUMBER = 7;
 static const QList<std::string> checksumMatch = {"Blake2b", "SHA-3", "SHAKE-256", "Skein-512", "SHA-512"};
 static const QList<std::string> hashMatch = {"Argon2id", "Bcrypt-PBKDF", "Scrypt", "No hashing, only derivation"};
 static const QList<std::string> encryptionMatch = {"AES-256/GCM", "Twofish/GCM", "SHACAL2/EAX", "Serpent/GCM"};
 
-static const std::string PASSMAN_VERSION = "2.0.0rc4";
+static const std::string PASSMAN_VERSION = "2.0.0rc5";
+static const QString PASSMAN_WELCOME = tr("Welcome to passman++ " + PASSMAN_VERSION);
 static const std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH);
 
-static const std::string github = "https://github.com/binex-dsk/passmanpp";
+static const std::string github = "https://github.com/binex-dsk/passmanpp/";
 static const QString info = tr("passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\n"
                           "Project repository (Submit bug reports, suggestions, and PRs here): " + github + "\n"
                           "FOSS Libraries used: Botan, Qt, libsodium\n"
@@ -32,10 +33,6 @@ static const QString _allF = ";;All Files (*)";
 static const QString fileExt = "passman++ Database Files (*.pdpp)" + _allF;
 static const QString keyExt = "passman++ Key Files (*.pkpp)" + _allF;
 static const QString whiteSpace = " \t\v\r\n";
-
-static const QList<QChar> capital = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
-static const QList<QChar> number = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-static const QList<QChar> symbol = {'!', '#', '$', '%', '&', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', ']', '^', '_', '`', '{', '|', '}', '~'};
 
 extern bool debug;
 extern bool verbose;
