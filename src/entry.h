@@ -6,13 +6,11 @@
 #include "field.h"
 #include "database.h"
 
-void redrawTable(QTableWidget *table, Database *tdb);
-
 class Entry
 {
-    QList<Field *> fields;
-    Database *database;
-    QString name;
+    QList<Field *> _fields;
+    Database *_database;
+    QString _name;
 public:
     Entry(QList<Field *> fields, Database *tdb);
 
@@ -22,14 +20,14 @@ public:
     Field *fieldNamed(QString name);
     Field *fieldAt(int index);
 
-    QList<Field *> &getFields();
+    const QList<Field *> &fields();
     QList<Field *> &setFields(QList<Field *> &fields);
     int fieldLength();
 
-    Database *getDb();
+    const Database *database();
     Database *setDb(Database *database);
 
-    QString &getName();
+    const QString &name();
     QString &setName(QString &name);
 
     int edit(QTableWidgetItem *item = nullptr, QTableWidget *table = nullptr);

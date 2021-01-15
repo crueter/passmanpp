@@ -1,5 +1,5 @@
-#ifndef DATABASEEDITDIALOG_H
-#define DATABASEEDITDIALOG_H
+#ifndef DatabaseWindow_H
+#define DatabaseWindow_H
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -7,20 +7,20 @@
 #include <QMenuBar>
 #include <QLabel>
 #include <QToolButton>
+#include <QMainWindow>
 
 #include "entry.h"
 
-class DatabaseEditDialog : public QDialog
+class DatabaseWindow : public QMainWindow
 {
 public:
-    DatabaseEditDialog(Database *database);
+    DatabaseWindow(Database *_database);
 
     template <typename Func>
     QAction *addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func);
 
-    void init();
     void setup();
-    int show();
+    int exec();
     Entry *getNamed(QTableWidget *table);
 
     Database *database;
@@ -28,7 +28,7 @@ public:
     QDialogButtonBox *ok;
     QGridLayout *layout;
     QTableWidget *table;
-    QMenuBar *bar;
+    QToolBar *toolbar;
 
     QAction *saveButton;
 
@@ -40,6 +40,8 @@ public:
     QAction *addEButton;
     QAction *delButton;
     QAction *editButton;
+
+    QAction *randomButton;
 
     QMenu *entryMenu;
 
@@ -63,4 +65,4 @@ public:
     QToolButton *passView;
 };
 
-#endif // DATABASEEDITDIALOG_H
+#endif // DatabaseWindow_H

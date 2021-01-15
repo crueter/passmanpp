@@ -19,7 +19,7 @@ Encryption functions:
 
 Choosing options:
  - If you just want the "most" secure options, select Blake2b or SHA-3 or SHAKE-256, Argon2id, and AES-256/GCM.
- - If you just want the fastest options, select SHA-512, only derivation, and SHACAL2/EAX.
+ - If you just want the fastest options, select SHA-512, only derivation, and SHACAL2/EAX. With these options, verification should be almost instant. If you're worried about security, however, use other options, or at least select a hash function.
  - Select others if you really have a reason to or want some sort of compatibility with other programs for whatever reason.
  - More hashing iterations makes it slower. Making it slower makes bruteforcing harder but it takes longer for your password to authenticate. Generally you'll want a value below 20, as anything higher can be very, very slow unless you've got a modern desktop Ryzen.
  - If your hardware does not have hardware AES encryption, avoid using AES-256/GCM. Go with anything else, as AES is (seemingly) more vulnerable without hardware acceleration.
@@ -27,4 +27,4 @@ Choosing options:
 Other stuff:
  - More memory usage will make bruteforcing even slower and more resource-intensive.
  - Compression is seriously recommended as it will drastically reduce the size of your database.
- - Clipboard clear delay indicates how long the delay will be when you copy an entry's password.
+ - Clipboard clear delay indicates how long the delay will be, when you copy an entry's password, that your clipboard will be cleared.

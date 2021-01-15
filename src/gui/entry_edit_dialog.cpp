@@ -1,20 +1,20 @@
 #include <QLineEdit>
 #include <QToolButton>
+#include <QAction>
 
 #include "entry_edit_dialog.h"
 #include "field.h"
 #include "random_password_dialog.h"
+#include "../actions/password_generator_action.h"
+#include "../actions/password_visible_action.h"
 
-EntryEditDialog::EntryEditDialog(Entry *entry, Database *database)
+EntryEditDialog::EntryEditDialog(Entry *_entry, Database *_database)
+    : entry(_entry)
+    , database(_database)
 {
-    this->entry = entry;
-    this->database = database;
-}
-
-void EntryEditDialog::init() {
     layout = new QFormLayout(this);
 
-    int len = entry->fieldLength();
+    int len = _entry->fieldLength();
     lines.reserve(len);
     boxes.reserve(len);
     spins.reserve(len);
@@ -24,8 +24,8 @@ void EntryEditDialog::init() {
 }
 
 void EntryEditDialog::setup() {
-    for (Field *field : entry->getFields()) {
-        if (field->getType() == QMetaType::QByteArray) {
+    for (Field *field : entry->fields()) {
+        if (field->type() == QMetaType::QByteArray) {
             QString data = field->dataStr();
             field->setData(data);
         } else if (field->lowerName() == "name") {
@@ -35,81 +35,50 @@ void EntryEditDialog::setup() {
         }
     }
 
-    for (Field *field : entry->getFields()) {
+    for (Field *field : entry->fields()) {
         int i = entry->indexOf(field);
-        switch (field->getType()) {
+        switch (field->type()) {
             case QMetaType::QString: {
                 QLineEdit *edit = new QLineEdit(field->dataStr());
-                layout->addRow(field->getName() + ":", edit);
+                layout->addRow(field->name() + ":", edit);
 
                 if (field->isName()) {
                     edit->setFocus();
                 } else if (field->isPass()) {
                     edit->setEchoMode(QLineEdit::Password);
 
-                    QToolButton *random = new QToolButton;
-                    random->setIcon(QIcon::fromTheme(tr("roll")));
-                    random->setStatusTip(tr("Generate a random password."));
+                    passwordVisibleAction(edit, false);
 
-                    QObject::connect(random, &QToolButton::clicked, [edit]{
-                        RandomPasswordDialog *di = new RandomPasswordDialog;
-                        di->init();
-                        di->setup();
-                        QString rand = di->show();
-                        if (rand != "") {
-                            edit->setText(rand);
-                        }
-                    });
-
-                    QToolButton *view = new QToolButton;
-                    view->setCheckable(true);
-                    view->setIcon(QIcon::fromTheme(tr("view-visible")));
-                    random->setStatusTip(tr("Toggle password view."));
-
-                    QObject::connect(view, &QToolButton::clicked, [edit](bool checked) {
-                        QLineEdit::EchoMode echo;
-                        if (checked) {
-                            echo = QLineEdit::Normal;
-                        } else {
-                            echo = QLineEdit::Password;
-                        }
-                        edit->setEchoMode(echo);
-                    });
-
-                    QDialogButtonBox *passButtons = new QDialogButtonBox(this);
-                    passButtons->addButton(random, QDialogButtonBox::ActionRole);
-                    passButtons->addButton(view, QDialogButtonBox::ActionRole);
-
-                    layout->addWidget(passButtons);
+                    passwordGeneratorAction(edit);
                 }
                 lines[i] = edit;
                 break;
             } case QMetaType::Int: {
                 QCheckBox *box = new QCheckBox;
-                box->setChecked(field->getData().toBool());
+                box->setChecked(field->dataStr() != "0");
 
-                layout->addRow(field->getName() + ":", box);
+                layout->addRow(field->name() + ":", box);
 
                 boxes[i] = box;
                 break;
             } case QMetaType::Double: {
                 QDoubleSpinBox *spin = new QDoubleSpinBox;
                 spin->setSingleStep(1.);
-                spin->setValue(field->getData().toDouble());
+                spin->setValue(field->data());
 
-                layout->addRow(field->getName() + ":", spin);
+                layout->addRow(field->name() + ":", spin);
 
                 spins[i] = spin;
                 break;
             } case QMetaType::QByteArray: {
                 QTextEdit *edit = new QTextEdit(field->dataStr());
 
-                layout->addRow(field->getName() + ":", edit);
+                layout->addRow(field->name() + ":", edit);
 
                 edits[i] = edit;
                 break;
             } default: {
-                displayErr(tr("Something has gone horribly wrong. Field type (") + QString((QChar)field->getType()) + QString::fromStdString(") is invalid, where valid values are: 2, 6, 10, and 12. Report this issue immediately to" + github));
+                displayErr(tr("Something has gone horribly wrong. Field type (") + QString((QChar)field->type()) + QString::fromStdString(") is invalid, where valid values are: 2, 6, 10, and 12. Report this issue immediately to" + github));
                 break;
             }
         }
@@ -118,10 +87,10 @@ void EntryEditDialog::setup() {
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
     QObject::connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, [this] {
-        for (Field *f : entry->getFields()) {
+        for (Field *f : entry->fields()) {
             int i = entry->indexOf(f);
 
-            switch(f->getType()) {
+            switch(f->type()) {
                 case QMetaType::QString: {
                     f->setData(lines[i]->text());
                     QString txt = lines[i]->text();
@@ -172,11 +141,8 @@ int EntryEditDialog::show(QTableWidgetItem *item, QTableWidget *table) {
 
     database->modified = true;
 
-    if (table == nullptr) {
-        redrawTable(item->tableWidget(), database);
-    } else {
-        redrawTable(table, database);
-    }
+    auto _table = table == nullptr ? item->tableWidget() : table;
+    database->redrawTable(_table);
 
     QString dataS = entry->fieldAt(0)->dataStr();
     entry->setName(dataS);

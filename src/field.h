@@ -2,23 +2,28 @@
 #define FIELD_H
 #include <QVariant>
 
+#include "util/vector_union.h"
+
 class Field
 {
-    QString name;
-    QVariant data;
-    QMetaType::Type type;
+    QString _name;
+    VectorUnion _data;
+    QMetaType::Type _type;
 public:
-    Field(QString name, QVariant data, QMetaType::Type type);
+    Field(QString name, VectorUnion data, QMetaType::Type type)
+        : _name(name)
+        , _data(data)
+        , _type(type) {}
 
-    QString &getName();
+    const QString &name();
     QString &setName(QString &name);
     QString lowerName();
 
-    QVariant &getData();
-    QVariant setData(QVariant data);
+    const VectorUnion &data();
+    VectorUnion setData(VectorUnion data);
     QString dataStr();
 
-    QMetaType::Type getType();
+    QMetaType::Type type();
     QMetaType::Type setType(QMetaType::Type type);
 
     bool isName();

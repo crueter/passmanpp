@@ -10,9 +10,8 @@
 class WelcomeDialog : public QDialog
 {
 public:
-    WelcomeDialog(Database *database);
+    WelcomeDialog(Database *_database);
 
-    void init();
     void setup();
     int show();
 

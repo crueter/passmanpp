@@ -6,12 +6,6 @@
 
 #include "config_dialog.h"
 
-ConfigDialog::ConfigDialog(Database *database, bool create)
-{
-    this->database = database;
-    this->create = create;
-}
-
 QLineEdit *ConfigDialog::lineEdit(const char *text, QString defText, const char *label) {
     QLineEdit *le = new QLineEdit;
 
@@ -58,7 +52,10 @@ void ConfigDialog::updateBoxes(int index) {
     memBox->setReadOnly(memRO);
 }
 
-void ConfigDialog::init() {
+ConfigDialog::ConfigDialog(Database *_database, bool _create)
+    : database(_database)
+    , create(_create)
+{
     _diC = QColor(54, 54, 56);
 
     diPalette.setColor(QPalette::Window, _diC);
@@ -293,7 +290,7 @@ int ConfigDialog::show() {
     if (create) {
         Entry *entry = new Entry({}, database);
         entry->setDefaults();
-        for (Field *f : entry->getFields()) {
+        for (Field *f : entry->fields()) {
             f->setData("EXAMPLE");
         }
     }
@@ -301,7 +298,7 @@ int ConfigDialog::show() {
     QString pw = pass->text();
 
     database->keyFilePath = keyEdit->text();
-    database->keyFile = !database->keyFilePath.isEmpty();
+    database->keyFile = !database->keyFilePath.empty();
 
     if (database->keyFile && !QFile::exists(database->keyFilePath)) {
         genKey(database->keyFilePath);
@@ -314,11 +311,11 @@ int ConfigDialog::show() {
     database->name = nameEdit->text();
     database->desc = descEdit->text();
 
-    if (database->name.isEmpty()) {
+    if (database->name.empty()) {
         database->name = "None";
     }
 
-    if (database->desc.isEmpty()) {
+    if (database->desc.empty()) {
         database->desc = "None";
     }
 

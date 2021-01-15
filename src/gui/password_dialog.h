@@ -11,9 +11,8 @@
 class PasswordDialog : public QDialog
 {
 public:
-    PasswordDialog(Database *database, bool convert, QString txt);
+    PasswordDialog(Database *_database, bool _convert, QString _txt);
 
-    void init();
     bool setup();
     QString show();
 

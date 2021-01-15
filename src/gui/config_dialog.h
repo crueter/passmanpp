@@ -12,13 +12,12 @@
 class ConfigDialog : QDialog
 {
 public:
-    ConfigDialog(Database *database, bool create);
+    ConfigDialog(Database *_database, bool _create);
     QLineEdit *lineEdit(const char *text, QString defText, const char *label);
     QComboBox *comboBox(QList<std::string> vec, const char *label, int val);
     void calcMem();
     void updateBoxes(int index);
 
-    void init();
     void setup();
     int show();
 

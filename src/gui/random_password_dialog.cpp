@@ -2,6 +2,7 @@
 #include <sodium/randombytes_sysrandom.h>
 
 #include "random_password_dialog.h"
+#include "../actions/password_visible_action.h"
 
 RandomPasswordDialog::Options RandomPasswordDialog::getOptions() {
     Options opt;
@@ -125,6 +126,33 @@ Group RandomPasswordDialog::getGroup() {
         }
     }
 
+    // should probably implement this part into getOptions
+    for (QChar c : includes) {
+        if (!groups.contains(c)) {
+            groups.emplaceBack(c);
+        }
+    }
+
+    for (QChar c : excludes) {
+        groups.removeAll(c);
+    }
+
+    if (groups.isEmpty()) {
+        for (int i = 97; i < (97 + 25); ++i) {
+            groups.emplaceBack(i);
+        }
+
+        for (int i = 65; i < (65 + 25); ++i) {
+            groups.emplaceBack(i);
+        }
+
+        for (int i = 48; i < (48 + 10); ++i) {
+            groups.emplaceBack(i);
+        }
+    }
+
+    groups.squeeze();
+
     return groups;
 }
 
@@ -141,15 +169,17 @@ QString RandomPasswordDialog::generate() {
         pass.append(chars[pos]);
     }
 
+    display->setText(pass);
+
     return pass;
 }
 
-void RandomPasswordDialog::init() {
+RandomPasswordDialog::RandomPasswordDialog() {
     layout = new QGridLayout(this);
 
     display = new QLineEdit;
 
-    visible = new QAction(QIcon::fromTheme(tr("password-show-on")), tr("Toggle Password"));
+    visible = passwordVisibleAction(display, true);
 
     regen = new QPushButton(QIcon::fromTheme(tr("view-refresh")), "");
 
@@ -172,10 +202,18 @@ void RandomPasswordDialog::init() {
 
         button->setCheckable(true);
         button->setChecked(true);
+        button->setPalette(checkedPalette);
 
         buttonLayout->addWidget(button, row, col);
 
         connect(button, &QPushButton::clicked, regen, &QPushButton::click);
+        connect(button, &QPushButton::clicked, this, [button, this](bool checked) {
+            if (checked) {
+                button->setPalette(checkedPalette);
+            } else {
+                button->setPalette(QPalette());
+            }
+        });
 
         return button;
     };
@@ -190,30 +228,21 @@ void RandomPasswordDialog::init() {
     logogramsBox    = optButton("# $ % && @ ^ ` ~", "Logograms", 0, 3);
     easciiBox       = optButton("Extended ASCII", "Extended ASCII", 0, 4);
 
+    extraInclude = new QLineEdit;
+    includeLabel = new QLabel(tr("Extra characters to include:"));
+
+    extraExclude = new QLineEdit;
+    excludeLabel = new QLabel(tr("Characters to exclude:"));
+
     buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
 }
 
 void RandomPasswordDialog::setup() {
     visible->setCheckable(true);
-    display->addAction(visible, QLineEdit::TrailingPosition);
-
-    connect(visible, &QAction::triggered, this, [this](bool checked) {
-        char iconName[18] = "password-show-o";
-        QLineEdit::EchoMode echoMode = QLineEdit::Normal;
-
-        if (checked) {
-            std::strncat(iconName, "n", 1);
-        } else {
-            std::strncat(iconName, "ff", 2);
-            echoMode = QLineEdit::Password;
-        }
-
-        visible->setIcon(QIcon::fromTheme(tr(iconName)));
-        display->setEchoMode(echoMode);
-    });
+    visible->setChecked(true);
 
     connect(regen, &QPushButton::clicked, this, [this] {
-        display->setText(generate());
+        generate();
     });
 
     lengthSlider->setRange(1, 256);
@@ -228,8 +257,23 @@ void RandomPasswordDialog::setup() {
 
     connect(lengthBox, &QSpinBox::valueChanged, this, [this](int value) {
         lengthSlider->setValue(value);
-        display->setText(generate());
+        generate();
     });
+
+    connect(extraInclude, &QLineEdit::textChanged, this, [this] {
+        QString text = extraInclude->text();
+        includes = Group(text.begin(), text.end());
+
+        generate();
+    });
+
+    connect(extraExclude, &QLineEdit::textChanged, this, [this] {
+        QString text = extraExclude->text();
+        excludes = Group(text.begin(), text.end());
+
+        generate();
+    });
+
 
     QObject::connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     QObject::connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
@@ -245,6 +289,9 @@ void RandomPasswordDialog::setup() {
     buttonPalette.setColor(QPalette::Dark, _border);
     buttonPalette.setColor(QPalette::Window, _window);
 
+    QColor _chCl = QColor(33, 63, 33);
+    checkedPalette.setColor(QPalette::Button, _chCl);
+
     buttonWidget->setFrameStyle(QFrame::Panel | QFrame::Raised);
     buttonWidget->setLineWidth(2);
     buttonWidget->setAutoFillBackground(true);
@@ -255,14 +302,22 @@ void RandomPasswordDialog::setup() {
 
     layout->addWidget(display, 0, 0, 1, 4);
     layout->addWidget(regen, 0, 4);
+
     layout->addWidget(lengthLabel, 1, 0);
     layout->addWidget(lengthSlider, 1, 1, 1, 3);
     layout->addWidget(lengthBox, 1, 4);
     layout->addWidget(buttonLabel, 2, 0);
     layout->addWidget(buttonWidget, 3, 0, 2, 5);
-    layout->addWidget(buttonBox, 6, 3);
 
-    display->setText(generate());
+    layout->addWidget(includeLabel, 6, 2);
+    layout->addWidget(extraInclude, 6, 3, 1, 2);
+
+    layout->addWidget(excludeLabel, 7, 2);
+    layout->addWidget(extraExclude, 7, 3, 1, 2);
+
+    layout->addWidget(buttonBox, 8, 3);
+
+    generate();
 }
 
 QString RandomPasswordDialog::show() {

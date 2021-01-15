@@ -3,11 +3,6 @@
 #include "welcome_dialog.h"
 #include "constants.h"
 
-WelcomeDialog::WelcomeDialog(Database *database)
-{
-    this->database = database;
-}
-
 void WelcomeDialog::create(QString path) {
     if (path.isEmpty()) {
         path = newLoc();
@@ -34,7 +29,9 @@ void WelcomeDialog::openDb(QString path) {
     }
 }
 
-void WelcomeDialog::init() {
+WelcomeDialog::WelcomeDialog(Database *_database)
+    : database(_database)
+{
     layout = new QGridLayout(this);
 
     btnCreate = new QPushButton(tr("Create new database"));

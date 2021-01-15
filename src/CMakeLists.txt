@@ -19,13 +19,18 @@ add_executable(passman
 
         util/extra.cpp util/extra.h
         util/sql.cpp util/sql.h
+        util/vector_union.cpp util/vector_union.h
+        util/data_stream.cpp util/data_stream.h
 
-        gui/database_edit_dialog.cpp gui/database_edit_dialog.h
+        gui/database_window.cpp gui/database_window.h
         gui/password_dialog.cpp gui/password_dialog.h
         gui/config_dialog.cpp gui/config_dialog.h
         gui/entry_edit_dialog.cpp gui/entry_edit_dialog.h
         gui/welcome_dialog.cpp gui/welcome_dialog.h
         gui/random_password_dialog.cpp gui/random_password_dialog.h
+
+        actions/password_generator_action.cpp actions/password_generator_action.h
+        actions/password_visible_action.cpp actions/password_visible_action.h
 )
 
 find_package(Qt6 COMPONENTS Widgets REQUIRED)

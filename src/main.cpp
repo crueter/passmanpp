@@ -7,6 +7,7 @@
 #include "util/extra.h"
 #include "util/sql.h"
 #include "gui/welcome_dialog.h"
+#include "util/vector_union.h"
 
 bool debug = false;
 bool verbose = false;
@@ -18,7 +19,7 @@ int main(int argc, char** argv) {
         std::cout << "Debug mode activated. Do NOT use this unless you are testing stuff." << std::endl;
         debug = true;
     }
-    if (getenv("PASSMAN_DEBUG")) {
+    if (getenv("PASSMAN_VERBOSE")) {
         std::cout << "Verbose mode activated. Do NOT use this unless you are testing stuff." << std::endl;
         verbose = true;
     }
@@ -58,7 +59,6 @@ int main(int argc, char** argv) {
 
     if (argc <= 1) {
         WelcomeDialog *di = new WelcomeDialog(db);
-        di->init();
         di->setup();
 
         if (di->show() == QDialog::Rejected) {

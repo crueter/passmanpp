@@ -16,10 +16,6 @@ secvec toVec(char *str, int length) {
     return secvec(str, str + length);
 }
 
-QString toStr(secvec vec) {
-    return QString::fromStdString(std::string(vec.begin(), vec.end()));
-}
-
 QString tr(QString s) {
     return tr(s.toStdString().data());
 }

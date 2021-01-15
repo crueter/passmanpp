@@ -11,6 +11,8 @@
 #include <QTableWidgetItem>
 
 #include "constants.h"
+#include "util/vector_union.h"
+
 class Entry;
 
 void showMessage(const QString &msg);
@@ -18,11 +20,11 @@ std::string getCS(uint8_t cs, uint8_t encr);
 
 class Database
 {
-    QList<Entry *> entries;
+    QList<Entry *> _entries;
 public:
-    Database();
+    Database() {}
 
-    secvec getPw(QString password);
+    secvec getPw(VectorUnion password);
     bool showErr(QString msg);
     bool parse();
 
@@ -35,7 +37,7 @@ public:
 
     bool save();
 
-    int verify(const QString &mpass, bool convert = false);
+    int verify(const VectorUnion &mpass, bool convert = false);
     void get();
 
     int add(QTableWidget *table);
@@ -47,8 +49,10 @@ public:
     void addEntry(Entry *entry);
     bool removeEntry(Entry *entry);
     int entryLength();
-    QList<Entry *> &getEntries();
+    QList<Entry *> &entries();
     void setEntries(QList<Entry *> entries);
+
+    void redrawTable(QTableWidget *table);
 
     bool keyFile = false;
     bool modified = false;
@@ -61,22 +65,22 @@ public:
 
     uint8_t ivLen = 12;
 
-    uint16_t memoryUsage;
+    uint16_t memoryUsage = 64;
     uint8_t clearSecs = 15;
 
     bool compress = true;
 
-    secvec iv;
-    secvec data;
+    VectorUnion iv;
+    VectorUnion data;
 
-    QString name = "None";
-    QString desc = "None";
+    VectorUnion name = "None";
+    VectorUnion desc = "None";
 
-    QString path;
-    QString keyFilePath;
+    VectorUnion path = "";
+    VectorUnion keyFilePath;
 
-    secvec stList;
-    secvec passw;
+    VectorUnion stList;
+    VectorUnion passw;
 };
 
 #endif // DATABASE_H

@@ -11,13 +11,9 @@
 
 typedef Botan::secure_vector<uint8_t> secvec;
 
-QString atos(int asciiVal);
-
 secvec toVec(std::string str);
 secvec toVec(QString str);
 secvec toVec(char *str, int length);
-
-QString toStr(secvec vec);
 
 QString tr(QString s);
 QString tr(std::string s);

@@ -3,17 +3,14 @@
 
 #include "password_dialog.h"
 
-PasswordDialog::PasswordDialog(Database *database, bool convert, QString txt)
+PasswordDialog::PasswordDialog(Database *_database, bool _convert, QString _txt)
+    : database(_database)
+    , convert(_convert)
+    , txt(_txt)
 {
-    this->database = database;
-    this->convert = convert;
-    this->txt = txt;
-}
-
-void PasswordDialog::init() {
     layout = new QGridLayout(this);
 
-    passLabel = new QLabel("Please enter your master password" + txt + ".");
+    passLabel = new QLabel("Please enter your master password" + _txt + ".");
     passEdit = new QLineEdit;
 
     keyEdit = new QLineEdit;
@@ -37,11 +34,11 @@ bool PasswordDialog::setup() {
         QFile f(database->path);
         f.open(QIODevice::ReadOnly);
         QTextStream pd(&f);
-        QString iv = pd.readLine();
+        VectorUnion iv = pd.readLine();
 
-        std::vector<uint8_t> ivd;
+        VectorUnion ivd;
         try {
-            ivd = Botan::hex_decode(iv.toStdString());
+            ivd = iv.decoded();
         } catch (...) {
             return false;
         }
@@ -59,7 +56,7 @@ bool PasswordDialog::setup() {
     if (database->keyFile) {
         QObject::connect(getKf, &QPushButton::clicked, [this]() mutable {
             database->keyFilePath = getKeyFile();
-            database->keyFile = database->keyFilePath != "";
+            database->keyFile = !database->keyFilePath.empty();
             keyEdit->setText(database->keyFilePath);
         });
 

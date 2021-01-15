@@ -7,7 +7,7 @@ static const QList<std::string> checksumMatch = {"Blake2b", "SHA-3", "SHAKE-256"
 static const QList<std::string> hashMatch = {"Argon2id", "Bcrypt-PBKDF", "Scrypt", "No hashing, only derivation"};
 static const QList<std::string> encryptionMatch = {"AES-256/GCM", "Twofish/GCM", "SHACAL2/EAX", "Serpent/GCM"};
 
-static const std::string PASSMAN_VERSION = "2.0.0rc5";
+static const std::string PASSMAN_VERSION = "2.0.0rc6";
 static const QString PASSMAN_WELCOME = tr("Welcome to passman++ " + PASSMAN_VERSION);
 static const std::string BOTAN_VERSION = std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH);
 

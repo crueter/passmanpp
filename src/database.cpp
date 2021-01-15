@@ -17,11 +17,10 @@
 #include <QSizePolicy>
 
 #include "entry.h"
-#include "gui/database_edit_dialog.h"
+#include "gui/database_window.h"
 #include "gui/config_dialog.h"
 #include "gui/password_dialog.h"
-
-Database::Database() {}
+#include "util/data_stream.h"
 
 void showMessage(const QString &msg) {
     QMessageBox box;
@@ -44,7 +43,7 @@ std::string getCS(uint8_t cs, uint8_t encr) {
 }
 
 void Database::get() {
-    entries = {};
+    setEntries({});
     for (QSqlQuery q : selectAll()) {
         while (q.next()) {
             QList<Field *> fields;
@@ -59,7 +58,7 @@ void Database::get() {
             }
 
             Entry *entry = new Entry(fields, this);
-            entries.push_back(entry);
+            addEntry(entry);
         }
     }
 }
@@ -67,23 +66,22 @@ void Database::get() {
 int Database::add(QTableWidget *table) {
     Entry *entry = new Entry({}, this);
     entry->setDefaults();
-    entries.push_back(entry);
+    addEntry(entry);
 
     int ret = entry->edit(nullptr, table);
     return ret;
 }
 
 int Database::edit() {
-    DatabaseEditDialog *di = new DatabaseEditDialog(this);
-    di->init();
+    DatabaseWindow *di = new DatabaseWindow(this);
     di->setup();
-    return di->show();
+    return di->exec();
 }
 
 bool Database::saveSt(bool exec) {
-    QString execSt = "";
+    VectorUnion execSt = "";
 
-    for (Entry *entry : entries) {
+    for (Entry *entry : _entries) {
         execSt += entry->getCreate();
     }
 
@@ -101,11 +99,11 @@ bool Database::saveSt(bool exec) {
 
         execAll(execSt);
     }
-    this->stList = toVec(execSt);
+    this->stList = execSt;
     return true;
 }
 
-secvec Database::getPw(QString password) {
+secvec Database::getPw(VectorUnion password) {
     std::string checksumChoice = getCS(checksum, encryption);
     std::string hashChoice = hashMatch[hash];
 
@@ -126,8 +124,8 @@ secvec Database::getPw(QString password) {
         }
 
         secvec ptr(512);
-        pHash->derive_key(ptr.data(), ptr.size(), password.toStdString().data(), password.size(), iv.data(), ivLen);
-        password = toStr(ptr);
+        pHash->derive_key(ptr.data(), ptr.size(), password, password.size(), iv.data(), ivLen);
+        password = ptr;
         if(verbose) {
             qDebug() << "After Hashing:" << Botan::hex_encode(ptr).data() << Qt::endl;
         }
@@ -137,7 +135,7 @@ secvec Database::getPw(QString password) {
     secvec ptr(enc->maximum_keylength());
     std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create("PBKDF2(" + checksumChoice + ")")->default_params();
 
-    ph->derive_key(ptr.data(), ptr.size(), password.toStdString().data(), password.size(), iv.data(), ivLen);
+    ph->derive_key(ptr.data(), ptr.size(), password, password.size(), iv.data(), ivLen);
     if (verbose) {
         qDebug() << iv;
         qDebug() << "After Derivation:" << Botan::hex_encode(ptr).data() << Qt::endl;
@@ -147,52 +145,48 @@ secvec Database::getPw(QString password) {
 }
 
 void Database::encrypt() {
-    std::ofstream pd(path.toStdString(), std::fstream::binary | std::fstream::trunc);
-    pd.seekp(0);
+    DataStream pd(path, std::fstream::binary | std::fstream::trunc);
 
     pd << "PD++";
 
-    pd.put(MAX_SUPPORTED_VERSION_NUMBER);
-    pd.put(checksum);
-    pd.put(hash);
+    pd << MAX_SUPPORTED_VERSION_NUMBER;
+    pd << checksum;
+    pd << hash;
 
     if (hash != 3) {
-        pd.put(hashIters);
+        pd << hashIters;
     }
 
-    pd.put(keyFile);
-    pd.put(encryption);
+    pd << keyFile;
+    pd << encryption;
 
     if (hash == 0) {
-        pd.put(memoryUsage >> 8);
-        pd.put(memoryUsage & 0xFF);
+        pd << memoryUsage;
     }
 
-    pd.put(clearSecs);
-    pd.put(compress);
+    pd << clearSecs;
+    pd << compress;
 
     std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(encryption), Botan::ENCRYPTION);
 
-    pd << iv.data();
+    pd << iv;
 
-    pd << name.toStdString();
-    pd.put(10);
+    pd << name << '\n';
 
-    pd << desc.toStdString();
-    pd.put(10);
+    pd << desc << '\n';
 
     enc->set_key(passw);
     if (verbose) {
-        qDebug() << "STList before saveSt:" << toStr(stList);
+        qDebug() << "STList before saveSt:" << stList.asStdStr().data();
     }
 
     saveSt();
 
     if (verbose) {
-        qDebug() << "STList after saveSt:" << toStr(stList);
+        qDebug() << "STList after saveSt:" << stList.asStdStr().data();
     }
 
-    secvec pt = stList;
+    VectorUnion pt = stList;
 
     if (compress) {
         std::unique_ptr<Botan::Compression_Algorithm> ptComp = Botan::Compression_Algorithm::create("gzip");
@@ -222,36 +216,30 @@ void Database::encrypt() {
         qDebug() << "Data (Encryption):" << Botan::hex_encode(pt).data();
     }
 
-    for (unsigned long i = 0; i < pt.size(); ++i) {
-        pd.put(pt[i]);
-    }
-
-    pd.flush();
-    pd.close();
+    pd << pt;
+    pd.finish();
 }
 
-int Database::verify(const QString &mpass, bool convert) {
+int Database::verify(const VectorUnion &mpass, bool convert) {
     if (convert) {
         QFile f(path);
         f.open(QIODevice::ReadOnly);
         QTextStream pd(&f);
-        QString iv = pd.readLine();
+        VectorUnion iv = pd.readLine();
 
-        std::vector<uint8_t> ivd;
+        VectorUnion ivd;
         try {
-            ivd = Botan::hex_decode(iv.toStdString());
+            ivd = iv.decoded();
         } catch (...) {
             return false;
         }
 
-        QString r = pd.readAll();
-
-        secvec vData = toVec(r);
+        VectorUnion vData = pd.readAll();
 
         secvec mptr(32);
         std::unique_ptr<Botan::PasswordHash> ph = Botan::PasswordHashFamily::create("PBKDF2(SHA-256)")->default_params();
 
-        ph->derive_key(mptr.data(), mptr.size(), mpass.toStdString().data(), mpass.size(), ivd.data(), ivd.size());
+        ph->derive_key(mptr.data(), mptr.size(), mpass, mpass.size(), ivd.data(), ivd.size());
 
         std::unique_ptr<Botan::Cipher_Mode> decr = Botan::Cipher_Mode::create("AES-256/GCM", Botan::DECRYPTION);
 
@@ -265,13 +253,11 @@ int Database::verify(const QString &mpass, bool convert) {
             return false;
         }
 
-        QString rdata = toStr(vData);
-
-        this->iv = secvec(ivd.begin(), ivd.end());
-        this->name = QString(basename(path.toStdString().data())).split(".")[0];;
+        this->iv = ivd;
+        this->name = QString(basename(path)).split(".")[0];;
         this->desc = "Converted from old database format.";
         this->stList = vData;
-        execAll(rdata);
+        execAll(vData);
 
         QSqlQuery q(db);
         q.exec("SELECT tbl_name FROM sqlite_master WHERE type='table'");
@@ -292,7 +278,7 @@ int Database::verify(const QString &mpass, bool convert) {
         return true;
     }
 
-    secvec vPtr = getPw(mpass), pData = data;
+    VectorUnion vPtr = getPw(mpass), pData = data;
 
     if (keyFile) {
         QFile kf(keyFilePath);
@@ -321,7 +307,7 @@ int Database::verify(const QString &mpass, bool convert) {
 
     try {
         if (verbose) {
-            qDebug() << "Data (Verification):" << Botan::hex_encode(pData).data();
+            qDebug() << "Data (Verification):" << pData.encoded().asQStr();
         }
         decr->finish(pData);
 
@@ -334,7 +320,7 @@ int Database::verify(const QString &mpass, bool convert) {
         this->stList = pData;
         this->passw = vPtr;
         if (verbose) {
-            qDebug() << "STList (verification):" << toStr(stList);
+            qDebug() << "STList (verification):" << stList.asStdStr().data();
         }
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
@@ -345,7 +331,6 @@ int Database::verify(const QString &mpass, bool convert) {
 
 QString Database::decrypt(const QString &txt, bool convert) {
     PasswordDialog *di = new PasswordDialog(this, convert, txt);
-    di->init();
     bool set = di->setup();
     if (!set) {
         return "";
@@ -376,7 +361,6 @@ bool Database::parse() {
 
     if (std::string(readData, 4) != "PD++") {
         PasswordDialog *di = new PasswordDialog(this, true, " to convert your database to the new format");
-        di->init();
         bool conv = di->setup();
         if (!conv) {
             return showErr("Invalid magic number \"" + QString(readData) + "\".");
@@ -448,7 +432,6 @@ bool Database::parse() {
 
 bool Database::config(bool create) {
     ConfigDialog *di = new ConfigDialog(this, create);
-    di->init();
     di->setup();
     return di->show();
 }
@@ -471,7 +454,7 @@ bool Database::open() {
             }
         }
 
-        for (const QString &line : toStr(stList).split('\n')) {
+        for (const QString &line : stList.asQStr().split('\n')) {
             if (line.isEmpty()) {
                 continue;
             }
@@ -510,8 +493,8 @@ int Database::saveAs() {
 }
 
 Entry *Database::entryNamed(QString &name) {
-    for (Entry *e : entries) {
-        if (e->getName() == name) {
+    for (Entry *e : _entries) {
+        if (e->name() == name) {
             return e;
         }
     }
@@ -520,21 +503,33 @@ Entry *Database::entryNamed(QString &name) {
 }
 
 void Database::addEntry(Entry *entry) {
-    entries.push_back(entry);
+    _entries.push_back(entry);
 }
 
 bool Database::removeEntry(Entry *entry) {
-    return entries.removeOne(entry);
+    return _entries.removeOne(entry);
 }
 
 int Database::entryLength() {
-    return entries.length();
+    return _entries.length();
 }
 
-QList<Entry *> &Database::getEntries() {
-    return entries;
+QList<Entry *> &Database::entries() {
+    return _entries;
 }
 
 void Database::setEntries(QList<Entry *> entries) {
-    this->entries = entries;
+    this->_entries = entries;
 }
+
+void Database::redrawTable(QTableWidget *table) {
+    int j = 0;
+    table->setRowCount(this->entryLength());
+    for (Entry *e : this->_entries) {
+        for (int i = 0; i < e->fieldLength(); ++i) {
+            table->setItem(j, i, new QTableWidgetItem(e->fieldAt(i)->dataStr()));
+        }
+        ++j;
+    }
+}
+

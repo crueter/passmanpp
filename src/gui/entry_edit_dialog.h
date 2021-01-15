@@ -13,9 +13,8 @@
 class EntryEditDialog : public QDialog
 {
 public:
-    EntryEditDialog(Entry *entry, Database *database);
+    EntryEditDialog(Entry *_entry, Database *_database);
 
-    void init();
     void setup();
     int show(QTableWidgetItem *item, QTableWidget *table);
 

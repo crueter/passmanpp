@@ -4,23 +4,22 @@
 #include <QDesktopServices>
 #include <QPushButton>
 #include <QHeaderView>
+#include <QToolBar>
 
-#include "database_edit_dialog.h"
-
-DatabaseEditDialog::DatabaseEditDialog(Database *database) {
-    this->database = database;
-}
+#include "database_window.h"
+#include "random_password_dialog.h"
 
 template <typename Func>
-QAction *DatabaseEditDialog::addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func) {
+QAction *DatabaseWindow::addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func) {
     QAction *action = new QAction(QIcon::fromTheme(tr(icon)), tr(text));
+
     action->setWhatsThis(tr(whatsThis));
     action->setShortcut(shortcut);
     QObject::connect(action, &QAction::triggered, func);
     return action;
 }
 
-Entry *DatabaseEditDialog::getNamed(QTableWidget *table) {
+Entry *DatabaseWindow::getNamed(QTableWidget *table) {
     QTableWidgetItem *item = table->item(table->currentRow(), 0);
 
     if (item == nullptr) {
@@ -32,15 +31,21 @@ Entry *DatabaseEditDialog::getNamed(QTableWidget *table) {
     return database->entryNamed(eName);
 }
 
-void DatabaseEditDialog::init() {
+DatabaseWindow::DatabaseWindow(Database *_database)
+    : database(_database)
+{
+    QWidget *central = new QWidget;
+    setCentralWidget(central);
+
     ok = new QDialogButtonBox(this);
-    layout = new QGridLayout(this);
+    layout = new QGridLayout(central);
     table = new QTableWidget(this);
-    bar = new QMenuBar;
+    toolbar = new QToolBar;
 
     saveButton = this->addButton("Save", "document-save", "Save the database as is.", QKeySequence(tr("Ctrl+S")), [this] {
         database->save();
     });
+    toolbar->addAction(saveButton);
 
     saveAsButton = this->addButton("Save as...", "document-save-as", "Save the database to a different location.", QKeySequence(tr("Ctrl+Shift+S")), [this] {
         int br = database->saveAs();
@@ -50,18 +55,30 @@ void DatabaseEditDialog::init() {
             displayErr("Improper permissions for file. Please select a location where the current user has write permissions.");
         }
     });
+    toolbar->addAction(saveAsButton);
 
-    fileMenu = bar->addMenu(tr("File"));
+    fileMenu = menuBar()->addMenu(tr("File"));
 
-    configButton = this->addButton("Edit Database", "document-edit", "Edit database options.", QKeySequence(tr("Ctrl+Shift+E")), [this] {
+    configButton = this->addButton("Edit Database", "settings-configure", "Edit database options.", QKeySequence(tr("Ctrl+Shift+E")), [this] {
         database->config(false);
     });
 
+    toolbar->addSeparator();
+
     fileMenu->addAction(configButton);
+
+    randomButton = this->addButton("Password Generator", "roll", "Generate a random password.", QKeySequence(tr("Ctrl+R")), [] {
+        RandomPasswordDialog *di = new RandomPasswordDialog;
+        di->setup();
+        di->show();
+    });
+
+    fileMenu->addAction(randomButton);
 
     addEButton = this->addButton("New", "list-add", "Creates a new entry in the database.", QKeySequence(tr("Ctrl+N")), [this]{
         database->add(table);
     });
+    toolbar->addAction(addEButton);
 
     delButton = this->addButton("Delete", "edit-delete", "Deletes the currently selected entry.", QKeySequence::Delete, [this]{
         Entry *named = getNamed(table);
@@ -70,6 +87,7 @@ void DatabaseEditDialog::init() {
         }
         named->del(table->currentItem());
     });
+    toolbar->addAction(delButton);
 
     editButton = this->addButton("Edit", "document-edit", "Edit or view all the information of the current entry.", QKeySequence(tr("Ctrl+E")), [this]{
         Entry *named = getNamed(table);
@@ -78,8 +96,10 @@ void DatabaseEditDialog::init() {
         }
         named->edit(table->currentItem());
     });
+    toolbar->addAction(editButton);
+    toolbar->addSeparator();
 
-    entryMenu = bar->addMenu(tr("Entry"));
+    entryMenu = menuBar()->addMenu(tr("Entry"));
 
     copyPasswordButton = this->addButton("Copy Password", "edit-copy", "Copy this entry's password. Clipboard will be cleared after a configurable time.", QKeySequence(tr("Ctrl+C")), [this] {
         QClipboard *clip = QApplication::clipboard();
@@ -98,6 +118,13 @@ void DatabaseEditDialog::init() {
             clip->setText("");
         });
     });
+    toolbar->addAction(copyPasswordButton);
+    toolbar->addSeparator();
+    toolbar->addAction(configButton);
+
+    toolbar->addAction(randomButton);
+
+    addToolBar(toolbar);
 
     entryMenu->addAction(copyPasswordButton);
 
@@ -109,7 +136,7 @@ void DatabaseEditDialog::init() {
         QDesktopServices::openUrl(QUrl(QString::fromStdString(github) + "blob/main/tips.md"));
     });
 
-    aboutMenu = bar->addMenu(tr("About"));
+    aboutMenu = menuBar()->addMenu(tr("About"));
     prevWidg = new QWidget;
     preview = new QGridLayout(prevWidg);
 
@@ -124,9 +151,9 @@ void DatabaseEditDialog::init() {
     passView = new QToolButton(prevWidg);
 }
 
-void DatabaseEditDialog::setup() {
+void DatabaseWindow::setup() {
     ok->setStandardButtons(QDialogButtonBox::Ok);
-    QObject::connect(ok->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, &QDialog::accept);
+    QObject::connect(ok->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, &QMainWindow::close);
 
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -154,7 +181,6 @@ void DatabaseEditDialog::setup() {
     aboutMenu->addAction(tr("About Qt..."), qApp, &QApplication::aboutQt);
 
     layout->addWidget(table);
-    layout->setMenuBar(bar);
 
     QFont font;
     font.setBold(true);
@@ -189,7 +215,7 @@ void DatabaseEditDialog::setup() {
         QString eName = table->item(table->currentRow(), 0)->text();
 
         Entry *selected = database->entryNamed(eName);
-        nameValue->setText(selected->getName());
+        nameValue->setText(selected->name());
         emailValue->setText(selected->fieldNamed("Email")->dataStr());
         urlValue->setText(selected->fieldNamed("URL")->dataStr());
 
@@ -224,13 +250,14 @@ void DatabaseEditDialog::setup() {
 
     preview->addWidget(passView, 3, 1);
 
-    setLayout(layout);
+    this->centralWidget()->setLayout(layout);
     setWindowTitle(tr("Select an entry"));
 
     resize(800, 450);
 }
 
-int DatabaseEditDialog::show() {
-    redrawTable(table, database);
-    return exec();
+int DatabaseWindow::exec() {
+    database->redrawTable(table);
+    show();
+    return qApp->exec();
 }

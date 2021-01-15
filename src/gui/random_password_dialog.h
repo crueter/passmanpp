@@ -17,7 +17,7 @@ typedef QList<QChar> Group;
 class RandomPasswordDialog : public QDialog
 {
 public:
-    RandomPasswordDialog() {}
+    RandomPasswordDialog();
 
     enum Option {
         Lowers = (1 << 0),
@@ -36,7 +36,6 @@ public:
 
     QString generate();
 
-    void init();
     void setup();
     QString show();
 
@@ -46,6 +45,9 @@ public:
     Options options;
 
     int length;
+
+    Group includes;
+    Group excludes;
 
     QGridLayout *layout;
 
@@ -71,6 +73,14 @@ public:
     QPushButton *mathBox;
     QPushButton *logogramsBox;
     QPushButton *easciiBox;
+
+    QPalette checkedPalette;
+
+    QLineEdit *extraInclude;
+    QLabel *includeLabel;
+
+    QLineEdit *extraExclude;
+    QLabel *excludeLabel;
 
     QDialogButtonBox *buttonBox;
 };
