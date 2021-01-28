@@ -174,8 +174,6 @@ Stuff I previously planned to do and have already done:
 - Global configuration
 - Display entropy in password generator
 - CLI application
-
-# 3.0 UPDATE
 Plans for the passman++ 3.0 update:
 - Allow for duplicate entries, give each entry a "UUID" to allow for this (making the table name the UUID)
 - Entry modification dates
