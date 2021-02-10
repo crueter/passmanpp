@@ -1,8 +1,17 @@
 #include <QAction>
+#include <QGridLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QDialogButtonBox>
+#include <QSpinBox>
+#include <QPushButton>
+#include <QSlider>
+
 #include <sodium/randombytes_sysrandom.h>
 
-#include "random_password_dialog.h"
-#include "../actions/password_visible_action.h"
+#include "random_password_dialog.hpp"
+#include "../actions/password_visible_action.hpp"
+#include "../util/extra.hpp"
 
 RandomPasswordDialog::Options RandomPasswordDialog::getOptions() {
     Options opt;
@@ -56,99 +65,46 @@ Group RandomPasswordDialog::getGroup() {
     options = getOptions();
 
     if (options & Lowers) {
-        for (int i = 97; i < (97 + 25); ++i) {
-            groups.emplaceBack(i);
-        }
+        groups.append(range<QChar>(97, 25));
     }
     if (options & Uppers) {
-        for (int i = 65; i < (65 + 25); ++i) {
-            groups.emplaceBack(i);
-        }
+        groups.append(range<QChar>(65, 25));
     }
     if (options & Numbers) {
-        for (int i = 48; i < (48 + 10); ++i) {
-            groups.emplaceBack(i);
-        }
+        groups.append(range<QChar>(48, 10));
     }
     if (options & Braces) {
-        // ()[]{}
-        groups.emplaceBack(40);
-        groups.emplaceBack(41);
-        groups.emplaceBack(91);
-        groups.emplaceBack(93);
-        groups.emplaceBack(123);
-        groups.emplaceBack(125);
+        groups.append(fromString("()[]{}"));
     }
     if (options & Punctuation) {
-        // .,:;?
-        groups.emplaceBack(44);
-        groups.emplaceBack(46);
-        groups.emplaceBack(58);
-        groups.emplaceBack(59);
-        groups.emplaceBack(63);
+        groups.append(fromString(".,:;?"));
     }
     if (options & Dashes) {
-        // -/\_|
-        groups.emplaceBack(45);
-        groups.emplaceBack(47);
-        groups.emplaceBack(92);
-        groups.emplaceBack(95);
+        groups.append(fromString("-/\\_|"));
     }
     if (options & Math) {
-        // !*+<=>
-        groups.emplaceBack(33);
-        groups.emplaceBack(42);
-        groups.emplaceBack(43);
-        groups.emplaceBack(60);
-        groups.emplaceBack(61);
-        groups.emplaceBack(62);
+        groups.append(fromString("!*+<=>"));
     }
     if (options & Logograms) {
-        // #$%&
-        for (int i = 35; i <= 38; i++) {
-            groups.emplaceBack(i);
-        }
-        // @^`~
-        groups.emplaceBack(64);
-        groups.emplaceBack(94);
-        groups.emplaceBack(96);
-        groups.emplaceBack(126);
+        groups.append(fromString("#$%&@^`~"));
     }
     if (options & EASCII) {
-        // [U+0080, U+009F] are control characters
+        // U+0080-U+009F are control characters, and
         // U+00A0 is a non-breaking space
-        for (int i = 161; i <= 172; i++) {
-            groups.emplaceBack(i);
-        }
+        groups.append(range<QChar>(161, 12));
+
         // U+00AD is a soft hyphen
-        for (int i = 174; i <= 255; i++) {
-            groups.emplaceBack(i);
-        }
+        groups.append(range<QChar>(174, 82));
     }
 
-    // should probably implement this part into getOptions
-    for (QChar c : includes) {
+    for (const QChar &c : includes) {
         if (!groups.contains(c)) {
             groups.emplaceBack(c);
         }
     }
 
-    for (QChar c : excludes) {
+    for (const QChar &c : excludes) {
         groups.removeAll(c);
-    }
-
-    if (groups.isEmpty()) {
-        for (int i = 97; i < (97 + 25); ++i) {
-            groups.emplaceBack(i);
-        }
-
-        for (int i = 65; i < (65 + 25); ++i) {
-            groups.emplaceBack(i);
-        }
-
-        for (int i = 48; i < (48 + 10); ++i) {
-            groups.emplaceBack(i);
-        }
     }
 
     groups.squeeze();
@@ -156,17 +112,15 @@ Group RandomPasswordDialog::getGroup() {
     return groups;
 }
 
-QString RandomPasswordDialog::generate() {
+const QString RandomPasswordDialog::generate() {
     Group chars = getGroup();
 
     QString pass;
 
     length = lengthBox->value();
 
-    for (int i = 0; i < length; i++) {
-        int pos = randombytes_uniform(chars.size());
-
-        pass.append(chars[pos]);
+    for (int i = 0; i < length; ++i) {
+        pass.append(chars[randombytes_uniform(static_cast<uint32_t>(chars.size()))]);
     }
 
     display->setText(pass);
@@ -196,13 +150,15 @@ RandomPasswordDialog::RandomPasswordDialog() {
     buttonWidget = new QFrame;
     buttonLayout = new QGridLayout(buttonWidget);
 
-    auto optButton = [this](const char *text, const char *tooltip, int row, int col) -> QPushButton * {
+    const QColor chCl{33, 63, 33};
+    checkedPalette.setColor(QPalette::Button, chCl);
+
+    auto optButton = [this](const char *text, const char *tooltip, int row, int col, bool on = false) -> QPushButton * {
         QPushButton *button = new QPushButton(tr(text));
         button->setToolTip(tr(tooltip));
 
         button->setCheckable(true);
-        button->setChecked(true);
-        button->setPalette(checkedPalette);
+        button->setChecked(on);
 
         buttonLayout->addWidget(button, row, col);
 
@@ -215,18 +171,21 @@ RandomPasswordDialog::RandomPasswordDialog() {
             }
         });
 
+        if (on) {
+            button->setPalette(checkedPalette);
+        }
         return button;
     };
 
-    lowersBox       = optButton("a-z", "Lowercase Letters", 0, 0);
-    uppersBox       = optButton("A-Z", "Capital Letters", 0, 1);
-    numbersBox      = optButton("0-9", "Numbers", 0, 2);
-    bracesBox       = optButton("()[]{}", "Braces", 1, 0);
-    punctsBox       = optButton(". , : ; ?", "Punctuation", 1, 1);
-    dashesBox       = optButton("- / \\ _ |", "Dashes and Slashes", 1, 2);
-    mathBox         = optButton("! * + < = >", "Math", 1, 3);
-    logogramsBox    = optButton("# $ % && @ ^ ` ~", "Logograms", 0, 3);
-    easciiBox       = optButton("Extended ASCII", "Extended ASCII", 0, 4);
+    lowersBox = optButton("a-z", "Lowercase Letters", 0, 0, true);
+    uppersBox = optButton("A-Z", "Capital Letters", 0, 1, true);
+    numbersBox = optButton("0-9", "Numbers", 0, 2, true);
+    bracesBox = optButton("()[]{}", "Braces", 1, 0);
+    punctsBox = optButton(". , : ; ?", "Punctuation", 1, 1, true);
+    dashesBox = optButton("- / \\ _ |", "Dashes and Slashes", 1, 2);
+    mathBox = optButton("! * + < = >", "Math", 1, 3, true);
+    logogramsBox = optButton("# $ % && @ ^ ` ~", "Logograms", 0, 3);
+    easciiBox = optButton("Extended ASCII", "Extended ASCII", 0, 4);
 
     extraInclude = new QLineEdit;
     includeLabel = new QLabel(tr("Extra characters to include:"));
@@ -274,23 +233,19 @@ void RandomPasswordDialog::setup() {
         generate();
     });
 
-
     QObject::connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     QObject::connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     setContentsMargins(30, 30, 30, 0);
 
-    QColor _window = QColor(62, 62, 66);
-    QColor _border = QColor(86, 86, 90);
+    const QColor window{62, 62, 66};
+    const QColor border{86, 86, 90};
 
     QPalette buttonPalette;
 
-    buttonPalette.setColor(QPalette::Light, _border);
-    buttonPalette.setColor(QPalette::Dark, _border);
-    buttonPalette.setColor(QPalette::Window, _window);
-
-    QColor _chCl = QColor(33, 63, 33);
-    checkedPalette.setColor(QPalette::Button, _chCl);
+    buttonPalette.setColor(QPalette::Light, border);
+    buttonPalette.setColor(QPalette::Dark, border);
+    buttonPalette.setColor(QPalette::Window, window);
 
     buttonWidget->setFrameStyle(QFrame::Panel | QFrame::Raised);
     buttonWidget->setLineWidth(2);
@@ -320,13 +275,9 @@ void RandomPasswordDialog::setup() {
     generate();
 }
 
-QString RandomPasswordDialog::show() {
-    int ret = exec();
-
-    if (ret == QDialog::Accepted) {
+const QString RandomPasswordDialog::show() {
+    if (exec() == QDialog::Accepted) {
         return display->text();
-    } else {
-        return "";
     }
-
+    return "";
 }

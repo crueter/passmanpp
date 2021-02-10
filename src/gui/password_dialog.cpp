@@ -1,16 +1,20 @@
 #include <QLineEdit>
 #include <QPushButton>
+#include <QGridLayout>
+#include <QLabel>
+#include <QDialogButtonBox>
 
-#include "password_dialog.h"
+#include "password_dialog.hpp"
+#include "../database.hpp"
 
-PasswordDialog::PasswordDialog(Database *_database, bool _convert, QString _txt)
-    : database(_database)
-    , convert(_convert)
-    , txt(_txt)
+PasswordDialog::PasswordDialog(Database *t_database, const bool t_convert, const QString &t_txt)
+    : database(t_database)
+    , convert(t_convert)
+    , txt(t_txt)
 {
     layout = new QGridLayout(this);
 
-    passLabel = new QLabel("Please enter your master password" + _txt + ".");
+    passLabel = new QLabel("Please enter your master password" + t_txt + '.');
     passEdit = new QLineEdit;
 
     keyEdit = new QLineEdit;
@@ -21,17 +25,17 @@ PasswordDialog::PasswordDialog(Database *_database, bool _convert, QString _txt)
     passButtons = new QDialogButtonBox(QDialogButtonBox::Ok);
     errLabel = new QLabel;
 
-    _cl = QColor(218, 68, 83);
+    cl = QColor(218, 68, 83);
 
-    palette.setColor(QPalette::Light, _cl);
-    palette.setColor(QPalette::Dark, _cl);
+    palette.setColor(QPalette::Light, cl);
+    palette.setColor(QPalette::Dark, cl);
     palette.setColor(QPalette::Window, QColor(218, 68, 83, 196));
     palette.setColor(QPalette::Text, Qt::white);
 }
 
 bool PasswordDialog::setup() {
     if (convert) {
-        QFile f(database->path);
+        QFile f(database->path.asQStr());
         f.open(QIODevice::ReadOnly);
         QTextStream pd(&f);
         VectorUnion iv = pd.readLine();
@@ -55,17 +59,12 @@ bool PasswordDialog::setup() {
 
     if (database->keyFile) {
         QObject::connect(getKf, &QPushButton::clicked, [this]() mutable {
-            database->keyFilePath = getKeyFile();
+            database->keyFilePath = QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", Constants::keyExt);
             database->keyFile = !database->keyFilePath.empty();
-            keyEdit->setText(database->keyFilePath);
+            keyEdit->setText(database->keyFilePath.asQStr());
         });
 
         keyBox->addButton(getKf, QDialogButtonBox::ActionRole);
-    } else {
-        delete keyEdit;
-        delete keyLabel;
-        delete getKf;
-        delete keyBox;
     }
 
     errLabel->setFrameStyle(QFrame::Panel | QFrame::Raised);
@@ -74,7 +73,7 @@ bool PasswordDialog::setup() {
     errLabel->setMargin(5);
 
     QObject::connect(passButtons->button(QDialogButtonBox::Ok), &QPushButton::clicked, [this]() mutable {
-        QString pw = passEdit->text();
+        const QString pw = passEdit->text();
 
         setCursor(QCursor(Qt::WaitCursor));
 
@@ -135,10 +134,8 @@ bool PasswordDialog::setup() {
     return true;
 }
 
-QString PasswordDialog::show() {
-    int ret = exec();
-
-    if (ret == QDialog::Rejected) {
+const QString PasswordDialog::show() {
+    if (exec() == QDialog::Rejected) {
         return "";
     }
 

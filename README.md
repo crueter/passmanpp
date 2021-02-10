@@ -1,13 +1,5 @@
-# 2.0
-passman++ version 2.0 is coming soon. It will feature a massive suite of new security and general features. Please see [#2.0 UPDATE](https://github.com/binex-dsk/passmanpp#20-update) for more info on what I plan to do.
-
-2.0.0rc6 is the latest pre-release build. This is the final release candidate for 2.0.0. All features from 2.0.0 are implemented in rc6. However, it hasn't been extensively tested, strained, cleaned up, and had all its bugs fixed just yet. You may freely use this version as it's effectively entirely stable, and by FAR the most secure version yet.
-
 # passman++
-An extremely simple, minimal, and easy-to-use yet just as secure and powerful command-line and GUI password manager.
-
-# Debug
-Define the environment variables `PASSMAN_DEBUG` and/or `PASSMAN_VERBOSE` to any value and you will activate debug/verbose mode, which will give you extra output. Sometimes I may ask you to use this in a bug report.
+An extremely simple, minimal, and easy-to-use yet just as secure and powerful GUI password manager.
 
 # Security
 If you find any security vulnerabilities at ALL, check `SECURITY.md` to report it.
@@ -20,30 +12,18 @@ Every single bit of data is only accessible to those who know the password, whic
 
 Password generation is done using libsodium's cryptographically secure random number generator. All your passwords will appear to be almost, if not completely random.
 
-However, someone can still delete your database, so keep backups of your database by hitting Ctrl+Shift+S on the main screen, and store your databases in safe locations that only you have access to. You could even make a QR code of your database. Store it properly and you'll be fine.
+However, someone can still delete your database, so keep backups of your database by hitting Ctrl+Shift+S on the main screen (or File > Save As...), and store your databases in safe locations that only you have access to. You could even make a QR code of your database. Store it properly and you'll be fine.
 
 # Building
 ## Manually
 - Download the source tar.gz (or zip) file, from the [releases](https://github.com/binex-dsk/passmanpp/releases) page and extract it
-- Install [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) 6
+- Install [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) 6 through your distribution's package manager, or [install from the AUR](https://github.com/binex-dsk/passmanpp#AUR).
 - For 1.4.0p and below, run:
 ```bash
 $ cd src
 $ qmake passman.pro
 ```
-- For 2.0.0rc1 and rc2, run:
-```bash
-$ cmake .
-```
-- Then run:
-```bash
-$ make
-```
-- Optionally, to install it, run:
-```bash
-install -m755 passman /usr/local/bin/passman
-```
-- Otherwise, for 2.0.0rc3 and newer, simply run:
+- For 2.0.0 and newer, simply run:
 ```bash
 $ ./build.sh
 ```
@@ -60,49 +40,88 @@ Or the development (pre-release) version:
 ```bash
 $ yay -S passman++-devel
 ```
-Dependencies will be automatically installed in this case.
+Dependencies will be automatically installed in these cases.
 
 # Acknowledgements
 passman++ is made possible by:
 
+- me
 - The following FOSS libraries:
   * [Botan](https://github.com/randombit/botan/)
   * [Qt](https://qt.io)
   * [libsodium](https://github.com/jedisct1/libsodium)
 - The amazing people on the [Qt forum](https://forum.qt.io) (and [randombit](https://github.com/randombit), too!) for helping me debug many of my internal issues
-- My friend Lenny for originally helping me create PyPassMan's AES version
 - The Qt devs and [docs](https://doc.qt.io)
 - CMake
 - [KeePassXC](https://github.com/keepassxreboot/keepassxc) for the inspiration, boatloads of feature ideas, and a general help for when I need to implement a more complex feature
 - And of course, the Botan ([randombit](https://github.com/randombit)) and libsodium devs ([jedisct1](https://github.com/jedisct1)).
 
+# Debug
+On the command line, specify the arguments `-d` or `--debug` and `-V` or `--verbose` and you will activate debug/verbose mode respectively, which will give you extra output. Sometimes I may ask you to use this in a bug report.
+
+# FAQ
+## Why is this so slow on my computer?
+Your computer probably sucks, but if you want to make it faster, edit your database, and select SHA-512 as your HMAC, no hashing as your hash, and SHACAL2/EAX as your encryption functions. This is less secure, though; see [Choosing Options](https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md).
+
+## How do I launch this without using the command line?
+I'll make a .desktop file. Eventually.
+
+## Do I have to remake all of my databases for 2.0.0?
+Nope! If you use an old database with 2.0.0 or above, passman++ will automatically convert it to the new format. However, you might be better off recreating it.
+
+## Can you automate installing dependencies or include the libraries in an archive for releases?
+No. Your package manager can do that. Especially if you're on a pacman-based distribution, where you can just install from the AUR.
+
+## Why do you use this entire library when you use so little of it? Can't you just implement it yourself?
+Yes, and in the future, I plan on implementing a few things from the currently used libraries, like the random byte generator. The reason I use these libraries in the first place, though, is because they are significantly better than anything I can do; not only have they been developed for far longer, but it's also much less work that I have to do.
+
+## Will you make Windows or Mac versions?
+Unlikely, unless I can figure out a way to statically link Qt 6 and Botan with MinGW. As for Mac, yeah no never.
+
+## Why would you even make this when things like KeePassXC already exist and are better in every single regard?
+I plan to change that in the future ;)
+
+Anyways, with pretty much all of my applications, they aren't intended to be the "best" version of that particular type of application; they are instead alternatives, usually much more lightweight, or, in rare cases like with this one, have a few features that others don't have.
+
+Oh yeah, it also has seriously improved my skill with C++.
+
+## Can I import databases from KeePass?
+Not yet. In the future, however, I do plan on implementing that, since the database formats are documented. However, they're also retardedly overcomplicated. Like, seriously.
+
+## Why don't you conform your code to standard X?
+If I don't conform my code to a particular standard, there are a few reasons why:
+- Too much work to care about
+- I use a different standard that I like better (i.e. variable/file naming conventions)
+- Little to no benefits
+- The standard makes no sense
+
+## Rewrite it in Rust!
+Yeah sure, let me just learn Rust, port the entirety of Botan, Qt, and libsodium to Rust, rewrite every single bit of logic in this program, likely break it, just because "bro rewrite it in Rust".
+
+In all seriousness though, no. Never. Even if Botan, Qt 6, and libsodium got Rust ports and I knew Rust as well as I do C++, no. Or any other language, for that matter. There are a variety of reasons:
+- Rust doesn't have built-in classes or inheritance.
+- Most other languages would be too high-level for a program as complex as this one. Specifically scripted languages and stuff like Go.
+- C++ is literally the only language that I even like.
+- It's never worth the effort. Ever.
+- C++ is, in effect, the fastest language, along with C. Rust and whatever the hot new "faster than C!" languages are, *are not faster than C or C++*. For example, if C[++] code is compiled with clang, it's using the EXACT SAME BACKEND AS RUST. It literally CAN NOT be faster in that case. And with GCC, experience shows me you're (usually) gonna get better performance with GCC, especially with optimizations on. And no, your C vs. Rust benchmark from a 2012 Stack Overflow post using terribly optimized C code and perfectly optimized Rust code doesn't prove that Rust is faster. Also, I don't really need the language to be super fast; this is actually designed to be slow to make bruteforcing passwords harder.
+- Rust has an awful community.
+- C++ is by far the most complex and hardest (TECHNICALLY C and ASM are harder, but C++ is significantly harder to MASTER than either of those because of its overly complicated class system) language out there. It actually challenges my brain a bit, unlike Python.
+- I already know memory safety. Rust doesn't really have anything that C++ doesn't. Memory safety gets pushed a lot, and guess what, there are these REALLY COOL THINGS called smart pointers, vectors, and strings. THOSE ARE MEMORY SAFE!
+
 # To Do
-- Separate users
-- My own encryption algorithm
+- Separate users/groups
 - Multiple different formats
-- Groups
-- Maybe... just maybe... KeePass* format integration
-- Some sort of vault (like Plasma Vault)
+- KeePass* database integration
 
 # Already Done
-Stuff I planned to do and have already done:
+Stuff I previously planned to do and have already done:
 - Backing up databases
-- Using Qt for a GUI
 - More error handling
-- Streamlined way to access your data (aka, the GUI)
-
-# 2.0 UPDATE
-All planned updates for passman++ 2.0:
-- Clean up code, test for bugs, add comments to the code, and prepare for release!
-
-# 2.0 UPDATE: Already Done
-Previously planned updates for passman++ 2.0 that have already been implemented:
-- Properly align the randomize/view icons for EntryDetails()
 - Allow users to choose the number of iterations of hashing (to slow down bruteforcing)
 - Proper name/description for files in the header
 - Key file implementation
 - Create a proper .pdpp file format
-- Allow choosing different checksum, derivation, hashing, and encryption methods
+- Allow choosing different HMAC, derivation, hashing, and encryption methods
   * AES-256/GCM, Twofish/GCM, SHACAL2/EAX, Serpent/GCM
   * Blake2b, SHA-3, SHAKE-256, Skein-512, SHA-512
   * Argon2id, Bcrypt-PBKDF, Scrypt, or no hashing at all (only derivation)
@@ -127,13 +146,14 @@ Previously planned updates for passman++ 2.0 that have already been implemented:
 - Make password generator buttons more evident whether they are pressed or not
 - Rather than deleting and creating a new entry, rename it
 - Store passwords in locked memory
+- Make some tooltips and text more concise
+- More shortcuts
 
 # 2.0.1 UPDATE
 Plans for the minor 2.0.1 update:
 - Fix some oddities with the GUI
-- Make some tooltips and text more concise
-- More shortcuts
 - Put limits and restrictions on certain values to stop segfaults, memory leaks, etc.
+- self note: `constexpr`s and `noexcept`s
 
 # 2.1 UPDATE
 Plans for the passman++ 2.1 update:
@@ -156,6 +176,3 @@ Plans for the passman++ 3.0 update:
 - Icons and attachments
 - Password health/entropy checker
 - Rather than use separate dialogs and stuff, just make everything part of the same window
-
-# Extras
-This program is only intended to work under Linux. Feel free, however, to compile this for Windows and use it yourself, or even distribute it separately. However, as per the BSD License (that i modified lol), you are required to credit me, and include the same BSD License (modified and all) in your version.

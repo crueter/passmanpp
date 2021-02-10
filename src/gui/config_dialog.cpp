@@ -2,64 +2,50 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QCheckBox>
+#include <QMenuBar>
 #include <QDesktopServices>
+#include <QDialogButtonBox>
 
-#include "config_dialog.h"
+#include "config_dialog.hpp"
+#include "../entry.hpp"
+#include "../database.hpp"
 
-QLineEdit *ConfigDialog::lineEdit(const char *text, QString defText, const char *label) {
-    QLineEdit *le = new QLineEdit;
-
-    le->setPlaceholderText(tr(text));
-    le->setText(defText);
-
-    metaLayout->addRow(tr(label), le);
-    return le;
-};
-
-QComboBox *ConfigDialog::comboBox(QList<std::string> vec, const char *label, int val) {
+QComboBox *ConfigDialog::comboBox(QList<std::string> vec, const char *label, const int val) {
     QComboBox *box = new QComboBox;
 
     QStringList list;
-    for (int i = 0; i < vec.size(); ++i) {
-        list.push_back(QString::fromStdString(vec[i]));
+    for (const std::string &s : vec) {
+        list.push_back(QString::fromStdString(s));
     }
 
     box->addItems(list);
     box->setCurrentIndex(create ? 0 : val);
     encLayout->addRow(tr(label), box);
     return box;
-};
-
-void ConfigDialog::calcMem() {
-    if (hashBox->currentIndex() == 2) {
-        int val = hashIterBox->value() * 128 * 32768;
-        double dispVal = std::round(val / 10000) / 100;
-        memBox->setValue(dispVal);
-    }
 }
 
-void ConfigDialog::updateBoxes(int index) {
-    bool hashVis = (index != 3);
+void ConfigDialog::updateBoxes(const int index) {
+    const bool hashVis = (index != 3);
     hashIterBox->setVisible(hashVis);
     encLayout->labelForField(hashIterBox)->setVisible(hashVis);
 
-    bool memVis = (index == 0 || index == 2);
+    const bool memVis = (index == 0 || index == 2);
     memBox->setVisible(memVis);
     encLayout->labelForField(memBox)->setVisible(memVis);
     calcMem();
 
-    bool memRO = (index == 2);
+    const bool memRO = (index == 2);
     memBox->setReadOnly(memRO);
 }
 
-ConfigDialog::ConfigDialog(Database *_database, bool _create)
-    : database(_database)
-    , create(_create)
+ConfigDialog::ConfigDialog(Database *t_database, const bool t_create)
+    : database(t_database)
+    , create(t_create)
 {
-    _diC = QColor(54, 54, 56);
+    diC = QColor(54, 54, 56);
 
-    diPalette.setColor(QPalette::Window, _diC);
-    diPalette.setColor(QPalette::Base, _diC);
+    diPalette.setColor(QPalette::Window, diC);
+    diPalette.setColor(QPalette::Base, diC);
 
     full = new QGridLayout(this);
 
@@ -69,30 +55,30 @@ ConfigDialog::ConfigDialog(Database *_database, bool _create)
     bold.setBold(true);
     italic.setItalic(true);
 
-    _window = QColor(62, 62, 66);
-    _border = QColor(86, 86, 90);
+    const QColor window{62, 62, 66};
+    const QColor border{86, 86, 90};
 
-    sectPalette.setColor(QPalette::Light, _border);
-    sectPalette.setColor(QPalette::Dark, _border);
-    sectPalette.setColor(QPalette::Window, _window);
+    sectPalette.setColor(QPalette::Light, border);
+    sectPalette.setColor(QPalette::Dark, border);
+    sectPalette.setColor(QPalette::Window, window);
 
     metaTitle = new QLabel(tr("General Info"));
     metaWidget = new QFrame;
     metaLayout = new QFormLayout(metaWidget);
     metaDesc = new QLabel(tr("Optional name and description for your database."));
 
-    nameEdit = lineEdit("Name", database->name, "  Database Name:");
-    descEdit = lineEdit("Description", database->desc, "  Description:");
+    nameEdit = lineEdit("Name", database->name.asQStr(), "  Database Name:");
+    descEdit = lineEdit("Description", database->desc.asQStr(), "  Description:");
 
     encTitle = new QLabel(tr("Security Settings"));
     encWidget = new QFrame;
     encLayout = new QFormLayout(encWidget);
-    encDesc = new QLabel(tr("Adjust encryption, hashing, and checksum functions, as well as some additional parameters."));
+    encDesc = new QLabel(tr("Adjust encryption, hashing, and HMAC functions, as well as some additional parameters."));
     encLayout->addRow(encDesc);
 
-    checksumBox = comboBox(checksumMatch, "  Checksum Function:", database->checksum);
-    hashBox = comboBox(hashMatch, "  Password Hashing Function:  ", database->hash);
-    encryptionBox = comboBox(encryptionMatch, "  Data Encryption Function:", database->encryption);
+    hmacBox = comboBox(Constants::hmacMatch, "  HMAC Function:", database->hmac);
+    hashBox = comboBox(Constants::hashMatch, "  Password Hashing Function:  ", database->hash);
+    encryptionBox = comboBox(Constants::encryptionMatch, "  Data Encryption Function:", database->encryption);
 
     iterVal = database->hashIters;
 
@@ -137,7 +123,7 @@ void ConfigDialog::setup() {
     setPalette(diPalette);
 
     help->addAction(tr("Choosing Options"), []{
-        QDesktopServices::openUrl(QUrl(QString::fromStdString(github) + "blob/main/Choosing%20Options.md"));
+        QDesktopServices::openUrl(QUrl(QString::fromStdString(Constants::github) + "blob/main/Choosing%20Options.md"));
     });
     full->setMenuBar(bar);
 
@@ -162,11 +148,11 @@ void ConfigDialog::setup() {
     encWidget->setAutoFillBackground(true);
     encWidget->setPalette(sectPalette);
 
-    if (debug) {
-        qDebug() << "Database params:" << database->checksum << database->hash << database->encryption << database->memoryUsage;
+    if (Constants::debug) {
+        qDebug() << "Database params:" << database->hmac << database->hash << database->encryption << database->memoryUsage;
     }
 
-    hashIterBox->setRange(8, 40);
+    hashIterBox->setRange(8, 64);
     hashIterBox->setSingleStep(1);
     hashIterBox->setValue(iterVal);
     hashIterBox->setToolTip(tr("How many times to hash the password."));
@@ -205,14 +191,14 @@ void ConfigDialog::setup() {
     pass->setEchoMode(QLineEdit::Password);
     passLayout->addRow(tr("  Password:"), pass);
 
-    keyEdit->setText(database->keyFilePath);
+    keyEdit->setText(database->keyFilePath.asQStr());
 
     QObject::connect(newKf, &QPushButton::clicked, [this] {
-        keyEdit->setText(newKeyFile());
+        keyEdit->setText(QFileDialog::getSaveFileName(nullptr, tr("New Key File"), "", Constants::keyExt));
     });
 
     QObject::connect(getKf, &QPushButton::clicked, [this] {
-        keyEdit->setText(getKeyFile());
+        keyEdit->setText(QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", Constants::keyExt));
     });
 
     keyBox->addButton(newKf, QDialogButtonBox::ActionRole);
@@ -256,7 +242,7 @@ void ConfigDialog::setup() {
 
     QObject::connect(buttonBox, &QDialogButtonBox::accepted, [this]() mutable {
         QString pw = pass->text();
-        paramsChanged = create || (encryptionBox->currentIndex() != database->encryption || hashBox->currentIndex() != database->hash || checksumBox->currentIndex() != database->checksum || memBox->value() != database->memoryUsage || hashIterBox->value() != database->hashIters);
+        paramsChanged = create || (encryptionBox->currentIndex() != database->encryption || hashBox->currentIndex() != database->hash || hmacBox->currentIndex() != database->hmac || memBox->value() != database->memoryUsage || hashIterBox->value() != database->hashIters);
 
         if ((create || paramsChanged) && pw.isEmpty()) {
             displayErr("Password must be provided.");
@@ -289,7 +275,7 @@ int ConfigDialog::show() {
 
     if (create) {
         Entry *entry = new Entry({}, database);
-        entry->setDefaults();
+
         for (Field *f : entry->fields()) {
             f->setData("EXAMPLE");
         }
@@ -300,14 +286,23 @@ int ConfigDialog::show() {
     database->keyFilePath = keyEdit->text();
     database->keyFile = !database->keyFilePath.empty();
 
-    if (database->keyFile && !QFile::exists(database->keyFilePath)) {
-        genKey(database->keyFilePath);
+    if (database->keyFile && !QFile::exists(database->keyFilePath.asQStr())) {
+        QFile f(database->keyFilePath.asQStr());
+        f.open(QIODevice::ReadWrite);
+        QDataStream q(&f);
+
+        Botan::AutoSeeded_RNG rng;
+        for (const uint8_t v : rng.random_vec(128)) {
+            q << v;
+        }
+
+        f.close();
     }
 
-    database->checksum = checksumBox->currentIndex();
-    database->hash = hashBox->currentIndex();
-    database->hashIters = hashIterBox->value();
-    database->encryption = encryptionBox->currentIndex();
+    database->hmac = static_cast<uint8_t>(hmacBox->currentIndex());
+    database->hash = static_cast<uint8_t>(hashBox->currentIndex());
+    database->hashIters = static_cast<uint8_t>(hashIterBox->value());
+    database->encryption = static_cast<uint8_t>(encryptionBox->currentIndex());
     database->name = nameEdit->text();
     database->desc = descEdit->text();
 
@@ -319,21 +314,19 @@ int ConfigDialog::show() {
         database->desc = "None";
     }
 
-    database->memoryUsage = memBox->value();
+    database->memoryUsage = static_cast<uint16_t>(memBox->value());
     database->compress = compressBox->isChecked();
-    database->clearSecs = clearBox->value();
+    database->clearSecs = static_cast<uint8_t>(clearBox->value());
 
     if (paramsChanged) {
         setCursor(QCursor(Qt::WaitCursor));
 
         if (create) {
-            std::unique_ptr<Botan::Cipher_Mode> enc = Botan::Cipher_Mode::create(encryptionMatch.at(database->encryption), Botan::ENCRYPTION);
+            auto enc = database->makeEncryptor();
 
             Botan::AutoSeeded_RNG rng;
             database->ivLen = enc->default_nonce_length();
             database->iv = rng.random_vec(database->ivLen);
-
-            database->passw = database->getPw(pw);
         }
 
         database->passw = database->getPw(pw);

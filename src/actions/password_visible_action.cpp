@@ -1,6 +1,7 @@
-#include "password_visible_action.h"
+#include "password_visible_action.hpp"
 
-QAction *passwordVisibleAction(QLineEdit *lineEdit, bool on) {
+// Create a password visibility toggle action and attach it to a QLineEdit
+QAction *passwordVisibleAction(QLineEdit *lineEdit, const bool on) {
     char iconName1[18] = "password-show-o";
 
     if (on) {

@@ -1,43 +1,33 @@
 #include <QPushButton>
+#include <QLabel>
 
-#include "welcome_dialog.h"
-#include "constants.h"
+#include "welcome_dialog.hpp"
+#include "constants.hpp"
 
 void WelcomeDialog::create(QString path) {
     if (path.isEmpty()) {
         path = newLoc();
         if (path.isEmpty()) {
-            delete database;
-            exit(1);
+            std::exit(1);
         }
     }
 
     database->path = path;
 
-    bool cr = database->config(true);
-    if (!cr) {
-        delete database;
-        exit(1);
+    if (!database->config(true)) {
+        std::exit(1);
     }
 }
 
-void WelcomeDialog::openDb(QString path) {
-    database->path = path;
-
-    if (!database->open()) {
-        exit(1);
-    }
-}
-
-WelcomeDialog::WelcomeDialog(Database *_database)
-    : database(_database)
+WelcomeDialog::WelcomeDialog(std::shared_ptr<Database> t_database)
+    : database(t_database)
 {
     layout = new QGridLayout(this);
 
     btnCreate = new QPushButton(tr("Create new database"));
     btnOpen = new QPushButton(tr("Open existing database"));
 
-    label = new QLabel(PASSMAN_WELCOME);
+    label = new QLabel(tr(("Welcome to passman++ " + Constants::passmanVersion).data()));
 }
 
 void WelcomeDialog::setup() {
@@ -52,7 +42,7 @@ void WelcomeDialog::setup() {
 
     QObject::connect(btnOpen, &QPushButton::clicked, [this]() mutable {
         accept();
-        openDb(getDb());
+        openDb(QFileDialog::getOpenFileName(nullptr, tr("Open Database"), "", Constants::fileExt));
     });
 
     QFont font;

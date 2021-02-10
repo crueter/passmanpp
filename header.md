@@ -5,7 +5,7 @@ The  `.pdpp` format used by passman++. These docs are useful for knowing the inn
 The header contains the magic number, version number, all information needed to work with the database, and the name and description.
 - 4 bytes: PD++ (magic number)
 - 1 byte: version number
-- 1 byte: checksum choice:
+- 1 byte: HMAC choice:
   * 0 = Blake2b
   * 1 = SHA-3
   * 2 = SHAKE-256
@@ -38,11 +38,10 @@ The rest of the data is the encrypted SQLite data.
 - Every entry has one table
   * Basic attributes: name, email, url, password (all `text`), and notes (`blob`)
   * Notes' newlines are stored as " || char(10) || "
-  * User-input attributes must never have any conflicting names at all, and are any of: string, number, bool, and multi-line text
-    - Store strings as `text`, numbers as `real`, bools as `integer` (0 for off, anything else for on), and multi-line text as `blob`
+  * User-input attributes must never have any conflicting names at all, and are any of: string (`text`), number (`real`), bool (`integer`), and multi-line text (`blob`)
   * Each input attribute is stored as its own column
   * (FUTURE) Store an icon name as text, which refers to the system theme's icon of that name
-- Encrypt the table's CREATE TABLE and INSERT statements with the chosen encryption function. Key is the password hashed with the chosen hash (salted with the IV), then derived using PBKDF2 (output length is 32 bytes), where its HMAC is the chosen checksum method. IV is the database's IV.
+- Encrypt the table's CREATE TABLE and INSERT statements with the chosen encryption function. Key is the password hashed with the chosen hash (salted with the IV), then derived using PBKDF2 (output length is 32 bytes), where its HMAC is the chosen HMAC method. IV is, of course, the database's IV.
 - **BEFORE** encryption, compress with gzip
 
 # Extra development help

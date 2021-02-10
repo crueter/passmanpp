@@ -1,97 +1,94 @@
 #include <QApplication>
-#include <QAbstractButton>
-#include <QGridLayout>
-#include <QPushButton>
-#include <QLabel>
+#include <QCommandLineParser>
+#include <QSqlError>
 
-#include "util/extra.h"
-#include "util/sql.h"
-#include "gui/welcome_dialog.h"
-#include "util/vector_union.h"
+#include "util/extra.hpp"
+#include "gui/welcome_dialog.hpp"
 
-bool debug = false;
-bool verbose = false;
+// TODO: constexpr, noexcept
+
+bool Constants::debug = false;
+bool Constants::verbose = false;
+QSqlDatabase db;
 
 int main(int argc, char** argv) {
     QApplication app (argc, argv);
+    QApplication::setApplicationName(tr("passman++"));
+    QApplication::setApplicationVersion(tr(Constants::passmanVersion));
 
-    if (getenv("PASSMAN_DEBUG")) {
-        std::cout << "Debug mode activated. Do NOT use this unless you are testing stuff." << std::endl;
-        debug = true;
+    QCommandLineParser parser;
+    parser.setApplicationDescription(tr("A simple, minimal, and just as powerful and secure password manager."));
+    parser.addHelpOption();
+    parser.addVersionOption();
+    parser.addPositionalArgument(tr("path"), tr("Path to a database file, or a path to where you want to create a new database."));
+
+    QCommandLineOption newOption(QStringList() << "n" << "new", tr("Create a new database."));
+    QCommandLineOption debugOption(QStringList() << "d" << "debug", tr("Activate debug mode."));
+    QCommandLineOption verboseOption(QStringList() << "V" << "verbose", tr("Activate verbose mode."));
+    QCommandLineOption themeOption(QStringList() << "t" << "theme", tr("Specify light or dark mode"), tr("mode"), tr("dark"));
+
+    parser.addOptions({newOption, debugOption, verboseOption, themeOption});
+
+    parser.process(app);
+
+    const QStringList args = parser.positionalArguments();
+
+    QString path{};
+    if (args.length() > 0) {
+        path = args.at(0);
     }
-    if (getenv("PASSMAN_VERBOSE")) {
-        std::cout << "Verbose mode activated. Do NOT use this unless you are testing stuff." << std::endl;
-        verbose = true;
+
+    db = QSqlDatabase::addDatabase("QSQLITE", ":memory:");
+
+    if (!db.open()) {
+        displayErr("Error while opening database: " + db.lastError().text() + tr("\nPlease open an issue on " + Constants::github + " for help with this."));
+        return 1;
     }
 
-    dbInit();
-    Database *db = new Database;
-    QString path;
+    auto database = std::make_shared<Database>();
 
-    bool createNew = false;
+    if (!QStringList{tr("dark"), tr("light")}.contains(parser.value(themeOption))) {
+        qDebug() << "Invalid theme option. Must be one of: light, dark";
+        return 1;
+    } else {
+        QFile file(":/" + parser.value(themeOption) + ".qss");
+        file.open(QFile::ReadOnly | QFile::Text);
+        QTextStream stream(&file);
+        app.setStyleSheet(stream.readAll());
+    }
 
-    auto create = [path, db](QString spath = "") mutable {
-            if (spath.isEmpty()) {
-                path = newLoc();
-                if (path.isEmpty()) {
-                    delete db;
-                    exit(1);
-                }
-            } else {
-                path = spath;
+    if (parser.isSet(newOption)) {
+        if (path.isEmpty()) {
+            path = newLoc();
+            if (path.isEmpty()) {
+                std::exit(1);
             }
-            db->path = path;
-            bool cr = db->config(true);
-            if (!cr) {
-                delete db;
-                exit(1);
-            }
-            return true;
-    };
-
-    auto open = [db](QString spath) {
-        db->path = spath;
-
-        if (!db->open()) {
-            exit(1);
         }
-    };
 
-    if (argc <= 1) {
-        WelcomeDialog *di = new WelcomeDialog(db);
+        database->path = path;
+        if (!database->config(true)) {
+            std::exit(1);
+        }
+    } else if (!path.isEmpty()) {
+        database->path = path;
+
+        if (!database->open()) {
+            std::exit(1);
+        }
+    } else {
+        auto di = std::make_unique<WelcomeDialog>(database);
         di->setup();
 
         if (di->show() == QDialog::Rejected) {
-            delete db;
             return 1;
         }
-    } else {
-        for (int i = 1; i < argc; ++i) {
-            QString arg(argv[i]);
-            if (arg == "new") {
-                createNew = true;
-            } else if (arg == "help") {
-                qDebug() << usage.data();
-                delete db;
-                return 1;
-            } else if (arg == "info") {
-                qDebug() << info.data();
-                delete db;
-                return 1;
-            } else if (createNew) {
-                path = arg;
-            } else {
-                open(arg);
-            }
-        }
     }
 
-    if (createNew) {
-        create(path);
-    }
+    Constants::debug = parser.isSet(debugOption);
+    Constants::verbose = parser.isSet(verboseOption);
 
-    db->edit();
-    db->save();
+    database->edit();
+    database->save();
 
     return 0;
 }
