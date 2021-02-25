@@ -49,12 +49,11 @@ passman++ is made possible by:
 - The following FOSS libraries:
   * [Botan](https://github.com/randombit/botan/)
   * [Qt](https://qt.io)
-  * [libsodium](https://github.com/jedisct1/libsodium)
 - The amazing people on the [Qt forum](https://forum.qt.io) (and [randombit](https://github.com/randombit), too!) for helping me debug many of my internal issues
 - The Qt devs and [docs](https://doc.qt.io)
 - CMake
 - [KeePassXC](https://github.com/keepassxreboot/keepassxc) for the inspiration, boatloads of feature ideas, and a general help for when I need to implement a more complex feature
-- And of course, the Botan ([randombit](https://github.com/randombit)) and libsodium devs ([jedisct1](https://github.com/jedisct1)).
+- And of course, the Botan devs ([randombit](https://github.com/randombit))
 
 # Debug
 On the command line, specify the arguments `-d` or `--debug` and `-V` or `--verbose` and you will activate debug/verbose mode respectively, which will give you extra output. Sometimes I may ask you to use this in a bug report.
@@ -148,25 +147,29 @@ Stuff I previously planned to do and have already done:
 - Store passwords in locked memory
 - Make some tooltips and text more concise
 - More shortcuts
-
-# 2.0.1 UPDATE
-Plans for the minor 2.0.1 update:
 - Fix some oddities with the GUI
 - Put limits and restrictions on certain values to stop segfaults, memory leaks, etc.
-- self note: `constexpr`s and `noexcept`s
+
+# 2.0.2 UPDATE
+Plans for the minor passman++ 2.0.2 update:
+- Separate widgets and dialogs
+- Integrate more things into appearing on the main database window
+- More intuitive settings area, with tabs and such
 
 # 2.1 UPDATE
 Plans for the passman++ 2.1 update:
-- Separate more things into real "menus" with tabs and such
+- Separate more things into real "menus" with tabs and stuff
 - Allow for no password at all
-- Dedicated settings area with more options
 - Locking out the database
 - Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
 - Add a delay benchmark for hashing iterations
 - Allow for more stuff to be stored there, i.e. user-input attributes
-  * YES, I have moved this to here. Dont feel like doing it in 2.0, if im lazy enough i might even move it to 2.2 or 3.0
+  * YES, I have moved this to here. Dont feel like doing it in 2.0, if I'm lazy enough I might even move it to 2.2 or 3.0
 - Global configuration
 - When the computer is hibernated or put to sleep, close the app and deallocate all memory
+- Separate database creation and database configuration
+- self note: `constexpr`s and `noexcept`s
+- Potentially create a libpassman as a base for third-party `.pdpp` file integration
 
 # 3.0 UPDATE
 Plans for the passman++ 3.0 update:
@@ -175,4 +178,4 @@ Plans for the passman++ 3.0 update:
 - pdb-to-pdpp file converter
 - Icons and attachments
 - Password health/entropy checker
-- Rather than use separate dialogs and stuff, just make everything part of the same window
+- Separate "simple" and "advanced" modes for database creation

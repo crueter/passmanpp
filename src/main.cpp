@@ -2,13 +2,13 @@
 #include <QCommandLineParser>
 #include <QSqlError>
 
+#include <botan/bigint.h>
+
 #include "util/extra.hpp"
 #include "gui/welcome_dialog.hpp"
 
 // TODO: constexpr, noexcept
 
-bool Constants::debug = false;
-bool Constants::verbose = false;
 QSqlDatabase db;
 
 int main(int argc, char** argv) {
@@ -47,33 +47,27 @@ int main(int argc, char** argv) {
 
     auto database = std::make_shared<Database>();
 
+    QString theme = parser.value(themeOption);
     if (!QStringList{tr("dark"), tr("light")}.contains(parser.value(themeOption))) {
         qDebug() << "Invalid theme option. Must be one of: light, dark";
-        return 1;
-    } else {
-        QFile file(":/" + parser.value(themeOption) + ".qss");
-        file.open(QFile::ReadOnly | QFile::Text);
-        QTextStream stream(&file);
-        app.setStyleSheet(stream.readAll());
+        qDebug() << "Defaulting to dark theme.";
+        theme = "dark";
     }
 
-    if (parser.isSet(newOption)) {
-        if (path.isEmpty()) {
-            path = newLoc();
-            if (path.isEmpty()) {
-                std::exit(1);
-            }
-        }
+    QFile file(":/" + theme + ".qss");
+    file.open(QFile::ReadOnly | QFile::Text);
+    QTextStream stream(&file);
+    app.setStyleSheet(stream.readAll());
 
-        database->path = path;
-        if (!database->config(true)) {
-            std::exit(1);
-        }
+    app.setProperty("theme", theme);
+
+    if (parser.isSet(newOption)) {
+        createDatabase(database, path);
     } else if (!path.isEmpty()) {
         database->path = path;
 
         if (!database->open()) {
-            std::exit(1);
+            return 1;
         }
     } else {
         auto di = std::make_unique<WelcomeDialog>(database);
@@ -84,8 +78,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    Constants::debug = parser.isSet(debugOption);
-    Constants::verbose = parser.isSet(verboseOption);
+    app.setProperty("debug", parser.isSet(debugOption));
+    app.setProperty("verbose", parser.isSet(verboseOption));
 
     database->edit();
     database->save();

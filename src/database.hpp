@@ -5,7 +5,6 @@
 #include <botan/pwdhash.h>
 #include <botan/hash.h>
 #include <botan/cipher_mode.h>
-#include <botan/auto_rng.h>
 #include <botan/hex.h>
 #include <QTableWidgetItem>
 

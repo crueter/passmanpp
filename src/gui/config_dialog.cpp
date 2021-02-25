@@ -6,6 +6,8 @@
 #include <QDesktopServices>
 #include <QDialogButtonBox>
 
+#include <botan/auto_rng.h>
+
 #include "config_dialog.hpp"
 #include "../entry.hpp"
 #include "../database.hpp"
@@ -29,13 +31,14 @@ void ConfigDialog::updateBoxes(const int index) {
     hashIterBox->setVisible(hashVis);
     encLayout->labelForField(hashIterBox)->setVisible(hashVis);
 
-    const bool memVis = (index == 0 || index == 2);
+    const bool memRO = (index == 2);
+    memBox->setReadOnly(memRO);
+
+    const bool memVis = (index == 0 || memRO);
     memBox->setVisible(memVis);
     encLayout->labelForField(memBox)->setVisible(memVis);
     calcMem();
 
-    const bool memRO = (index == 2);
-    memBox->setReadOnly(memRO);
 }
 
 ConfigDialog::ConfigDialog(Database *t_database, const bool t_create)
@@ -148,11 +151,11 @@ void ConfigDialog::setup() {
     encWidget->setAutoFillBackground(true);
     encWidget->setPalette(sectPalette);
 
-    if (Constants::debug) {
+    if (qApp->property("debug").toBool()) {
         qDebug() << "Database params:" << database->hmac << database->hash << database->encryption << database->memoryUsage;
     }
 
-    hashIterBox->setRange(8, 64);
+    hashIterBox->setRange(8, 255);
     hashIterBox->setSingleStep(1);
     hashIterBox->setValue(iterVal);
     hashIterBox->setToolTip(tr("How many times to hash the password."));
@@ -325,6 +328,7 @@ int ConfigDialog::show() {
             auto enc = database->makeEncryptor();
 
             Botan::AutoSeeded_RNG rng;
+
             database->ivLen = enc->default_nonce_length();
             database->iv = rng.random_vec(database->ivLen);
         }

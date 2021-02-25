@@ -46,7 +46,6 @@ target_link_libraries(passman PRIVATE
         Qt::Sql
         sqlite3
         botan-2
-        sodium
 )
 
 target_compile_options(passman PUBLIC -O2 -march=native -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused -Wold-style-cast -Wconversion -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -pedantic -Wuseless-cast)

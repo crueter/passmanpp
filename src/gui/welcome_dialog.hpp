@@ -9,6 +9,8 @@ class QLabel;
 
 class VectorUnion;
 
+void createDatabase(std::shared_ptr<Database> t_database, QString t_path = "");
+
 class WelcomeDialog : public QDialog
 {
 public:
@@ -25,7 +27,6 @@ public:
     void setup();
     int show();
 
-    void create(QString path = "");
 
     std::shared_ptr<Database> database;
 

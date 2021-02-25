@@ -4,17 +4,17 @@
 #include "welcome_dialog.hpp"
 #include "constants.hpp"
 
-void WelcomeDialog::create(QString path) {
-    if (path.isEmpty()) {
-        path = newLoc();
-        if (path.isEmpty()) {
+void createDatabase(std::shared_ptr<Database> t_database, QString t_path) {
+    if (t_path.isEmpty()) {
+        t_path = newLoc();
+        if (t_path.isEmpty()) {
             std::exit(1);
         }
     }
 
-    database->path = path;
+    t_database->path = t_path;
 
-    if (!database->config(true)) {
+    if (!t_database->config(true)) {
         std::exit(1);
     }
 }
@@ -37,7 +37,7 @@ void WelcomeDialog::setup() {
 
     QObject::connect(btnCreate, &QPushButton::clicked, [this]() mutable {
         accept();
-        create();
+        createDatabase(this->database);
     });
 
     QObject::connect(btnOpen, &QPushButton::clicked, [this]() mutable {

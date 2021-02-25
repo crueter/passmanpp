@@ -4,6 +4,7 @@
 
 | Version   | Supported          |
 | -------   | ------------------ |
+| 2.0.1     | :white_check_mark: |
 | 2.0.0     | :white_check_mark: |
 | 1.4.0p    | :white_check_mark:, LTS |
 | <= 1.3.0  | :x: |

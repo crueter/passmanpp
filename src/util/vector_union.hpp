@@ -47,6 +47,10 @@ public:
         this->operator=(QVariant(data));
     }
 
+    inline VectorUnion(const QByteArray &data) {
+        *this = VectorUnion(data.constData(), static_cast<int>(data.size()));
+    }
+
     inline QString asQStr() const {
         return QString::fromStdString(asStdStr());
     }

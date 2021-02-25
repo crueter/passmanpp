@@ -7,11 +7,12 @@
 #include <QPushButton>
 #include <QSlider>
 
-#include <sodium/randombytes_sysrandom.h>
+#include <botan/bigint.h>
 
 #include "random_password_dialog.hpp"
 #include "../actions/password_visible_action.hpp"
 #include "../util/extra.hpp"
+#include "../constants.hpp"
 
 RandomPasswordDialog::Options RandomPasswordDialog::getOptions() {
     Options opt;
@@ -120,7 +121,8 @@ const QString RandomPasswordDialog::generate() {
     length = lengthBox->value();
 
     for (int i = 0; i < length; ++i) {
-        pass.append(chars[randombytes_uniform(static_cast<uint32_t>(chars.size()))]);
+        Botan::AutoSeeded_RNG rng;
+        pass.append(chars[Botan::BigInt::random_integer(rng, 0, chars.size()).to_u32bit()]);
     }
 
     display->setText(pass);
@@ -135,7 +137,7 @@ RandomPasswordDialog::RandomPasswordDialog() {
 
     visible = passwordVisibleAction(display, true);
 
-    regen = new QPushButton(QIcon::fromTheme(tr("view-refresh")), "");
+    regen = new QPushButton(getIcon(tr("view-refresh")), "");
 
     lengthLabel = new QLabel(tr("Length:"));
     lengthSlider = new QSlider(Qt::Horizontal);

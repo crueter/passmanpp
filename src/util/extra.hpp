@@ -10,6 +10,8 @@
 #include <QSqlDatabase>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QIcon>
+#include <QApplication>
 
 extern QSqlDatabase db;
 
@@ -50,6 +52,10 @@ inline void displayErr(const QString &msg) {
     err.setText(tr(msg.toStdString().data()));
     err.setStandardButtons(QMessageBox::Ok);
     err.exec();
+}
+
+inline QIcon getIcon(QString name) {
+    return QIcon(":/" + qApp->property("theme").toString() + "/" + name + ".svg");
 }
 
 #endif

@@ -13,7 +13,7 @@ void showMessage(const QString &msg) {
     QMessageBox box;
     box.setText(msg);
     box.setStandardButtons(QMessageBox::Ok);
-    box.setTextInteractionFlags(Qt::LinksAccessibleByMouse | Qt::TextSelectableByMouse);
+    box.setTextInteractionFlags(Qt::LinksAccessibleByKeyboard | Qt::TextSelectableByMouse);
 
     box.exec();
 }
@@ -48,7 +48,7 @@ void Database::get() {
         q.next();
         QList<Field *> fields;
         QSqlRecord rec = q.record();
-        if (Constants::verbose) {
+        if (qApp->property("verbose").toBool()) {
             qDebug() << "generating entry from table" << tbl;
             qDebug() << rec;
         }
@@ -78,7 +78,7 @@ void Database::get() {
 // Generates SQLite statements from entries.
 bool Database::saveSt() {
     for (const QString &tbl : db.tables()) {
-        if (Constants::verbose) {
+        if (qApp->property("verbose").toBool()) {
             qDebug() << "deleting table" << tbl;
         }
         db.exec("DROP TABLE \"" + tbl + '"');
@@ -86,6 +86,10 @@ bool Database::saveSt() {
     stList = "";
 
     for (Entry *entry : m_entries) {
+        if (entry->name().isEmpty()) {
+            continue;
+        }
+
         QString createStr = "CREATE TABLE '" + entry->fieldAt(0)->dataStr() + "' (";
         QString insertStr = "INSERT INTO '" + entry->fieldAt(0)->dataStr().replace('"', '\'') + "' (";
         QString valueStr = ") VALUES (";
@@ -154,7 +158,7 @@ VectorUnion Database::hashPw(VectorUnion password) {
     secvec ptr(512);
     pHash->derive_key(ptr.data(), ptr.size(), static_cast<const char*>(password), password.size(), iv.data(), ivLen);
     password = ptr;
-    if (Constants::verbose) {
+    if (qApp->property("verbose").toBool()) {
         qDebug() << hashIters << hashChoice.data() << hmacChoice.data() << iv << ivLen << password << Qt::endl;
         qDebug() << "After Hashing:" << Botan::hex_encode(ptr).data() << Qt::endl;
     }
@@ -175,7 +179,7 @@ secvec Database::getPw(VectorUnion password) {
     auto ph = Botan::PasswordHashFamily::create("PBKDF2(" + hmacChoice + ')')->default_params();
 
     ph->derive_key(ptr.data(), ptr.size(), static_cast<const char*>(password), password.size(), iv.data(), ivLen);
-    if (Constants::verbose) {
+    if (qApp->property("verbose").toBool()) {
         qDebug() << iv;
         qDebug() << "After Derivation:" << Botan::hex_encode(ptr).data() << Qt::endl;
     }
@@ -186,13 +190,13 @@ secvec Database::getPw(VectorUnion password) {
 VectorUnion Database::encryptedData() {
     auto enc = makeEncryptor();
     enc->set_key(passw);
-    if (Constants::verbose) {
+    if (qApp->property("verbose").toBool()) {
         qDebug() << "STList before saveSt:" << stList.asStdStr().data();
     }
 
     saveSt();
 
-    if (Constants::verbose) {
+    if (qApp->property("verbose").toBool()) {
         qDebug() << "STList after saveSt:" << stList.asStdStr().data();
     }
 
@@ -251,7 +255,7 @@ void Database::encrypt() {
     pd << desc << '\n';
 
     data = this->encryptedData();
-    if (Constants::verbose) {
+    if (qApp->property("verbose").toBool()) {
         qDebug() << "Data (Encryption):" << data.encoded().asQStr();
     }
 
@@ -291,7 +295,7 @@ VectorUnion Database::decryptData(VectorUnion t_data, const VectorUnion &mpass, 
     decr->set_key(vPtr);
     decr->start(iv);
 
-    if (Constants::verbose) {
+    if (qApp->property("verbose").toBool()) {
         qDebug() << "Data (Decryption):" << t_data.encoded().asQStr();
     }
 
@@ -323,9 +327,8 @@ int Database::verify(const VectorUnion &mpass, const bool convert) {
     if (convert) {
         QFile f(path.asQStr());
         f.open(QIODevice::ReadOnly);
-        QTextStream pd(&f);
 
-        const VectorUnion t_iv = pd.readLine();
+        const VectorUnion t_iv = f.readLine().trimmed();
         VectorUnion ivd;
         try {
             ivd = t_iv.decoded();
@@ -337,7 +340,7 @@ int Database::verify(const VectorUnion &mpass, const bool convert) {
         this->name = QString(basename(static_cast<const char*>(path))).split('.')[0];;
         this->desc = "Converted from old database format.";
 
-        const VectorUnion vData = decryptData(pd.readAll(), mpass, true);
+        const VectorUnion vData = decryptData(f.readAll(), mpass, true);
         this->stList = vData;
 
         for (const QString &s : vData.asQStr().split('\n')) {

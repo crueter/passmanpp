@@ -136,10 +136,10 @@ DatabaseWindow::DatabaseWindow(Database *t_database)
     aboutMenu = menuBar()->addMenu(tr("About"));
 
     aboutButton = this->addButton("About", "help-about", "About passman++", QKeySequence(tr("Ctrl+H")), [] {
-        showMessage(tr(("passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\n"
-                              "Project repository (Submit bug reports, suggestions, and PRs here, or criticize me for being the master of writing spaghetti code): " + Constants::github + "\n"
-                              "FOSS Libraries used: Botan, Qt, libsodium\n"
-                              "Botan version: " + std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH) + "\n"
+        showMessage(tr(("passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\n\n"
+                              "Project repository (Submit bug reports, suggestions, and PRs here, or criticize me for being the master of writing spaghetti code): " + Constants::github + "\n\n"
+                              "FOSS Libraries used: Botan, Qt\n\n"
+                              "Botan version: " + std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH) + "\n\n"
                               "Current version: " + Constants::passmanVersion).data()));
     });
     aboutMenu->addAction(aboutButton);
@@ -234,7 +234,7 @@ void DatabaseWindow::setup() {
         layout->addWidget(prevWidg, 1, 0);
     });
 
-    passView->setIcon(QIcon::fromTheme("view-visible"));
+    passView->setIcon(getIcon("view-visible"));
     passView->setCheckable(true);
 
     QObject::connect(passView, &QToolButton::clicked, [this](bool checked) {

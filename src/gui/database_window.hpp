@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QAction>
 
+#include "../util/extra.hpp"
+
 class QDialogButtonBox;
 class QGridLayout;
 class QMenuBar;
@@ -21,7 +23,7 @@ public:
 
     template <typename Func>
     inline QAction *addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func) {
-        QAction *action = new QAction(QIcon::fromTheme(tr(icon)), tr(text));
+        QAction *action = new QAction(getIcon(tr(icon)), tr(text));
 
         action->setWhatsThis(tr(whatsThis));
         action->setShortcut(shortcut);

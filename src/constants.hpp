@@ -2,6 +2,7 @@
 #define CONSTANTS_H
 #include <QList>
 #include <QString>
+
 #include "util/extra.hpp"
 
 namespace Constants {
@@ -17,9 +18,6 @@ namespace Constants {
     const QString allF {";;All Files (*)"};
     const QString fileExt {"passman++ Database Files (*.pdpp)" + allF};
     const QString keyExt {"passman++ Key Files (*.pkpp)" + allF};
-
-    extern bool debug;
-    extern bool verbose;
 }
 
 #endif // CONSTANTS_H
