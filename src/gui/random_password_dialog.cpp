@@ -8,6 +8,7 @@
 #include <QSlider>
 
 #include <botan/bigint.h>
+#include <botan/auto_rng.h>
 
 #include "random_password_dialog.hpp"
 #include "../actions/password_visible_action.hpp"
