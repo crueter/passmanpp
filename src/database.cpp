@@ -6,17 +6,9 @@
 
 #include "database.hpp"
 #include "entry.hpp"
-#include "gui/password_dialog.hpp"
+#include "gui/password_widget.hpp"
+#include "gui/password_generator_dialog.hpp"
 #include "util/data_stream.hpp"
-
-void showMessage(const QString &msg) {
-    QMessageBox box;
-    box.setText(msg);
-    box.setStandardButtons(QMessageBox::Ok);
-    box.setTextInteractionFlags(Qt::LinksAccessibleByKeyboard | Qt::TextSelectableByMouse);
-
-    box.exec();
-}
 
 Entry *Database::entryNamed(const QString &t_name) {
     for (Entry *e : this->m_entries) {
@@ -108,12 +100,14 @@ bool Database::saveSt() {
             QString quote = field->type() == QMetaType::QString || field->isMultiLine() ? "\"" : "";
             valueStr += quote + field->dataStr().replace('"', '\'').replace('\n', " || char(10) || ") + quote;
 
-            if (i != entry->fieldLength() - 1) {
-                createStr += ", ";
-                insertStr += ", ";
-                valueStr += ", ";
-            }
+            createStr += ", ";
+            insertStr += ", ";
+            valueStr += ", ";
         }
+
+        createStr.chop(2);
+        insertStr.chop(2);
+        valueStr.chop(2);
 
         db.exec(createStr + ')');
         db.exec(insertStr + valueStr + ')');
@@ -123,11 +117,11 @@ bool Database::saveSt() {
 }
 
 // Add a new entry.
-int Database::add(QTableWidget *table) {
+void Database::add() {
     Entry *entry = new Entry({}, this);
     addEntry(entry);
 
-    return entry->edit(nullptr, table);
+    entry->edit();
 }
 
 // Hashes a provided password.
@@ -263,7 +257,8 @@ void Database::encrypt() {
     pd.finish();
 }
 
-VectorUnion Database::decryptData(VectorUnion t_data, const VectorUnion &mpass, const bool convert) {
+std::pair<VectorUnion, int> Database::decryptData(VectorUnion t_data, const VectorUnion &mpass, const bool convert) {
+    typedef std::pair<VectorUnion, int> vPair;
     VectorUnion vPtr;
     if (convert) {
         secvec mptr(32);
@@ -285,7 +280,7 @@ VectorUnion Database::decryptData(VectorUnion t_data, const VectorUnion &mpass, 
                 keyDec->finish(t_data);
             } catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;
-                return {};
+                return vPair({}, 3);
             }
         }
     }
@@ -313,12 +308,13 @@ VectorUnion Database::decryptData(VectorUnion t_data, const VectorUnion &mpass, 
 
             this->passw = vPtr;
             this->stList = t_data;
+
         }
 
-        return t_data;
+        return vPair(t_data, true);
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
-        return {};
+        return vPair({}, false);
     }
 }
 
@@ -340,7 +336,14 @@ int Database::verify(const VectorUnion &mpass, const bool convert) {
         this->name = QString(basename(static_cast<const char*>(path))).split('.')[0];;
         this->desc = "Converted from old database format.";
 
-        const VectorUnion vData = decryptData(f.readAll(), mpass, true);
+        auto vDataPair = decryptData(f.readAll(), mpass, true);
+        bool vDataValid = vDataPair.second;
+
+        if (!vDataValid) {
+            return false;
+        }
+
+        VectorUnion vData = vDataPair.first;
         this->stList = vData;
 
         for (const QString &s : vData.asQStr().split('\n')) {
@@ -365,18 +368,18 @@ int Database::verify(const VectorUnion &mpass, const bool convert) {
         return true;
     }
 
-    decryptData(data, mpass);
-    return true;
+    return decryptData(data, mpass).second;
 }
 
 // Prompts for password and decrypts the data if correct.
-const QString Database::decrypt(const QString &txt, const bool convert) {
-    PasswordDialog *di = new PasswordDialog(this, convert, txt);
+bool Database::decrypt(PasswordOptionsFlag options) {
+    PasswordWidget *di = new PasswordWidget(this, options);
     if (!di->setup()) {
-        return "";
+        return false;
     }
 
-    return di->show();
+    di->show();
+    return true;
 }
 
 // Parses parameters from database file.
@@ -389,7 +392,7 @@ bool Database::parse() {
     q.readRawData(readData, 4);
 
     if (std::string(readData, 4) != "PD++") {
-        PasswordDialog *di = new PasswordDialog(this, true, " to convert your database to the new format");
+        PasswordWidget *di = new PasswordWidget(this, PasswordOptions(PasswordOptions::Convert | PasswordOptions::Open));
         if (!di->setup()) {
             return showErr("Invalid magic number. Should be PD++.");
         }
@@ -456,6 +459,7 @@ bool Database::parse() {
 }
 
 bool Database::open() {
+    window->show();
     if (QFile::exists(path.asQStr())) {
         if (!parse()) {
             return false;
@@ -463,8 +467,7 @@ bool Database::open() {
 
         if (stList.empty()) {
             try {
-                const QString p = decrypt(" to login");
-                if (p.isEmpty()) {
+                if (!decrypt(PasswordOptions::Open)) {
                     return false;
                 }
             } catch (std::exception& e) {
@@ -511,17 +514,3 @@ int Database::saveAs() {
     }
     return true;
 }
-
-// Small helper function to do something idk
-void Database::redrawTable(QTableWidget *table) {
-    int j = 0;
-    table->setRowCount(static_cast<int>(this->entryLength()));
-
-    for (Entry *e : this->m_entries) {
-        for (const int i : range(0, static_cast<int>(e->fieldLength()))) {
-            table->setItem(j, i, new QTableWidgetItem(e->fieldAt(i)->dataStr()));
-        }
-        ++j;
-    }
-}
-

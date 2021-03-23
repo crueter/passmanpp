@@ -1,5 +1,5 @@
-#ifndef RANDOMPASSWORDDIALOG_H
-#define RANDOMPASSWORDDIALOG_H
+#ifndef PasswordGeneratorDialog_H
+#define PasswordGeneratorDialog_H
 #include <QString>
 #include <QDialog>
 
@@ -9,13 +9,14 @@ class QLineEdit;
 class QDialogButtonBox;
 class QSpinBox;
 class QSlider;
+class QFrame;
 
 typedef QList<QChar> Group;
 
-class RandomPasswordDialog : public QDialog
+class PasswordGeneratorDialog : public QDialog
 {
 public:
-    RandomPasswordDialog();
+    PasswordGeneratorDialog();
 
     enum Option {
         Lowers = (1 << 0),
@@ -76,8 +77,6 @@ public:
     QPushButton *logogramsBox;
     QPushButton *easciiBox;
 
-    QPalette checkedPalette;
-
     QLineEdit *extraInclude;
     QLabel *includeLabel;
 
@@ -87,4 +86,4 @@ public:
     QDialogButtonBox *buttonBox;
 };
 
-#endif // RANDOMPASSWORDDIALOG_H
+#endif // PasswordGeneratorDialog_H

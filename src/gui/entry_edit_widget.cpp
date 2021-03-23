@@ -4,36 +4,45 @@
 #include <QDoubleSpinBox>
 #include <QTextEdit>
 #include <QPushButton>
+#include <QLabel>
 
-#include "entry_edit_dialog.hpp"
+#include "entry_edit_widget.hpp"
 #include "../entry.hpp"
 #include "../database.hpp"
-#include "random_password_dialog.hpp"
 #include "../actions/password_generator_action.hpp"
 #include "../actions/password_visible_action.hpp"
 
-EntryEditDialog::EntryEditDialog(Entry *t_entry, Database *m_database)
-    : entry(t_entry)
-    , database(m_database)
-{
-    layout = new QFormLayout(this);
+void EntryEditWidget::addRow(const QString &t_label, QWidget *t_widget, const qsizetype t_index) {
+    QLabel *label = new QLabel(t_label);
+    layout->addWidget(label, static_cast<int>(t_index), 0);
+    layout->addWidget(t_widget, static_cast<int>(t_index), 1);
+}
 
-    qsizetype len = t_entry->fieldLength();
+EntryEditWidget::EntryEditWidget(Entry *t_entry)
+    : entry(t_entry)
+{
+    database = entry->database();
+    window = database->window;
+
+    buttonBox = new QDialogButtonBox(this);
+    layout = new QGridLayout(this);
+
+    title = "Edit Entry " + entry->name();
+
+    qsizetype len = entry->fieldLength();
     lines = QList<QLineEdit *>(len);
     boxes = QList<QCheckBox *>(len);
     spins = QList<QDoubleSpinBox *>(len);
     edits = QList<QTextEdit *>(len);
-
-    buttonBox = new QDialogButtonBox(this);
 }
 
-void EntryEditDialog::setup() {
+bool EntryEditWidget::setup() {
     for (Field *field : entry->fields()) {
         if (field->type() == QMetaType::QByteArray) {
             field->setData(field->dataStr());
-        } else if (field->lowerName() == "name") {
+        } else if (field->isName()) {
             origName = field->dataStr();
-        } else if (field->lowerName() == "password") {
+        } else if (field->isPass()) {
             origPass = field->dataStr();
         }
     }
@@ -43,7 +52,7 @@ void EntryEditDialog::setup() {
         switch (field->type()) {
             case QMetaType::QString: {
                 QLineEdit *edit = new QLineEdit(field->dataStr());
-                layout->addRow(field->name() + ":", edit);
+                addRow(field->name() + ":", edit, i);
 
                 if (field->isName()) {
                     edit->setFocus();
@@ -51,7 +60,6 @@ void EntryEditDialog::setup() {
                     edit->setEchoMode(QLineEdit::Password);
 
                     passwordVisibleAction(edit, false);
-
                     passwordGeneratorAction(edit);
                 }
                 lines[i] = edit;
@@ -60,7 +68,7 @@ void EntryEditDialog::setup() {
                 QCheckBox *box = new QCheckBox;
                 box->setChecked(static_cast<bool>(field->data()));
 
-                layout->addRow(field->name() + ":", box);
+                addRow(field->name() + ":", box, i);
 
                 boxes[i] = box;
                 break;
@@ -69,14 +77,14 @@ void EntryEditDialog::setup() {
                 spin->setSingleStep(1.);
                 spin->setValue(static_cast<double>(field->data()));
 
-                layout->addRow(field->name() + ":", spin);
+                addRow(field->name() + ":", spin, i);
 
                 spins[i] = spin;
                 break;
             } case QMetaType::QByteArray: {
                 QTextEdit *edit = new QTextEdit(field->dataStr());
 
-                layout->addRow(field->name() + ":", edit);
+                addRow(field->name() + ":", edit, i);
 
                 edits[i] = edit;
                 break;
@@ -88,6 +96,7 @@ void EntryEditDialog::setup() {
     }
 
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("Back"));
 
     QObject::connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, [this] {
         for (Field *f : entry->fields()) {
@@ -132,27 +141,22 @@ void EntryEditDialog::setup() {
                 }
             }
         }
-        accept();
-    });
-    QObject::connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, this, &QDialog::reject);
 
-    layout->addWidget(buttonBox);
+        database->modified = true;
+
+        QString dataS = entry->fieldAt(0)->dataStr();
+        entry->setName(dataS);
+
+        database->widget->redrawTable();
+
+        window->back();
+    });
+    QObject::connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, window, &MainWindow::back);
+
+    layout->addWidget(buttonBox, static_cast<int>(entry->fieldLength()), 1);
+    return true;
 }
 
-int EntryEditDialog::show(QTableWidgetItem *item, QTableWidget *table) {
-    int ret = exec();
-
-    if (ret == QDialog::Rejected) {
-        return false;
-    }
-
-    database->modified = true;
-
-    auto t_table = table == nullptr ? item->tableWidget() : table;
-    database->redrawTable(t_table);
-
-    QString dataS = entry->fieldAt(0)->dataStr();
-    entry->setName(dataS);
-
-    return ret;
+void EntryEditWidget::show() {
+    window->setWidget(this);
 }

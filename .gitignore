@@ -1,2 +1,4 @@
-
-src/CMakeLists.txt.user
+*.txt.user
+*.cmake
+CMakeFiles
+Makefile

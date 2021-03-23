@@ -17,6 +17,13 @@ extern QSqlDatabase db;
 
 typedef Botan::secure_vector<uint8_t> secvec;
 
+enum PasswordOptions {
+    Convert = (1 << 0),
+    Open = (1 << 1),
+    Lock = (1 << 2)
+};
+Q_DECLARE_FLAGS(PasswordOptionsFlag, PasswordOptions)
+
 // Wrapper function to make translation easier.
 inline const QString tr(const QString &s) {
     return QObject::tr(s.toStdString().data());
@@ -43,14 +50,12 @@ inline QList<NumberType> range(int start, int amount) {
     return rangeList;
 }
 
-inline const QString newLoc() {
-    return QFileDialog::getSaveFileName(nullptr, tr("New Database Location"), "", tr("passman++ Database Files (*.pdpp);;All Files (*)"));
-}
-
 inline void displayErr(const QString &msg) {
     QMessageBox err;
     err.setText(tr(msg.toStdString().data()));
     err.setStandardButtons(QMessageBox::Ok);
+    err.setTextInteractionFlags(Qt::LinksAccessibleByMouse | Qt::TextSelectableByMouse);
+
     err.exec();
 }
 

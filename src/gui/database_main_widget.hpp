@@ -1,14 +1,12 @@
 #ifndef DatabaseWindow_H
 #define DatabaseWindow_H
-#include <QDialog>
-#include <QMainWindow>
+#include <QWidget>
 #include <QAction>
 
+#include "mainwindow.hpp"
 #include "../util/extra.hpp"
+#include "base_widget.hpp"
 
-class QDialogButtonBox;
-class QGridLayout;
-class QMenuBar;
 class QLabel;
 class QToolButton;
 class QTableWidget;
@@ -16,10 +14,10 @@ class QTableWidget;
 class Database;
 class Entry;
 
-class DatabaseWindow : public QMainWindow
+class DatabaseWidget : public BaseWidget
 {
 public:
-    DatabaseWindow(Database *t_database);
+    DatabaseWidget(Database *t_database);
 
     template <typename Func>
     inline QAction *addButton(const char *text, const char *icon, const char *whatsThis, QKeySequence shortcut, Func func) {
@@ -31,22 +29,17 @@ public:
         return action;
     }
 
-    Entry *getNamed(QTableWidget *t_table);
+    Entry *selectedEntry();
 
-    void setup();
-    int exec();
+    void redrawTable();
 
-    Database *database;
+    bool setup();
+    void show();
 
-    QDialogButtonBox *ok;
-    QGridLayout *layout;
     QTableWidget *table;
-    QToolBar *toolbar;
 
     QAction *saveButton;
-
     QAction *saveAsButton;
-
     QMenu *fileMenu;
 
     QAction *configButton;
@@ -55,11 +48,9 @@ public:
     QAction *editButton;
 
     QMenu *entryMenu;
-
     QAction *copyPasswordButton;
 
     QMenu *aboutMenu;
-
     QAction *aboutButton;
     QAction *tipsButton;
 
@@ -68,6 +59,7 @@ public:
 
     QMenu *toolMenu;
     QAction *randomButton;
+    QAction *lockButton;
 
     QLabel *nameValue;
     QLabel *emailValue;

@@ -17,18 +17,26 @@ However, someone can still delete your database, so keep backups of your databas
 # Building
 ## Manually
 - Download the source tar.gz (or zip) file, from the [releases](https://github.com/binex-dsk/passmanpp/releases) page and extract it
-- Install [Botan](https://github.com/randombit/botan/), [libsodium](https://github.com/jedisct1/libsodium), and [Qt](https://qt.io) 6 through your distribution's package manager, or [install from the AUR](https://github.com/binex-dsk/passmanpp#AUR).
+- Install [Botan](https://github.com/randombit/botan/), and [Qt](https://qt.io) 6 through your distribution's package manager, or [install from the AUR](https://github.com/binex-dsk/passmanpp#AUR).
 - For 1.4.0p and below, run:
 ```bash
 $ cd src
 $ qmake passman.pro
 ```
-- For 2.0.0 and newer, simply run:
+- For 2.0.0-2.0.1, simply run:
 ```bash
 $ ./build.sh
 ```
-- Or `./install.sh` if you want to install
-
+  * Or `./install.sh` if you want to install
+- For 2.1.0 and newer, run the following commands:
+```bash
+$ cmake -S . -B build
+$ cmake --build build
+```
+Optionally, to install the files (run as root):
+```bash
+# cmake --build build --target install
+```
 NOTE: Building and installing bleeding-edge versions (directly cloning) may fail. It's safer to go with the latest pre-release if you want "beta" builds.
 
 ## AUR
@@ -39,6 +47,10 @@ $ yay -S passman++
 Or the development (pre-release) version:
 ```bash
 $ yay -S passman++-devel
+```
+Or the LTS version:
+```bash
+$ yay -S passman++-lts
 ```
 Dependencies will be automatically installed in these cases.
 
@@ -63,7 +75,7 @@ On the command line, specify the arguments `-d` or `--debug` and `-V` or `--verb
 Your computer probably sucks, but if you want to make it faster, edit your database, and select SHA-512 as your HMAC, no hashing as your hash, and SHACAL2/EAX as your encryption functions. This is less secure, though; see [Choosing Options](https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md).
 
 ## How do I launch this without using the command line?
-I'll make a .desktop file. Eventually.
+From your application launcher (start menu for your DE, or through dmenu, rofi, etc), launch "passman++". From a file manager you can also open any `.pdpp` files and passman++ will open with that file.
 
 ## Do I have to remake all of my databases for 2.0.0?
 Nope! If you use an old database with 2.0.0 or above, passman++ will automatically convert it to the new format. However, you might be better off recreating it.
@@ -95,22 +107,14 @@ If I don't conform my code to a particular standard, there are a few reasons why
 - The standard makes no sense
 
 ## Rewrite it in Rust!
-Yeah sure, let me just learn Rust, port the entirety of Botan, Qt, and libsodium to Rust, rewrite every single bit of logic in this program, likely break it, just because "bro rewrite it in Rust".
-
-In all seriousness though, no. Never. Even if Botan, Qt 6, and libsodium got Rust ports and I knew Rust as well as I do C++, no. Or any other language, for that matter. There are a variety of reasons:
-- Rust doesn't have built-in classes or inheritance.
-- Most other languages would be too high-level for a program as complex as this one. Specifically scripted languages and stuff like Go.
-- C++ is literally the only language that I even like.
-- It's never worth the effort. Ever.
-- C++ is, in effect, the fastest language, along with C. Rust and whatever the hot new "faster than C!" languages are, *are not faster than C or C++*. For example, if C[++] code is compiled with clang, it's using the EXACT SAME BACKEND AS RUST. It literally CAN NOT be faster in that case. And with GCC, experience shows me you're (usually) gonna get better performance with GCC, especially with optimizations on. And no, your C vs. Rust benchmark from a 2012 Stack Overflow post using terribly optimized C code and perfectly optimized Rust code doesn't prove that Rust is faster. Also, I don't really need the language to be super fast; this is actually designed to be slow to make bruteforcing passwords harder.
-- Rust has an awful community.
-- C++ is by far the most complex and hardest (TECHNICALLY C and ASM are harder, but C++ is significantly harder to MASTER than either of those because of its overly complicated class system) language out there. It actually challenges my brain a bit, unlike Python.
-- I already know memory safety. Rust doesn't really have anything that C++ doesn't. Memory safety gets pushed a lot, and guess what, there are these REALLY COOL THINGS called smart pointers, vectors, and strings. THOSE ARE MEMORY SAFE!
+nomegalul
 
 # To Do
 - Separate users/groups
 - Multiple different formats
 - KeePass* database integration
+- Separate more things into real "menus" with tabs and stuff
+- self note: `constexpr`s and `noexcept`s
 
 # Already Done
 Stuff I previously planned to do and have already done:
@@ -149,27 +153,26 @@ Stuff I previously planned to do and have already done:
 - More shortcuts
 - Fix some oddities with the GUI
 - Put limits and restrictions on certain values to stop segfaults, memory leaks, etc.
-
-# 2.0.2 UPDATE
-Plans for the minor passman++ 2.0.2 update:
 - Separate widgets and dialogs
 - Integrate more things into appearing on the main database window
 - More intuitive settings area, with tabs and such
+- Locking out the database
+- Better CMakeLists.txt
+- MIME type and desktop files
 
 # 2.1 UPDATE
 Plans for the passman++ 2.1 update:
-- Separate more things into real "menus" with tabs and stuff
-- Allow for no password at all
-- Locking out the database
-- Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
 - Add a delay benchmark for hashing iterations
-- Allow for more stuff to be stored there, i.e. user-input attributes
-  * YES, I have moved this to here. Dont feel like doing it in 2.0, if I'm lazy enough I might even move it to 2.2 or 3.0
+- Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
 - Global configuration
+- Separate database creation and database configuration, plus a "simple" and "advanced" mode for each
+
+# 2.2 UPDATE
+- Allow for more stuff to be stored there, i.e. user-input attributes
 - When the computer is hibernated or put to sleep, close the app and deallocate all memory
-- Separate database creation and database configuration
-- self note: `constexpr`s and `noexcept`s
-- Potentially create a libpassman as a base for third-party `.pdpp` file integration
+- Create a libpassman as a base for third-party `.pdpp` file integration
+- Allow for no password at all
+- Password health/entropy checker (display entropy in password generator too)
 
 # 3.0 UPDATE
 Plans for the passman++ 3.0 update:
@@ -177,5 +180,3 @@ Plans for the passman++ 3.0 update:
 - Entry modification dates
 - pdb-to-pdpp file converter
 - Icons and attachments
-- Password health/entropy checker
-- Separate "simple" and "advanced" modes for database creation

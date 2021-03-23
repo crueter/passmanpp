@@ -11,6 +11,7 @@ class VectorUnion : public secvec
 {
 public:
     inline VectorUnion() = default;
+    virtual ~VectorUnion() = default;
     inline VectorUnion(const QString &data) {
         *this = data.toStdString();
     }

@@ -10,12 +10,11 @@
 
 #include "constants.hpp"
 #include "util/vector_union.hpp"
-#include "gui/database_window.hpp"
-#include "gui/config_dialog.hpp"
+#include "gui/database_main_widget.hpp"
+#include "gui/mainwindow.hpp"
+#include "gui/config_widget.hpp"
 
 class Entry;
-
-void showMessage(const QString &msg);
 
 // TODO: getters and setters for variables
 
@@ -24,7 +23,12 @@ class Database
 {
     QList<Entry *> m_entries;
 public:
-    Database() {}
+    Database(MainWindow *t_window = nullptr)
+        : window(t_window)
+        , widget(new DatabaseWidget(this))
+    {
+        widget->setup();
+    }
 
     inline std::unique_ptr<Botan::Cipher_Mode> makeEncryptor() {
         return Botan::Cipher_Mode::create(Constants::encryptionMatch.at(this->encryption), Botan::ENCRYPTION);
@@ -47,10 +51,8 @@ public:
     }
 
     // The main window
-    inline int edit() {
-        DatabaseWindow *di = new DatabaseWindow(this);
-        di->setup();
-        return di->exec();
+    inline void edit() {
+        widget->show();
     }
 
     // Grabs the contents of the keyfile.
@@ -75,18 +77,20 @@ public:
     }
 
     // Opens the database configuration dialog
-    inline bool config(const bool create = true) {
-        ConfigDialog *di = new ConfigDialog(this, create);
+    inline void config(const bool create = true) {
+        ConfigWidget *di = new ConfigWidget(this, create);
         di->setup();
-        return di->show();
+        di->show();
     }
 
     inline void addEntry(Entry *entry) {
         this->m_entries.emplaceBack(entry);
+        this->modified = true;
     }
 
     inline bool removeEntry(Entry *entry) {
         return this->m_entries.removeOne(entry);
+        this->modified = true;
     }
 
     inline qsizetype entryLength() {
@@ -99,6 +103,7 @@ public:
 
     inline void setEntries(QList<Entry *> t_entries) {
         this->m_entries = t_entries;
+        this->modified = true;
     }
 
     Entry *entryNamed(const QString &t_name);
@@ -107,7 +112,7 @@ public:
     void get();
     bool saveSt();
 
-    int add(QTableWidget *table);
+    void add();
 
     VectorUnion hashPw(VectorUnion password);
     secvec getPw(VectorUnion password);
@@ -115,16 +120,17 @@ public:
     VectorUnion encryptedData();
     void encrypt();
 
-    VectorUnion decryptData(const VectorUnion t_data, const VectorUnion &mpass, const bool convert = false);
+    std::pair<VectorUnion, int> decryptData(const VectorUnion t_data, const VectorUnion &mpass, const bool convert = false);
     int verify(const VectorUnion &mpass, const bool convert = false);
-    const QString decrypt(const QString &txt = "", const bool convert = false);
+    bool decrypt(PasswordOptionsFlag options = PasswordOptions());
 
     bool parse();
 
     bool open();
     int saveAs();
 
-    void redrawTable(QTableWidget *table);
+    MainWindow *window;
+    DatabaseWidget *widget;
 
     bool keyFile = false;
     bool modified = false;

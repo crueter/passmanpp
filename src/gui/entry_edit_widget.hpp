@@ -1,10 +1,12 @@
-#ifndef ENTRYEDITDIALOG_H
-#define ENTRYEDITDIALOG_H
-#include <QDialog>
+#ifndef EntryEditWidget_H
+#define EntryEditWidget_H
+#include <QWidget>
+
+#include "mainwindow.hpp"
+#include "base_widget.hpp"
 
 class QTableWidget;
 class QTableWidgetItem;
-class QFormLayout;
 class QDoubleSpinBox;
 class QTextEdit;
 class QLineEdit;
@@ -14,28 +16,25 @@ class QCheckBox;
 class Database;
 class Entry;
 
-class EntryEditDialog : public QDialog
+class EntryEditWidget : public BaseWidget
 {
 public:
-    EntryEditDialog(Entry *t_entry, Database *m_database);
+    EntryEditWidget(Entry *t_entry);
 
-    void setup();
-    int show(QTableWidgetItem *item, QTableWidget *table);
+    bool setup();
+    void show();
+
+    void addRow(const QString &t_label, QWidget *t_widget, const qsizetype t_index);
 
     Entry *entry;
-    Database *database;
 
     QString origPass;
     QString origName;
 
-    QFormLayout *layout;
     QList<QLineEdit *> lines;
     QList<QCheckBox *> boxes;
     QList<QDoubleSpinBox *> spins;
     QList<QTextEdit *> edits;
-
-    QDialogButtonBox *buttonBox;
-
 };
 
-#endif // ENTRYEDITDIALOG_H
+#endif // EntryEditWidget_H

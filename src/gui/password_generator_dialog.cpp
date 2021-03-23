@@ -10,12 +10,12 @@
 #include <botan/bigint.h>
 #include <botan/auto_rng.h>
 
-#include "random_password_dialog.hpp"
+#include "password_generator_dialog.hpp"
 #include "../actions/password_visible_action.hpp"
 #include "../util/extra.hpp"
 #include "../constants.hpp"
 
-RandomPasswordDialog::Options RandomPasswordDialog::getOptions() {
+PasswordGeneratorDialog::Options PasswordGeneratorDialog::getOptions() {
     Options opt;
 
     if (lowersBox->isChecked()) {
@@ -61,7 +61,7 @@ RandomPasswordDialog::Options RandomPasswordDialog::getOptions() {
     return opt;
 }
 
-Group RandomPasswordDialog::getGroup() {
+Group PasswordGeneratorDialog::getGroup() {
     Group groups;
 
     options = getOptions();
@@ -114,7 +114,7 @@ Group RandomPasswordDialog::getGroup() {
     return groups;
 }
 
-const QString RandomPasswordDialog::generate() {
+const QString PasswordGeneratorDialog::generate() {
     Group chars = getGroup();
 
     QString pass;
@@ -131,7 +131,7 @@ const QString RandomPasswordDialog::generate() {
     return pass;
 }
 
-RandomPasswordDialog::RandomPasswordDialog() {
+PasswordGeneratorDialog::PasswordGeneratorDialog() {
     layout = new QGridLayout(this);
 
     display = new QLineEdit;
@@ -153,9 +153,6 @@ RandomPasswordDialog::RandomPasswordDialog() {
     buttonWidget = new QFrame;
     buttonLayout = new QGridLayout(buttonWidget);
 
-    const QColor chCl{33, 63, 33};
-    checkedPalette.setColor(QPalette::Button, chCl);
-
     auto optButton = [this](const char *text, const char *tooltip, int row, int col, bool on = false) -> QPushButton * {
         QPushButton *button = new QPushButton(tr(text));
         button->setToolTip(tr(tooltip));
@@ -166,17 +163,7 @@ RandomPasswordDialog::RandomPasswordDialog() {
         buttonLayout->addWidget(button, row, col);
 
         connect(button, &QPushButton::clicked, regen, &QPushButton::click);
-        connect(button, &QPushButton::clicked, this, [button, this](bool checked) {
-            if (checked) {
-                button->setPalette(checkedPalette);
-            } else {
-                button->setPalette(QPalette());
-            }
-        });
 
-        if (on) {
-            button->setPalette(checkedPalette);
-        }
         return button;
     };
 
@@ -199,7 +186,7 @@ RandomPasswordDialog::RandomPasswordDialog() {
     buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
 }
 
-void RandomPasswordDialog::setup() {
+void PasswordGeneratorDialog::setup() {
     visible->setCheckable(true);
     visible->setChecked(true);
 
@@ -241,20 +228,9 @@ void RandomPasswordDialog::setup() {
 
     setContentsMargins(30, 30, 30, 0);
 
-    const QColor window{62, 62, 66};
-    const QColor border{86, 86, 90};
-
-    QPalette buttonPalette;
-
-    buttonPalette.setColor(QPalette::Light, border);
-    buttonPalette.setColor(QPalette::Dark, border);
-    buttonPalette.setColor(QPalette::Window, window);
-
     buttonWidget->setFrameStyle(QFrame::Panel | QFrame::Raised);
     buttonWidget->setLineWidth(2);
     buttonWidget->setAutoFillBackground(true);
-
-    buttonWidget->setPalette(buttonPalette);
 
     layout->setSizeConstraint(QLayout::SetFixedSize);
 
@@ -278,7 +254,7 @@ void RandomPasswordDialog::setup() {
     generate();
 }
 
-const QString RandomPasswordDialog::show() {
+const QString PasswordGeneratorDialog::show() {
     if (exec() == QDialog::Accepted) {
         return display->text();
     }

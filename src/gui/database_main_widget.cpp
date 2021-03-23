@@ -10,14 +10,17 @@
 #include <QMenuBar>
 #include <QLabel>
 #include <QToolButton>
+#include <QDialogButtonBox>
 
-#include "database_window.hpp"
-#include "random_password_dialog.hpp"
+#include "database_main_widget.hpp"
+#include "password_widget.hpp"
+#include "password_generator_dialog.hpp"
 #include "../entry.hpp"
 #include "../database.hpp"
+#include "../actions/password_generator_action.hpp"
 
-Entry *DatabaseWindow::getNamed(QTableWidget *t_table) {
-    QTableWidgetItem *item = t_table->item(t_table->currentRow(), 0);
+Entry *DatabaseWidget::selectedEntry() {
+    QTableWidgetItem *item = table->item(table->currentRow(), 0);
 
     if (item == nullptr) {
         return nullptr;
@@ -26,20 +29,47 @@ Entry *DatabaseWindow::getNamed(QTableWidget *t_table) {
     return database->entryNamed(item->text());
 }
 
-DatabaseWindow::DatabaseWindow(Database *t_database)
-    : database(t_database)
-{
-    QWidget *central = new QWidget;
-    setCentralWidget(central);
+void DatabaseWidget::redrawTable() {
+    int j = 0;
+    table->setRowCount(static_cast<int>(this->database->entryLength()));
 
-    ok = new QDialogButtonBox(this);
-    layout = new QGridLayout(central);
-    table = new QTableWidget(this);
+    for (Entry *e : database->entries()) {
+        for (const int i : range(0, static_cast<int>(e->fieldLength()))) {
+            table->setItem(j, i, new QTableWidgetItem(e->fieldAt(i)->dataStr()));
+        }
+        ++j;
+    }
+}
+
+DatabaseWidget::DatabaseWidget(Database *t_database)
+    : table(new QTableWidget(this))
+
+    , prevWidg(new QWidget)
+    , preview(new QGridLayout(prevWidg))
+
+    , nameValue(new QLabel(prevWidg))
+    , emailValue(new QLabel(prevWidg))
+    , urlValue(new QLabel(prevWidg))
+    , passValue(new QLabel(prevWidg))
+    , nameLabel(new QLabel(tr("Name"), prevWidg))
+    , emailLabel(new QLabel(tr("Email"), prevWidg))
+    , urlLabel(new QLabel(tr("URL"), prevWidg))
+    , passLabel(new QLabel(tr("Password"), prevWidg))
+    , passView(new QToolButton(prevWidg))
+{
+    database = t_database;
+    window = t_database->window;
+
+    buttonBox = new QDialogButtonBox(this);
+    layout = new QGridLayout(this);
+
     toolbar = new QToolBar;
+    menubar = new QMenuBar;
+    title = tr("Select an entry [*]");
 
     saveButton = this->addButton("Save", "document-save", "Save the database as is. (Ctrl+S)", QKeySequence(tr("Ctrl+S")), [this] {
         database->save();
-        this->setWindowModified(false);
+        window->setWindowModified(false);
     });
     toolbar->addAction(saveButton);
 
@@ -55,11 +85,11 @@ DatabaseWindow::DatabaseWindow(Database *t_database)
     });
     toolbar->addAction(saveAsButton);
 
-    fileMenu = menuBar()->addMenu(tr("File"));
+    fileMenu = menubar->addMenu(tr("File"));
 
     configButton = this->addButton("Edit Database", "settings-configure", "Edit database options. (Ctrl+Shift+E)", QKeySequence(tr("Ctrl+Shift+E")), [this] {
         database->config(false);
-        this->setWindowModified(false);
+        window->setWindowModified(false);
     });
 
     toolbar->addSeparator();
@@ -67,35 +97,35 @@ DatabaseWindow::DatabaseWindow(Database *t_database)
     fileMenu->addAction(configButton);
 
     addEButton = this->addButton("New", "list-add", "Creates a new entry in the database. (Ctrl+N)", QKeySequence(tr("Ctrl+N")), [this]{
-        database->add(table);
-        this->setWindowModified(database->modified);
+        database->add();
+        window->setWindowModified(database->modified);
     });
     toolbar->addAction(addEButton);
 
     delButton = this->addButton("Delete", "edit-delete", "Deletes the currently selected entry. (Delete)", QKeySequence::Delete, [this]{
-        Entry *named = getNamed(table);
+        Entry *named = selectedEntry();
         if (named == nullptr) {
             return;
         }
         named->del(table->currentItem());
 
-        this->setWindowModified(database->modified);
+        window->setWindowModified(database->modified);
     });
     toolbar->addAction(delButton);
 
     editButton = this->addButton("Edit", "document-edit", "Edit or view all the information of the current entry. (Ctrl+E)", QKeySequence(tr("Ctrl+E")), [this]{
-        Entry *named = getNamed(table);
+        Entry *named = selectedEntry();
         if (named == nullptr) {
             return;
         }
-        named->edit(table->currentItem());
+        named->edit();
 
-        this->setWindowModified(database->modified);
+        window->setWindowModified(database->modified);
     });
     toolbar->addAction(editButton);
     toolbar->addSeparator();
 
-    entryMenu = menuBar()->addMenu(tr("Entry"));
+    entryMenu = menubar->addMenu(tr("Entry"));
 
     copyPasswordButton = this->addButton("Copy Password", "edit-copy", "Copy this entry's password. Clipboard will be cleared after a configurable time. (Ctrl+C)", QKeySequence(tr("Ctrl+C")), [this] {
         QClipboard *clip = QApplication::clipboard();
@@ -110,33 +140,41 @@ DatabaseWindow::DatabaseWindow(Database *t_database)
         clip->setText(en->fieldNamed("password")->dataStr());
 
         QTimer::singleShot(database->clearSecs * 1000, this, [clip] {
+            if (qApp->property("verbose").toBool()) {
+                qDebug() << "Clearing clipboard";
+            }
             clip->setText("");
         });
     });
+    entryMenu->addAction(copyPasswordButton);
     toolbar->addAction(copyPasswordButton);
+
     toolbar->addSeparator();
     toolbar->addAction(configButton);
 
-    toolMenu = menuBar()->addMenu(tr("Tools"));
+    toolMenu = menubar->addMenu(tr("Tools"));
 
-    randomButton = this->addButton("Password Generator", "roll", "Generate a random password. (Ctrl+R)", QKeySequence(tr("Ctrl+R")), [] {
-        RandomPasswordDialog *di = new RandomPasswordDialog;
-        di->setup();
-        di->show();
-    });
+    randomButton = passwordGeneratorAction();
 
     toolMenu->addAction(randomButton);
-
     toolbar->addAction(randomButton);
 
-    addToolBar(toolbar);
+    lockButton = addButton("Lock Database", "lock", "Lock the database and require a password to get back in.", QKeySequence(tr("Ctrl+L")), [this] {
+        PasswordWidget *passwordWidget = new PasswordWidget(this->database, PasswordOptions::Lock);
+        if (!passwordWidget->setup()) {
+            return;
+        }
 
-    entryMenu->addAction(copyPasswordButton);
+        passwordWidget->show();
+    });
 
-    aboutMenu = menuBar()->addMenu(tr("About"));
+    toolMenu->addAction(lockButton);
+    toolbar->addAction(lockButton);
+
+    aboutMenu = menubar->addMenu(tr("About"));
 
     aboutButton = this->addButton("About", "help-about", "About passman++", QKeySequence(tr("Ctrl+H")), [] {
-        showMessage(tr(("passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\n\n"
+        displayErr(tr(("passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\n\n"
                               "Project repository (Submit bug reports, suggestions, and PRs here, or criticize me for being the master of writing spaghetti code): " + Constants::github + "\n\n"
                               "FOSS Libraries used: Botan, Qt\n\n"
                               "Botan version: " + std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH) + "\n\n"
@@ -148,24 +186,15 @@ DatabaseWindow::DatabaseWindow(Database *t_database)
         QDesktopServices::openUrl(QUrl(QString::fromStdString(Constants::github) + "blob/main/tips.md"));
     });
     aboutMenu->addAction(tipsButton);
-
-    prevWidg = new QWidget;
-    preview = new QGridLayout(prevWidg);
-
-    nameValue = new QLabel(prevWidg);
-    emailValue = new QLabel(prevWidg);
-    urlValue = new QLabel(prevWidg);
-    passValue = new QLabel(prevWidg);
-    nameLabel = new QLabel(tr("Name"), prevWidg);
-    emailLabel = new QLabel(tr("Email"), prevWidg);
-    urlLabel = new QLabel(tr("URL"), prevWidg);
-    passLabel = new QLabel(tr("Password"), prevWidg);
-    passView = new QToolButton(prevWidg);
 }
 
-void DatabaseWindow::setup() {
-    ok->setStandardButtons(QDialogButtonBox::Ok);
-    QObject::connect(ok->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, &QMainWindow::close);
+bool DatabaseWidget::setup() {
+    buttonBox->setStandardButtons(QDialogButtonBox::Ok);
+    QObject::connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, [this] {
+        database->save();
+
+        std::exit(0);
+    });
 
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -175,8 +204,12 @@ void DatabaseWindow::setup() {
     table->setColumnCount(static_cast<int>(labels.size()));
     table->setHorizontalHeaderLabels(labels);
 
-    QObject::connect(table, &QTableWidget::itemDoubleClicked, [this](QTableWidgetItem *item) {
-        getNamed(item->tableWidget())->edit(item);
+    QObject::connect(table, &QTableWidget::itemDoubleClicked, [this] {
+        Entry *selected = selectedEntry();
+        if (selected == nullptr) {
+            return;
+        }
+        selected->edit();
     });
 
     fileMenu->addActions(QList<QAction *>{saveButton, saveAsButton});
@@ -214,7 +247,9 @@ void DatabaseWindow::setup() {
     passLabel->setFont(font);
     preview->addWidget(passLabel, 3, 0);
 
-    layout->addWidget(ok, 2, 0);
+    preview->setColumnStretch(2, 1);
+
+    layout->addWidget(buttonBox, 2, 0);
 
     QObject::connect(table, &QTableWidget::itemSelectionChanged, [this] {
         bool anySelected = table->selectedItems().length() > 0;
@@ -225,9 +260,9 @@ void DatabaseWindow::setup() {
         }
 
         Entry *selected = database->entryNamed(table->item(table->currentRow(), 0)->text());
-        nameValue->setText(selected->name());
         emailValue->setText(selected->fieldNamed("email")->dataStr());
         urlValue->setText(selected->fieldNamed("url")->dataStr());
+        nameValue->setText(selected->name());
 
         passValue->setText("●●●●●●●●●●●●");
 
@@ -249,14 +284,12 @@ void DatabaseWindow::setup() {
 
     preview->addWidget(passView, 3, 1);
 
-    this->centralWidget()->setLayout(layout);
-    setWindowTitle(tr("Select an entry [*]"));
-
-    resize(800, 450);
+    this->setLayout(layout);
+    return true;
 }
 
-int DatabaseWindow::exec() {
-    database->redrawTable(table);
-    show();
-    return qApp->exec();
+void DatabaseWidget::show() {
+    redrawTable();
+
+    window->setWidget(this->database->widget, true);
 }

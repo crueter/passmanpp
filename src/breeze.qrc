@@ -115,5 +115,7 @@
         <file>dark/help-hint.svg</file>
         <file>light/help-about.svg</file>
         <file>light/help-hint.svg</file>
+        <file>dark/lock.svg</file>
+        <file>light/lock.svg</file>
     </qresource>
 </RCC>

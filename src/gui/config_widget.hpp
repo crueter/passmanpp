@@ -1,36 +1,24 @@
-#ifndef CONFIGDIALOG_H
-#define CONFIGDIALOG_H
+#ifndef ConfigWidget_H
+#define ConfigWidget_H
 #include <QDialog>
 #include <QLineEdit>
 #include <QFormLayout>
 #include <QComboBox>
 #include <QSpinBox>
-/*
-#include <QGridLayout>
-#include <QMenuBar>
-#include <QFormLayout>
-#include <QComboBox>
-#include <QSpinBox>
-#include <QDialogButtonBox>
-#include <QLineEdit>
-#include <QDialog>
-#include <QLabel>
-#include <QCheckBox>
-*/
 
-class QGridLayout;
-class QMenuBar;
-class QDialogButtonBox;
+#include "mainwindow.hpp"
+#include "base_widget.hpp"
+
 class QLabel;
 class QCheckBox;
 
 class Database;
 class Entry;
 
-class ConfigDialog : public QDialog
+class ConfigWidget : public BaseWidget
 {
 public:
-    ConfigDialog(Database *t_database, const bool t_create);
+    ConfigWidget(Database *t_database, const bool t_create);
 
     inline QLineEdit *lineEdit(const char *text, QString defText, const char *label) {
         QLineEdit *le = new QLineEdit;
@@ -52,25 +40,17 @@ public:
     QComboBox *comboBox(QList<std::string> vec, const char *label, const int val);
     void updateBoxes(const int index);
 
-    void setup();
-    int show();
+    bool setup();
+    void show();
 
-    Database *database;
     bool create;
-
     bool paramsChanged;
 
-    QPalette diPalette;
-    QColor diC;
-    QGridLayout *full;
-
-    QMenuBar *bar;
+    QString widgetStyle;
     QMenu *help;
 
     QFont bold;
     QFont italic;
-
-    QPalette sectPalette;
 
     QLabel *metaTitle;
     QFrame *metaWidget;
@@ -98,17 +78,13 @@ public:
     QLabel *passTitle;
 
     QFrame *passWidget;
-
     QFormLayout *passLayout;
-
     QLabel *passDesc;
 
     QLineEdit *pass;
-
     QLineEdit *keyEdit;
 
     QPushButton *newKf;
-
     QPushButton *getKf;
 
     QDialogButtonBox *keyBox;
@@ -122,10 +98,11 @@ public:
     QCheckBox *compressBox;
 
     QSpinBox *clearBox;
-    QDialogButtonBox *buttonBox;
 
     QWidget *glw;
     QGridLayout *gl;
+
+    QTabWidget *tabs;
 };
 
-#endif // CONFIGDIALOG_H
+#endif // ConfigWidget_H

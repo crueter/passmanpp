@@ -5,7 +5,7 @@
 #include <botan/bigint.h>
 
 #include "util/extra.hpp"
-#include "gui/welcome_dialog.hpp"
+#include "gui/welcome_widget.hpp"
 
 // TODO: constexpr, noexcept
 
@@ -33,20 +33,6 @@ int main(int argc, char** argv) {
 
     const QStringList args = parser.positionalArguments();
 
-    QString path{};
-    if (args.length() > 0) {
-        path = args.at(0);
-    }
-
-    db = QSqlDatabase::addDatabase("QSQLITE", ":memory:");
-
-    if (!db.open()) {
-        displayErr("Error while opening database: " + db.lastError().text() + tr("\nPlease open an issue on " + Constants::github + " for help with this."));
-        return 1;
-    }
-
-    auto database = std::make_shared<Database>();
-
     QString theme = parser.value(themeOption);
     if (!QStringList{tr("dark"), tr("light")}.contains(parser.value(themeOption))) {
         qDebug() << "Invalid theme option. Must be one of: light, dark";
@@ -61,6 +47,22 @@ int main(int argc, char** argv) {
 
     app.setProperty("theme", theme);
 
+    QString path{};
+    if (args.length() > 0) {
+        path = args.at(0);
+    }
+
+    db = QSqlDatabase::addDatabase("QSQLITE", ":memory:");
+
+    if (!db.open()) {
+        displayErr("Error while opening database: " + db.lastError().text() + tr("\nPlease open an issue on " + Constants::github + " for help with this."));
+        return 1;
+    }
+
+    MainWindow *mainWindow = new MainWindow;
+
+    Database *database = new Database(mainWindow);
+
     if (parser.isSet(newOption)) {
         createDatabase(database, path);
     } else if (!path.isEmpty()) {
@@ -70,19 +72,15 @@ int main(int argc, char** argv) {
             return 1;
         }
     } else {
-        auto di = std::make_unique<WelcomeDialog>(database);
+        WelcomeWidget *di = new WelcomeWidget(database);
         di->setup();
-
-        if (di->show() == QDialog::Rejected) {
-            return 1;
-        }
+        di->show();
     }
+
+    mainWindow->show();
 
     app.setProperty("debug", parser.isSet(debugOption));
     app.setProperty("verbose", parser.isSet(verboseOption));
 
-    database->edit();
-    database->save();
-
-    return 0;
+    return app.exec();
 }

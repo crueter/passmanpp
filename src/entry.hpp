@@ -3,7 +3,7 @@
 #include <QTableWidgetItem>
 
 #include "field.hpp"
-#include "gui/entry_edit_dialog.hpp"
+#include "gui/entry_edit_widget.hpp"
 
 // Class that wraps a database entry.
 class Entry
@@ -11,6 +11,7 @@ class Entry
     QList<Field *> m_fields;
     Database *m_database;
     QString m_name;
+    MainWindow *m_window;
 public:
     Entry() = default;
     Entry(QList<Field *> t_fields, Database *t_database);
@@ -53,7 +54,7 @@ public:
         return this->m_fields.length();
     }
 
-    inline const Database *database() {
+    inline Database *database() {
         return this->m_database;
     }
 
@@ -72,11 +73,11 @@ public:
     }
 
     // Open the entry editor dialog.
-    inline int edit(QTableWidgetItem *item = nullptr, QTableWidget *table = nullptr) {
-        EntryEditDialog *di = new EntryEditDialog(this, this->m_database);
+    inline void edit() {
+        EntryEditWidget *di = new EntryEditWidget(this);
         di->setup();
 
-        return di->show(item, table);
+        di->show();
     }
 
     bool del(QTableWidgetItem *item);
