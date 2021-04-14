@@ -20,7 +20,7 @@ public:
         database->path = path;
 
         if (!database->open()) {
-            std::exit(1);
+            return;
         }
     }
 

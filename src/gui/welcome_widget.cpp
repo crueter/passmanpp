@@ -9,7 +9,7 @@ void createDatabase(Database *t_database, QString t_path) {
     if (t_path.isEmpty()) {
         t_path = QFileDialog::getSaveFileName(nullptr, tr("New Database Location"), "", Constants::fileExt);
         if (t_path.isEmpty()) {
-            std::exit(1);
+            return;
         }
     }
 
