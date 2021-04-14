@@ -52,6 +52,10 @@ public:
         *this = VectorUnion(data.constData(), static_cast<int>(data.size()));
     }
 
+    inline const char *asConstChar() const {
+        return reinterpret_cast<const char *>(this->data());
+    }
+
     inline QString asQStr() const {
         return QString::fromStdString(asStdStr());
     }
@@ -61,7 +65,11 @@ public:
     }
 
     inline QVariant asQVariant() const {
-        return QVariant(this->asQStr());
+        return QVariant(this->data());
+    }
+
+    inline QByteArray asQByteArray() const {
+        return QByteArray(this->asConstChar());
     }
 
     inline VectorUnion encoded() const {
@@ -71,10 +79,6 @@ public:
     inline VectorUnion decoded() const {
         return Botan::hex_decode(this->asStdStr());
     }
-
-    explicit inline operator const char*() const {
-        return reinterpret_cast<const char *>(this->data());
-    };
 
     explicit inline operator bool() const {
         return this->asQVariant().toBool();
