@@ -30,6 +30,8 @@ void ConfigWidget::updateBoxes(const int index) {
     const bool hashVis = (index != 3);
     hashIterBox->setVisible(hashVis);
     encLayout->labelForField(hashIterBox)->setVisible(hashVis);
+    benchmark->setVisible(hashVis);
+    benchmarkBox->setVisible(hashVis);
 
     const bool memRO = (index == 2);
     memBox->setReadOnly(memRO);
@@ -52,6 +54,9 @@ ConfigWidget::ConfigWidget(Database *t_database, const bool t_create)
     , encWidget(new QFrame)
     , encLayout(new QFormLayout(encWidget))
     , encDesc(new QLabel(tr("Adjust encryption, hashing, and HMAC functions, as well as some additional parameters.")))
+
+    , benchmark(new QPushButton(tr("\tBenchmark Unlock Time")))
+    , benchmarkBox(new QDoubleSpinBox)
 
     , hashIterBox(new QSpinBox)
     , memBox(new QSpinBox)
@@ -144,8 +149,24 @@ bool ConfigWidget::setup() {
     encWidget->setStyleSheet(widgetStyle);
 
     if (qApp->property("debug").toBool()) {
-        qDebug() << "Database params:" << database->hmac << database->hash << database->encryption << database->memoryUsage;
+        qDebug() << database->makeKdf()->toString();
     }
+
+    benchmarkBox->setRange(0.1, 65535);
+    benchmarkBox->setValue(1.);
+    benchmarkBox->setSingleStep(0.1);
+    benchmarkBox->setSuffix("s");
+    benchmarkBox->setToolTip(tr("Benchmark how many hashing iterations it would take to unlock the database in this many seconds."));
+
+    QObject::connect(benchmark, &QPushButton::clicked, this, [this] {
+        KDF *kdf = database->makeKdf(static_cast<uint8_t>(hmacBox->currentIndex()), static_cast<uint8_t>(hashBox->currentIndex()), static_cast<uint8_t>(encryptionBox->currentIndex()), {}, {}, 4, static_cast<uint16_t>(memBox->value()));
+
+        setCursor(Qt::WaitCursor);
+        int iters = kdf->benchmark(static_cast<int>(benchmarkBox->value() * 1000));
+        qDebug() << iters << kdf->toString();
+        hashIterBox->setValue(iters);
+        unsetCursor();
+    });
 
     hashIterBox->setRange(8, 255);
     hashIterBox->setSingleStep(1);
@@ -153,6 +174,7 @@ bool ConfigWidget::setup() {
     hashIterBox->setToolTip(tr("How many times to hash the password."));
 
     encLayout->addRow(tr("\tPassword Hashing Iterations:"), hashIterBox);
+    encLayout->addRow(benchmark, benchmarkBox);
 
     memBox->setRange(1, 65535);
     memBox->setSingleStep(1);
@@ -292,7 +314,7 @@ bool ConfigWidget::setup() {
                 setCursor(QCursor(Qt::WaitCursor));
 
                 if (create) {
-                    auto enc = database->makeEncryptor();
+                    auto enc = database->makeKdf()->makeEncryptor();
 
                     Botan::AutoSeeded_RNG rng;
 
@@ -300,13 +322,13 @@ bool ConfigWidget::setup() {
                     database->iv = rng.random_vec(database->ivLen);
                 }
 
-                database->passw = database->getPw(pw);
+                database->passw = database->makeKdf()->transform(pw);
             }
             database->save();
 
             if (!create && !pw.isEmpty()) {
                 setCursor(QCursor(Qt::WaitCursor));
-                database->passw = database->getPw(pw);
+                database->passw = database->makeKdf()->transform(pw);
             }
 
             if (create) {

@@ -10,6 +10,7 @@
 
 #include "constants.hpp"
 #include "util/vector_union.hpp"
+#include "util/kdf.hpp"
 #include "gui/database_main_widget.hpp"
 #include "gui/mainwindow.hpp"
 #include "gui/config_widget.hpp"
@@ -30,38 +31,9 @@ public:
         widget->setup();
     }
 
-    inline std::unique_ptr<Botan::Cipher_Mode> makeEncryptor() {
-        return Botan::Cipher_Mode::create(Constants::encryptionMatch.at(this->encryption), Botan::ENCRYPTION);
-    }
-
-    inline std::unique_ptr<Botan::Cipher_Mode> makeDecryptor() {
-        return Botan::Cipher_Mode::create(Constants::encryptionMatch.at(this->encryption), Botan::DECRYPTION);
-    }
-
-    // Generates a checksum string.
-    inline const std::string getCS() {
-        auto enc = this->makeEncryptor();
-        std::string hmacChoice(Constants::hmacMatch[this->hmac]);
-
-        if (hmacChoice != "SHA-512") {
-            hmacChoice += '(' + std::to_string(enc->maximum_keylength() * 8) + ')';
-        }
-
-        return hmacChoice;
-    }
-
     // The main window
     inline void edit() {
         widget->show();
-    }
-
-    // Grabs the contents of the keyfile.
-    inline VectorUnion getKey() {
-        QFile kf(keyFilePath.asQStr());
-        kf.open(QIODevice::ReadOnly);
-        QTextStream key(&kf);
-
-        return key.readAll();
     }
 
     inline bool save() {
@@ -114,9 +86,6 @@ public:
 
     void add();
 
-    VectorUnion hashPw(VectorUnion password);
-    secvec getPw(VectorUnion password);
-
     VectorUnion encryptedData();
     void encrypt();
 
@@ -128,6 +97,8 @@ public:
 
     bool open();
     int saveAs();
+
+    KDF *makeKdf(uint8_t t_hmac = 63, uint8_t t_hash = 63, uint8_t t_encryption = 63, VectorUnion t_seed = {}, VectorUnion t_keyFile = {}, uint8_t t_hashIters = 0, uint16_t t_memoryUsage = 0);
 
     MainWindow *window;
     DatabaseWidget *widget;

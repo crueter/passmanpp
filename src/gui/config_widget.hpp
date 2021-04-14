@@ -70,6 +70,9 @@ public:
     QComboBox *hashBox;
     QComboBox *encryptionBox;
 
+    QPushButton *benchmark;
+    QDoubleSpinBox *benchmarkBox;
+
     int iterVal;
 
     QSpinBox *hashIterBox;

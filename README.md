@@ -72,16 +72,18 @@ On the command line, specify the arguments `-d` or `--debug` and `-V` or `--verb
 
 # FAQ
 ## Why is this so slow on my computer?
-Your computer probably sucks, but if you want to make it faster, edit your database, and select SHA-512 as your HMAC, no hashing as your hash, and SHACAL2/EAX as your encryption functions. This is less secure, though; see [Choosing Options](https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md).
+I have genuinely no idea how you can actually have such a terrible computer that an incredibly simple password manager is slow, but, if unlocking databses takes some time, edit your database, and select hash, HMAC, and encryption functions to speed it up, and turn down hashing iterations. You can use the benchmark button to test their speed. See [Choosing Options](https://github.com/binex-dsk/passmanpp/blob/main/Choosing%20Options.md).
 
 ## How do I launch this without using the command line?
-From your application launcher (start menu for your DE, or through dmenu, rofi, etc), launch "passman++". From a file manager you can also open any `.pdpp` files and passman++ will open with that file.
+(>=2.1.0) From your application launcher (start menu for your DE, or through dmenu, rofi, etc), launch "passman++". From a file manager you can also open any `.pdpp` files and passman++ will open with that file.
+
+(<=2.0.1) No desktop file is provided for 2.0.1 and below. Sorry.
 
 ## Do I have to remake all of my databases for 2.0.0?
 Nope! If you use an old database with 2.0.0 or above, passman++ will automatically convert it to the new format. However, you might be better off recreating it.
 
 ## Can you automate installing dependencies or include the libraries in an archive for releases?
-No. Your package manager can do that. Especially if you're on a pacman-based distribution, where you can just install from the AUR.
+cba, install it yourself lol
 
 ## Why do you use this entire library when you use so little of it? Can't you just implement it yourself?
 Yes, and in the future, I plan on implementing a few things from the currently used libraries, like the random byte generator. The reason I use these libraries in the first place, though, is because they are significantly better than anything I can do; not only have they been developed for far longer, but it's also much less work that I have to do.
@@ -159,20 +161,18 @@ Stuff I previously planned to do and have already done:
 - Locking out the database
 - Better CMakeLists.txt
 - MIME type and desktop files
-
-# 2.1 UPDATE
-Plans for the passman++ 2.1 update:
 - Add a delay benchmark for hashing iterations
-- Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
-- Global configuration
-- Separate database creation and database configuration, plus a "simple" and "advanced" mode for each
 
 # 2.2 UPDATE
 - Allow for more stuff to be stored there, i.e. user-input attributes
 - When the computer is hibernated or put to sleep, close the app and deallocate all memory
 - Create a libpassman as a base for third-party `.pdpp` file integration
 - Allow for no password at all
-- Password health/entropy checker (display entropy in password generator too)
+- Password health/entropy checker
+- Separate database creation and database configuration, plus a "simple" and "advanced" mode for each
+- Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
+- Global configuration
+- Display entropy in password generator
 
 # 3.0 UPDATE
 Plans for the passman++ 3.0 update:

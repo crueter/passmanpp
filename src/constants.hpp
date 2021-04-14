@@ -11,7 +11,7 @@ namespace Constants {
     const QList<std::string> hashMatch {"Argon2id", "Bcrypt-PBKDF", "Scrypt", "No hashing, only derivation"};
     const QList<std::string> encryptionMatch {"AES-256/GCM", "Twofish/GCM", "SHACAL2/EAX", "Serpent/GCM"};
 
-    const std::string passmanVersion {"2.0.1"};
+    const std::string passmanVersion {"2.1.0"};
 
     const std::string github {"https://github.com/binex-dsk/passmanpp/"};
 

@@ -124,65 +124,9 @@ void Database::add() {
     entry->edit();
 }
 
-// Hashes a provided password.
-VectorUnion Database::hashPw(VectorUnion password) {
-    const std::string hashChoice = Constants::hashMatch[hash];
-
-    auto pfHash = Botan::PasswordHashFamily::create(hashChoice);
-    auto pHash = [&] {
-        std::unique_ptr<Botan::PasswordHash> t_pHash;
-        switch (hash) {
-            case 0: {
-                t_pHash = pfHash->from_params(memoryUsage * 1000, hashIters, 1);
-                break;
-            } case 2: {
-                t_pHash = pfHash->from_params(32768, hashIters, 1);
-                break;
-            } default: {
-                t_pHash = pfHash->from_params(hashIters);
-                break;
-            }
-        }
-
-        return t_pHash;
-    }();
-
-    const std::string hmacChoice = getCS();
-
-    secvec ptr(512);
-    pHash->derive_key(ptr.data(), ptr.size(), static_cast<const char*>(password), password.size(), iv.data(), ivLen);
-    password = ptr;
-    if (qApp->property("verbose").toBool()) {
-        qDebug() << hashIters << hashChoice.data() << hmacChoice.data() << iv << ivLen << password << Qt::endl;
-        qDebug() << "After Hashing:" << Botan::hex_encode(ptr).data() << Qt::endl;
-    }
-
-    return password;
-}
-
-// Hashes and derives a provided password.
-secvec Database::getPw(VectorUnion password) {
-    const std::string hmacChoice = getCS();
-
-    if (hash < 3) {
-        password = hashPw(password);
-    }
-
-    auto enc = makeEncryptor();
-    secvec ptr(enc->maximum_keylength());
-    auto ph = Botan::PasswordHashFamily::create("PBKDF2(" + hmacChoice + ')')->default_params();
-
-    ph->derive_key(ptr.data(), ptr.size(), static_cast<const char*>(password), password.size(), iv.data(), ivLen);
-    if (qApp->property("verbose").toBool()) {
-        qDebug() << iv;
-        qDebug() << "After Derivation:" << Botan::hex_encode(ptr).data() << Qt::endl;
-    }
-
-    return ptr;
-}
-
 VectorUnion Database::encryptedData() {
-    auto enc = makeEncryptor();
+    KDF *kdf = makeKdf();
+    auto enc = kdf->makeEncryptor();
     enc->set_key(passw);
     if (qApp->property("verbose").toBool()) {
         qDebug() << "STList before saveSt:" << stList.asStdStr().data();
@@ -207,11 +151,11 @@ VectorUnion Database::encryptedData() {
     enc->finish(pt);
 
     if (keyFile) {
-        const VectorUnion keyPw = this->getKey();
+        const VectorUnion keyPw = kdf->readKeyFile();
 
-        auto keyEnc = makeEncryptor();
+        auto keyEnc = kdf->makeEncryptor();
 
-        keyEnc->set_key(getPw(keyPw));
+        keyEnc->set_key(kdf->transform(keyPw));
         keyEnc->start(iv);
         keyEnc->finish(pt);
     }
@@ -259,21 +203,22 @@ void Database::encrypt() {
 
 std::pair<VectorUnion, int> Database::decryptData(VectorUnion t_data, const VectorUnion &mpass, const bool convert) {
     typedef std::pair<VectorUnion, int> vPair;
+    KDF *kdf = makeKdf();
     VectorUnion vPtr;
     if (convert) {
         secvec mptr(32);
         auto ph = Botan::PasswordHashFamily::create("PBKDF2(SHA-256)")->default_params();
 
-        ph->derive_key(mptr.data(), mptr.size(), static_cast<const char*>(mpass), mpass.size(), iv.data(), iv.size());
+        ph->derive_key(mptr.data(), mptr.size(), mpass.asConstChar(), mpass.size(), iv.data(), iv.size());
         vPtr = mptr;
     } else {
-        vPtr = getPw(mpass);
+        vPtr = kdf->transform(mpass);
 
         if (keyFile) {
-            VectorUnion keyPw = this->getKey();
-            auto keyDec = makeDecryptor();
+            VectorUnion keyPw = kdf->readKeyFile();
+            auto keyDec = kdf->makeDecryptor();
 
-            keyDec->set_key(getPw(keyPw));
+            keyDec->set_key(kdf->transform(keyPw));
             keyDec->start(iv);
 
             try {
@@ -285,7 +230,7 @@ std::pair<VectorUnion, int> Database::decryptData(VectorUnion t_data, const Vect
         }
     }
 
-    auto decr = makeDecryptor();
+    auto decr = kdf->makeDecryptor();
 
     decr->set_key(vPtr);
     decr->start(iv);
@@ -298,7 +243,7 @@ std::pair<VectorUnion, int> Database::decryptData(VectorUnion t_data, const Vect
         decr->finish(t_data);
 
         if (convert) {
-            this->passw = getPw(mpass);
+            this->passw = kdf->transform(mpass);
         } else {
             if (compress) {
                 auto dataDe = Botan::Decompression_Algorithm::create("gzip");
@@ -333,7 +278,7 @@ int Database::verify(const VectorUnion &mpass, const bool convert) {
         }
 
         this->iv = ivd;
-        this->name = QString(basename(static_cast<const char*>(path))).split('.')[0];;
+        this->name = QString(basename(path.asConstChar())).split('.')[0];;
         this->desc = "Converted from old database format.";
 
         auto vDataPair = decryptData(f.readAll(), mpass, true);
@@ -440,7 +385,7 @@ bool Database::parse() {
         q >> compress;
     }
 
-    ivLen = makeEncryptor()->default_nonce_length();
+    ivLen = (new KDF({{"encryption", encryption}}))->makeEncryptor()->default_nonce_length();
 
     char *ivc = new char[ivLen];
     q.readRawData(ivc, static_cast<int>(ivLen));
@@ -513,4 +458,39 @@ int Database::saveAs() {
         displayErr(e.what());
     }
     return true;
+}
+
+KDF *Database::makeKdf(uint8_t t_hmac, uint8_t t_hash, uint8_t t_encryption, VectorUnion t_seed, VectorUnion t_keyFile, uint8_t t_hashIters, uint16_t t_memoryUsage)
+{
+    QVariantMap kdfMap({
+        {"hmac", t_hmac == 63 ? hmac : t_hmac},
+        {"hash", t_hash == 63 ? hash : t_hash},
+        {"encryption", t_encryption == 63 ? encryption : t_encryption},
+        {"seed", t_seed.empty() ? iv.asQByteArray() : t_seed.asQByteArray()},
+        {"keyfile", t_keyFile.empty() ? keyFilePath.asQVariant() : t_keyFile.asQVariant()}
+    });
+
+    uint16_t iters = t_hashIters == 0 ? hashIters : t_hashIters;
+
+    switch (t_hash == 63 ? hash : t_hash) {
+        case 0: {
+            kdfMap.insert({
+                              {"i1", (t_memoryUsage == 0 ? memoryUsage : t_memoryUsage) * 1000},
+                              {"i2", iters},
+                              {"i3", 1}
+                          });
+            break;
+        } case 2: {
+            kdfMap.insert({
+                              {"i1", 32768},
+                              {"i2", iters},
+                              {"i3", 1}
+                          });
+            break;
+        } default: {
+            kdfMap.insert("i1", iters);
+            break;
+        }
+    }
+    return new KDF(kdfMap);
 }

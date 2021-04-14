@@ -9,7 +9,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
-set(DATA_INSTALL_DIR "/usr/share")
+set(DATA_INSTALL_DIR "${CMAKE_INSTALL_DATAROOTDIR}")
+if (NOT DATA_INSTALL_DIR)
+	set(DATA_INSTALL_DIR "/usr/local/share")
+endif()
 
 add_executable(passman
         src/main.cpp
@@ -22,6 +25,7 @@ add_executable(passman
         src/util/extra.hpp
         src/util/vector_union.hpp
         src/util/data_stream.hpp
+        src/util/kdf.cpp src/util/kdf.hpp
 
         src/gui/mainwindow.cpp src/gui/mainwindow.hpp
         src/gui/password_generator_dialog.cpp src/gui/password_generator_dialog.hpp
