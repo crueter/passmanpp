@@ -1,94 +1,81 @@
 #include <QApplication>
-#include <QAbstractButton>
-#include <QGridLayout>
-#include <QPushButton>
-#include <QLabel>
-#include <memory>
+#include <QCommandLineParser>
+#include <QSqlError>
+#include <QFile>
+#include <QFileDialog>
 
-#include "util/extra.hpp"
-#include "util/sql.hpp"
-#include "gui/welcome_dialog.hpp"
-#include "util/vector_union.hpp"
+#include <botan/bigint.h>
+#include <passman/constants.hpp>
 
-bool debug = false;
-bool verbose = false;
+#include "gui/welcome_widget.hpp"
+#include "gui/password_widget.hpp"
+#include "passman_constants.hpp"
+
+// TODO: constexpr, noexcept
 
 int main(int argc, char** argv) {
     QApplication app (argc, argv);
+    QApplication::setApplicationName(QObject::tr("passman++"));
+    QApplication::setApplicationVersion(passman::tr(Constants::passmanVersion));
 
-    if (getenv("PASSMAN_DEBUG")) {
-        std::cout << "Debug mode activated. Do NOT use this unless you are testing stuff." << std::endl;
-        debug = true;
+    QCommandLineParser parser;
+    parser.setApplicationDescription(QObject::tr("A simple, minimal, and just as powerful and secure password manager."));
+    parser.addHelpOption();
+    parser.addVersionOption();
+    parser.addPositionalArgument(QObject::tr("path"), QObject::tr("Path to a database file, or a path to where you want to create a new database."));
+
+    QCommandLineOption newOption(QStringList() << "n" << "new", QObject::tr("Create a new database."));
+    QCommandLineOption debugOption(QStringList() << "d" << "debug", QObject::tr("Activate debug mode."));
+    QCommandLineOption verboseOption(QStringList() << "V" << "verbose", QObject::tr("Activate verbose mode."));
+    QCommandLineOption themeOption(QStringList() << "t" << "theme", QObject::tr("Specify light or dark mode"), QObject::tr("mode"), QObject::tr("dark"));
+
+    parser.addOptions({newOption, debugOption, verboseOption, themeOption});
+
+    parser.process(app);
+
+    const QStringList args = parser.positionalArguments();
+
+    QString theme = parser.value(themeOption);
+    if (!QStringList{QObject::tr("dark"), QObject::tr("light")}.contains(parser.value(themeOption))) {
+        std::cerr << "Invalid theme option. Must be one of: light, dark\n";
+        std::cerr << "Defaulting to dark theme." << std::endl;
+        theme = "dark";
     }
-    if (getenv("PASSMAN_VERBOSE")) {
-        std::cout << "Verbose mode activated. Do NOT use this unless you are testing stuff." << std::endl;
-        verbose = true;
+
+    passman::db.open();
+
+    QFile file(":/" + theme + ".qss");
+    file.open(QFile::ReadOnly | QFile::Text);
+    QTextStream stream(&file);
+    app.setStyleSheet(stream.readAll());
+
+    app.setProperty("theme", theme);
+
+    QString path{};
+    if (args.length() > 0) {
+        path = args.at(0);
     }
 
-    dbInit();
-    auto database = std::make_shared<Database>();
-    QString path;
+    MainWindow *mainWindow = new MainWindow;
 
-    auto create = [&](QString spath = "") mutable {
-            if (spath.isEmpty()) {
-                path = newLoc();
-                if (path.isEmpty()) {
-                    exit(1);
-                }
-            } else {
-                path = spath;
-            }
-            database->path = path;
-            bool cr = database->config(true);
-            if (!cr) {
-                exit(1);
-            }
-            return true;
-    };
+    Database *database = new Database(mainWindow);
 
-    auto open = [&](QString spath) {
-        database->path = spath;
-
-        if (!database->open()) {
-            exit(1);
-        }
-    };
-
-    bool createNew = false;
-
-    if (argc <= 1) {
-        auto di = std::make_unique<WelcomeDialog>(database);
-        di->setup();
-
-        if (di->show() == QDialog::Rejected) {
+    if (parser.isSet(newOption)) {
+        createDatabase(database, path);
+    } else if (!path.isEmpty()) {
+        if (!openDb(database, path)) {
             return 1;
         }
     } else {
-        for (const int i : range(1, argc)) {
-            const QString arg(argv[i]);
-
-            if (arg == "new") {
-                createNew = true;
-            } else if (arg == "help") {
-                qDebug() << usage.data();
-                return 1;
-            } else if (arg == "info") {
-                qDebug() << info.data();
-                return 1;
-            } else if (createNew) {
-                path = arg;
-            } else {
-                open(arg);
-            }
-        }
+        WelcomeWidget *di = new WelcomeWidget(database);
+        di->setup();
+        di->show();
     }
 
-    if (createNew) {
-        create(path);
-    }
+    mainWindow->show();
 
-    database->edit();
-    database->save();
+    app.setProperty("debug", parser.isSet(debugOption));
+    app.setProperty("verbose", parser.isSet(verboseOption));
 
-    return 0;
+    return app.exec();
 }

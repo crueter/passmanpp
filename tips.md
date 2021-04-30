@@ -21,4 +21,4 @@ Do not use the same password for everything. At the very most, use a password on
 
 Do not store your passwords in an easy-to-find location. Either use a password manager like this one, or store it in a place nobody can find. Never just try to "remember" them, either--your memory is volatile. A password manager is far better at remembering things than you ever will be.
 
-No matter how securely a website stores its passwords, the strength of your password is always the weakest link. Check with online password strength checkers to verify your password is strong enough.
+No matter how securely a website or application stores its passwords, the strength of your password is always the weakest link. Check with online password strength checkers to verify your password is strong enough.

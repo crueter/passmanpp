@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=passman++
+GenericName=Password Manager
+Comment=Lightweight, simple password manager
+Exec=passman %f
+TryExec=passman
+Icon=lock
+StartupWMClass=passman++
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=2.1.0
+Categories=Utility;Security;Qt;
+MimeType=application/x-pdpp;
