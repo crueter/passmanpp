@@ -1,5 +1,4 @@
 HMAC functions:
-<<<<<<< HEAD
  - Blake2b is very fast in software but relatively slow in hardware. Pretty much the most secure option. However, it may be significantly faster than other options in certain situations. Default option.
  - SHA-3 (or Keccak) won the SHA-3 contest by NIST, replacing SHA-2. Slow in software, but very, very fast in hardware that supports it. Supposedly more secure than Blake2b, but information is limited, so they're used interchangeably and are generally considered to be equally secure. If you don't have hardware SHA-3 support, this will likely be the slowest option, so if you want to protect against bruteforce attacks choose this.
  - SHAKE-256 is a subset of SHA-3 and can therefore be used interchangeably with it and Blake2b. Theoretically, it's more secure against collision attacks.
