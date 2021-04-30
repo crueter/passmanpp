@@ -1,13 +1,15 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QDialogButtonBox>
+#include <QFileDialog>
+#include <passman/extra.hpp>
 
+#include "../passman_constants.hpp"
 #include "welcome_widget.hpp"
-#include "../constants.hpp"
 
 void createDatabase(Database *t_database, QString t_path) {
     if (t_path.isEmpty()) {
-        t_path = QFileDialog::getSaveFileName(nullptr, tr("New Database Location"), "", Constants::fileExt);
+        t_path = QFileDialog::getSaveFileName(nullptr, passman::tr("New Database Location"), "", passman::Constants::fileExt);
         if (t_path.isEmpty()) {
             return;
         }
@@ -16,6 +18,51 @@ void createDatabase(Database *t_database, QString t_path) {
     t_database->path = t_path;
 
     t_database->config();
+}
+
+bool openDb(Database *t_database, const QString &path) {
+    t_database->path = path;
+
+    passman::PasswordOptions options = passman::Open;
+    int ok = t_database->parse();
+
+    switch (ok) {
+        case 2: {
+            options = passman::PasswordOptions(passman::Convert | passman::Open);
+            break;
+        }
+        case 3: {
+            displayErr(passman::tr("Invalid magic number. Should be PD++."));
+            return false;
+        }
+        case 4: {
+            displayErr(passman::tr("Invalid version number."));
+            return false;
+        }
+        case 5: {
+            displayErr(passman::tr("Invalid HMAC option."));
+            return false;
+        }
+        case 6: {
+            displayErr(passman::tr("Invalid hash option."));
+            return false;
+        }
+        case 7: {
+            displayErr(passman::tr("Invalid encryption option."));
+            return false;
+        }
+        default: {
+            break;
+        }
+    }
+
+    PasswordWidget *di = new PasswordWidget(t_database, options);
+    if (!di->setup()) {
+        return false;
+    }
+
+    di->show();
+    return true;
 }
 
 WelcomeWidget::WelcomeWidget(Database *t_database)
@@ -42,7 +89,7 @@ bool WelcomeWidget::setup() {
     });
 
     QObject::connect(btnOpen, &QPushButton::clicked, [this]() mutable {
-        openDb(QFileDialog::getOpenFileName(nullptr, tr("Open Database"), "", Constants::fileExt));
+        openDb(database, QFileDialog::getOpenFileName(nullptr, tr("Open Database"), "", passman::Constants::fileExt));
     });
 
     connect(buttonBox, &QDialogButtonBox::rejected, [] {

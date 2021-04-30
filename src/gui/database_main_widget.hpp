@@ -3,8 +3,10 @@
 #include <QWidget>
 #include <QAction>
 
+#include <passman/pdpp_entry.hpp>
+
 #include "mainwindow.hpp"
-#include "../util/extra.hpp"
+#include "../util.hpp"
 #include "base_widget.hpp"
 
 class QLabel;
@@ -12,7 +14,6 @@ class QToolButton;
 class QTableWidget;
 
 class Database;
-class Entry;
 
 class DatabaseWidget : public BaseWidget
 {
@@ -29,7 +30,7 @@ public:
         return action;
     }
 
-    Entry *selectedEntry();
+    passman::PDPPEntry *selectedEntry();
 
     void redrawTable();
 

@@ -38,6 +38,7 @@
         <file>light/radio_checked_disabled.svg</file>
         <file>light/close-pressed.svg</file>
         <file>light/document-edit.svg</file>
+	<file>light/document-open.svg</file>
         <file>light/close.svg</file>
         <file>light/password-show-off.svg</file>
         <file>light/stylesheet-vline.svg</file>
@@ -93,6 +94,7 @@
         <file>dark/radio_checked_disabled.svg</file>
         <file>dark/close-pressed.svg</file>
         <file>dark/document-edit.svg</file>
+	<file>dark/document-open.svg</file>
         <file>dark/close.svg</file>
         <file>dark/password-show-off.svg</file>
         <file>dark/stylesheet-vline.svg</file>

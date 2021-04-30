@@ -3,7 +3,7 @@
 #include <QWidget>
 #include <QMenuBar>
 
-#include "../util/extra.hpp"
+#include "../util.hpp"
 
 class Database;
 class MainWindow;

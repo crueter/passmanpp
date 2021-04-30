@@ -3,6 +3,8 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QSettings>
+#include <iostream>
+#include <passman/extra.hpp>
 
 #include "mainwindow.hpp"
 #include "database_main_widget.hpp"
@@ -27,14 +29,14 @@ void MainWindow::setToolBar(QToolBar *t_toolbar) {
 
 void MainWindow::setWidget(BaseWidget *t_widget, const bool t_clearQueue) {
     if (t_widget == nullptr) {
-        qDebug() << "Something has gone terribly wrong. Details:";
-        qDebug() << "Expected first parameter of type BaseWidget * on MainWindow::setWidget, got nullptr instead";
+        std::cerr << "Something has gone terribly wrong. Details:\n";
+        std::cerr << "Expected first parameter of type BaseWidget * on MainWindow::setWidget, got nullptr instead" << std::endl;
         std::exit(1);
     }
 
     if (t_clearQueue) {
         queue.clear();
-        for (const int i : range(0, stackedLayout->count())) {
+        for (const int i : passman::range(0, stackedLayout->count())) {
             stackedLayout->removeWidget(stackedLayout->widget(i));
             menuLayout->removeWidget(menuLayout->widget(i));
         }

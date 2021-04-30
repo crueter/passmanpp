@@ -1,31 +1,33 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QSqlError>
+#include <QFile>
+#include <QFileDialog>
 
 #include <botan/bigint.h>
+#include <passman/constants.hpp>
 
-#include "util/extra.hpp"
 #include "gui/welcome_widget.hpp"
+#include "gui/password_widget.hpp"
+#include "passman_constants.hpp"
 
 // TODO: constexpr, noexcept
 
-QSqlDatabase db;
-
 int main(int argc, char** argv) {
     QApplication app (argc, argv);
-    QApplication::setApplicationName(tr("passman++"));
-    QApplication::setApplicationVersion(tr(Constants::passmanVersion));
+    QApplication::setApplicationName(QObject::tr("passman++"));
+    QApplication::setApplicationVersion(passman::tr(Constants::passmanVersion));
 
     QCommandLineParser parser;
-    parser.setApplicationDescription(tr("A simple, minimal, and just as powerful and secure password manager."));
+    parser.setApplicationDescription(QObject::tr("A simple, minimal, and just as powerful and secure password manager."));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument(tr("path"), tr("Path to a database file, or a path to where you want to create a new database."));
+    parser.addPositionalArgument(QObject::tr("path"), QObject::tr("Path to a database file, or a path to where you want to create a new database."));
 
-    QCommandLineOption newOption(QStringList() << "n" << "new", tr("Create a new database."));
-    QCommandLineOption debugOption(QStringList() << "d" << "debug", tr("Activate debug mode."));
-    QCommandLineOption verboseOption(QStringList() << "V" << "verbose", tr("Activate verbose mode."));
-    QCommandLineOption themeOption(QStringList() << "t" << "theme", tr("Specify light or dark mode"), tr("mode"), tr("dark"));
+    QCommandLineOption newOption(QStringList() << "n" << "new", QObject::tr("Create a new database."));
+    QCommandLineOption debugOption(QStringList() << "d" << "debug", QObject::tr("Activate debug mode."));
+    QCommandLineOption verboseOption(QStringList() << "V" << "verbose", QObject::tr("Activate verbose mode."));
+    QCommandLineOption themeOption(QStringList() << "t" << "theme", QObject::tr("Specify light or dark mode"), QObject::tr("mode"), QObject::tr("dark"));
 
     parser.addOptions({newOption, debugOption, verboseOption, themeOption});
 
@@ -34,11 +36,13 @@ int main(int argc, char** argv) {
     const QStringList args = parser.positionalArguments();
 
     QString theme = parser.value(themeOption);
-    if (!QStringList{tr("dark"), tr("light")}.contains(parser.value(themeOption))) {
-        qDebug() << "Invalid theme option. Must be one of: light, dark";
-        qDebug() << "Defaulting to dark theme.";
+    if (!QStringList{QObject::tr("dark"), QObject::tr("light")}.contains(parser.value(themeOption))) {
+        std::cerr << "Invalid theme option. Must be one of: light, dark\n";
+        std::cerr << "Defaulting to dark theme." << std::endl;
         theme = "dark";
     }
+
+    passman::db.open();
 
     QFile file(":/" + theme + ".qss");
     file.open(QFile::ReadOnly | QFile::Text);
@@ -52,13 +56,6 @@ int main(int argc, char** argv) {
         path = args.at(0);
     }
 
-    db = QSqlDatabase::addDatabase("QSQLITE", ":memory:");
-
-    if (!db.open()) {
-        displayErr("Error while opening database: " + db.lastError().text() + tr("\nPlease open an issue on " + Constants::github + " for help with this."));
-        return 1;
-    }
-
     MainWindow *mainWindow = new MainWindow;
 
     Database *database = new Database(mainWindow);
@@ -66,9 +63,7 @@ int main(int argc, char** argv) {
     if (parser.isSet(newOption)) {
         createDatabase(database, path);
     } else if (!path.isEmpty()) {
-        database->path = path;
-
-        if (!database->open()) {
+        if (!openDb(database, path)) {
             return 1;
         }
     } else {

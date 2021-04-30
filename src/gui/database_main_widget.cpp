@@ -11,15 +11,20 @@
 #include <QLabel>
 #include <QToolButton>
 #include <QDialogButtonBox>
+#include <QUrl>
+
+#include <passman/constants.hpp>
+#include <passman/pdpp_entry.hpp>
 
 #include "database_main_widget.hpp"
 #include "password_widget.hpp"
+#include "entry_edit_widget.hpp"
 #include "password_generator_dialog.hpp"
-#include "../entry.hpp"
 #include "../database.hpp"
 #include "../actions/password_generator_action.hpp"
+#include "../passman_constants.hpp"
 
-Entry *DatabaseWidget::selectedEntry() {
+passman::PDPPEntry *DatabaseWidget::selectedEntry() {
     QTableWidgetItem *item = table->item(table->currentRow(), 0);
 
     if (item == nullptr) {
@@ -33,8 +38,8 @@ void DatabaseWidget::redrawTable() {
     int j = 0;
     table->setRowCount(static_cast<int>(this->database->entryLength()));
 
-    for (Entry *e : database->entries()) {
-        for (const int i : range(0, static_cast<int>(e->fieldLength()))) {
+    for (passman::PDPPEntry *e : database->entries()) {
+        for (const int i : passman::range(0, static_cast<int>(e->fieldLength()))) {
             table->setItem(j, i, new QTableWidgetItem(e->fieldAt(i)->dataStr()));
         }
         ++j;
@@ -74,7 +79,7 @@ DatabaseWidget::DatabaseWidget(Database *t_database)
     toolbar->addAction(saveButton);
 
     saveAsButton = this->addButton("Save as...", "document-save-as", "Save the database to a different location. (Ctrl+Shift+S)", QKeySequence(tr("Ctrl+Shift+S")), [this] {
-        int br = database->saveAs();
+        int br = database->saveAsPrompt();
         if (br == 3) {
             displayErr("Invalid save location.");
         } else if (br == 17) {
@@ -103,22 +108,39 @@ DatabaseWidget::DatabaseWidget(Database *t_database)
     toolbar->addAction(addEButton);
 
     delButton = this->addButton("Delete", "edit-delete", "Deletes the currently selected entry. (Delete)", QKeySequence::Delete, [this]{
-        Entry *named = selectedEntry();
+        passman::PDPPEntry *named = selectedEntry();
         if (named == nullptr) {
             return;
         }
-        named->del(table->currentItem());
+
+        QTableWidget *t_table = database->widget->table;
+
+        if (t_table == nullptr) {
+            return;
+        }
+
+        const QString name = t_table->currentItem()->text();
+        QMessageBox delChoice(QMessageBox::Warning, passman::tr("Delete entry " + name + '?'), passman::tr("Are you sure you want to delete entry \"" + name + "\"? This action is IRREVERSIBLE!"), QMessageBox::Yes | QMessageBox::No);
+        delChoice.setDefaultButton(QMessageBox::No);
+
+        if (delChoice.exec() == QMessageBox::Yes) {
+            database->removeEntry(named);
+        }
+        database->widget->redrawTable();
 
         window->setWindowModified(database->modified);
     });
     toolbar->addAction(delButton);
 
     editButton = this->addButton("Edit", "document-edit", "Edit or view all the information of the current entry. (Ctrl+E)", QKeySequence(tr("Ctrl+E")), [this]{
-        Entry *named = selectedEntry();
+        passman::PDPPEntry *named = selectedEntry();
         if (named == nullptr) {
             return;
         }
-        named->edit();
+        EntryEditWidget *di = new EntryEditWidget(named);
+        di->setup();
+
+        di->show();
 
         window->setWindowModified(database->modified);
     });
@@ -136,7 +158,7 @@ DatabaseWidget::DatabaseWidget(Database *t_database)
             return;
         }
 
-        Entry *en = database->entryNamed(item->text());
+        passman::PDPPEntry *en = database->entryNamed(item->text());
         clip->setText(en->fieldNamed("password")->dataStr());
 
         QTimer::singleShot(database->clearSecs * 1000, this, [clip] {
@@ -160,7 +182,7 @@ DatabaseWidget::DatabaseWidget(Database *t_database)
     toolbar->addAction(randomButton);
 
     lockButton = addButton("Lock Database", "lock", "Lock the database and require a password to get back in.", QKeySequence(tr("Ctrl+L")), [this] {
-        PasswordWidget *passwordWidget = new PasswordWidget(this->database, PasswordOptions::Lock);
+        PasswordWidget *passwordWidget = new PasswordWidget(this->database, passman::PasswordOptions::Lock);
         if (!passwordWidget->setup()) {
             return;
         }
@@ -175,15 +197,16 @@ DatabaseWidget::DatabaseWidget(Database *t_database)
 
     aboutButton = this->addButton("About", "help-about", "About passman++", QKeySequence(tr("Ctrl+H")), [] {
         displayErr(tr(("passman++ is a simple, minimal, yet powerful, secure command-line password manager. Written in C++, passman++ is a complete rewrite of my original passman project (https://github.com/binex-dsk/PyPassMan) intended to be far more secure, feature-rich, fast, and most of all, to help me learn C++.\n\n"
-                              "Project repository (Submit bug reports, suggestions, and PRs here, or criticize me for being the master of writing spaghetti code): " + Constants::github + "\n\n"
-                              "FOSS Libraries used: Botan, Qt\n\n"
+                              "Project repository (Submit bug reports, suggestions, and PRs here, or criticize me for being the master of writing spaghetti code): " + Constants::passmanGithub + " (libpassman GitHub: " + passman::Constants::libpassmanGithub + "\n\n"
+                              "FOSS Libraries used: Botan, Qt, libpassman\n\n"
                               "Botan version: " + std::to_string(BOTAN_VERSION_MAJOR) + "." + std::to_string(BOTAN_VERSION_MINOR) + "-" + std::to_string(BOTAN_VERSION_PATCH) + "\n\n"
-                              "Current version: " + Constants::passmanVersion).data()));
+                              "Current version: " + Constants::passmanVersion + "\n\n"
+                              "libpassman version: " + passman::Constants::libpassmanVersion).data()));
     });
     aboutMenu->addAction(aboutButton);
 
     tipsButton = this->addButton("Tips", "help-hint", "Tips for good password management.", QKeySequence(), [] {
-        QDesktopServices::openUrl(QUrl(QString::fromStdString(Constants::github) + "blob/main/tips.md"));
+        QDesktopServices::openUrl(QUrl(QString::fromStdString(Constants::passmanGithub) + "blob/main/tips.md"));
     });
     aboutMenu->addAction(tipsButton);
 }
@@ -205,11 +228,15 @@ bool DatabaseWidget::setup() {
     table->setHorizontalHeaderLabels(labels);
 
     QObject::connect(table, &QTableWidget::itemDoubleClicked, [this] {
-        Entry *selected = selectedEntry();
+        passman::PDPPEntry *selected = selectedEntry();
         if (selected == nullptr) {
             return;
         }
-        selected->edit();
+
+        EntryEditWidget *di = new EntryEditWidget(selected);
+        di->setup();
+
+        di->show();
     });
 
     fileMenu->addActions(QList<QAction *>{saveButton, saveAsButton});
@@ -259,7 +286,7 @@ bool DatabaseWidget::setup() {
             return layout->removeWidget(prevWidg);
         }
 
-        Entry *selected = database->entryNamed(table->item(table->currentRow(), 0)->text());
+        passman::PDPPEntry *selected = database->entryNamed(table->item(table->currentRow(), 0)->text());
         emailValue->setText(selected->fieldNamed("email")->dataStr());
         urlValue->setText(selected->fieldNamed("url")->dataStr());
         nameValue->setText(selected->name());
@@ -273,7 +300,7 @@ bool DatabaseWidget::setup() {
     passView->setCheckable(true);
 
     QObject::connect(passView, &QToolButton::clicked, [this](bool checked) {
-        Entry *selected = database->entryNamed(table->item(table->currentRow(), 0)->text());
+        passman::PDPPEntry *selected = database->entryNamed(table->item(table->currentRow(), 0)->text());
 
         if (checked) {
             passValue->setText(selected->fieldNamed("password")->dataStr());

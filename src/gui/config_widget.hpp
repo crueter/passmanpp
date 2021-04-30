@@ -13,7 +13,6 @@ class QLabel;
 class QCheckBox;
 
 class Database;
-class Entry;
 
 class ConfigWidget : public BaseWidget
 {

@@ -1,7 +1,8 @@
-#ifndef PASSWORDDIALOG_H
-#define PASSWORDDIALOG_H
+#ifndef PASSWORDWIDGET_H
+#define PASSWORDWIDGET_H
 #include <QWidget>
 #include <QString>
+#include <passman/extra.hpp>
 
 #include "mainwindow.hpp"
 #include "base_widget.hpp"
@@ -17,12 +18,12 @@ class Database;
 class PasswordWidget : public BaseWidget
 {
 public:
-    PasswordWidget(Database *t_database, const PasswordOptionsFlag t_options);
+    PasswordWidget(Database *t_database, const passman::PasswordOptionsFlag t_options);
 
     bool setup();
     void show();
 
-    PasswordOptionsFlag options;
+    passman::PasswordOptionsFlag options;
 
     QLabel *titleLabel;
     QLabel *pathLabel;
@@ -35,10 +36,9 @@ public:
 
     QLineEdit *keyEdit;
     QLabel *keyLabel;
-    QPushButton *getKf;
-    QDialogButtonBox *keyBox;
+    QAction *getKf;
 
     QLabel *errLabel;
 };
 
-#endif // PASSWORDDIALOG_H
+#endif // PASSWORDWIDGET_H

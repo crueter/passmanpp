@@ -1,6 +1,6 @@
 #include "password_generator_action.hpp"
 #include "../gui/password_generator_dialog.hpp"
-#include "../util/extra.hpp"
+#include "../util.hpp"
 
 // Create a password generator dialog action and attach it to a QLineEdit (I/A)
 QAction *passwordGeneratorAction(QLineEdit *lineEdit) {

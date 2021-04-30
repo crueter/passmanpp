@@ -1,16 +1,17 @@
 #include <QDialogButtonBox>
-#include <QFormLayout>
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QTextEdit>
 #include <QPushButton>
 #include <QLabel>
+#include <QDialogButtonBox>
+#include <QGridLayout>
 
 #include "entry_edit_widget.hpp"
-#include "../entry.hpp"
 #include "../database.hpp"
 #include "../actions/password_generator_action.hpp"
 #include "../actions/password_visible_action.hpp"
+#include "../passman_constants.hpp"
 
 void EntryEditWidget::addRow(const QString &t_label, QWidget *t_widget, const qsizetype t_index) {
     QLabel *label = new QLabel(t_label);
@@ -18,10 +19,10 @@ void EntryEditWidget::addRow(const QString &t_label, QWidget *t_widget, const qs
     layout->addWidget(t_widget, static_cast<int>(t_index), 1);
 }
 
-EntryEditWidget::EntryEditWidget(Entry *t_entry)
+EntryEditWidget::EntryEditWidget(passman::PDPPEntry *t_entry)
     : entry(t_entry)
 {
-    database = entry->database();
+    database = static_cast<Database *>(entry->database());
     window = database->window;
 
     buttonBox = new QDialogButtonBox(this);
@@ -37,7 +38,7 @@ EntryEditWidget::EntryEditWidget(Entry *t_entry)
 }
 
 bool EntryEditWidget::setup() {
-    for (Field *field : entry->fields()) {
+    for (passman::Field *field : entry->fields()) {
         if (field->type() == QMetaType::QByteArray) {
             field->setData(field->dataStr());
         } else if (field->isName()) {
@@ -47,7 +48,7 @@ bool EntryEditWidget::setup() {
         }
     }
 
-    for (Field *field : entry->fields()) {
+    for (passman::Field *field : entry->fields()) {
         const qsizetype i = entry->indexOf(field);
         switch (field->type()) {
             case QMetaType::QString: {
@@ -89,7 +90,7 @@ bool EntryEditWidget::setup() {
                 edits[i] = edit;
                 break;
             } default: {
-                displayErr(tr("Something has gone horribly wrong. Field type (") + QString(static_cast<QChar>(field->type())) + QString::fromStdString(") is invalid, where valid values are: 2, 6, 10, and 12. Report this issue immediately to" + Constants::github));
+                displayErr(tr("Something has gone horribly wrong. Field type (") + QString(static_cast<QChar>(field->type())) + QString::fromStdString(") is invalid, where valid values are: 2, 6, 10, and 12. Report this issue immediately to" + Constants::passmanGithub));
                 break;
             }
         }
@@ -99,7 +100,7 @@ bool EntryEditWidget::setup() {
     buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("Back"));
 
     QObject::connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, [this] {
-        for (Field *f : entry->fields()) {
+        for (passman::Field *f : entry->fields()) {
             const qsizetype i = entry->indexOf(f);
 
             switch(f->type()) {

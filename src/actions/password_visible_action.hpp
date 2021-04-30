@@ -1,6 +1,5 @@
 #ifndef PASSWORDVISIBLEACTION_H
 #define PASSWORDVISIBLEACTION_H
-
 #include <QAction>
 #include <QLineEdit>
 

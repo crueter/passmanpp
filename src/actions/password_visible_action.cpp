@@ -1,9 +1,9 @@
 #include "password_visible_action.hpp"
-#include "../util/extra.hpp"
+#include "../util.hpp"
 
 // Create a password visibility toggle action and attach it to a QLineEdit
 QAction *passwordVisibleAction(QLineEdit *lineEdit, const bool on) {
-    QAction *view = new QAction(getIcon(tr("password-show-o") + tr(on ? "n" : "ff")), QObject::tr("Toggle Password"));
+    QAction *view = new QAction(getIcon(QObject::tr("password-show-o") + QObject::tr(on ? "n" : "ff")), QObject::tr("Toggle Password"));
     view->setCheckable(true);
 
     QObject::connect(view, &QAction::triggered, [view, lineEdit](bool checked) {
@@ -17,7 +17,7 @@ QAction *passwordVisibleAction(QLineEdit *lineEdit, const bool on) {
             echoMode = QLineEdit::Password;
         }
 
-        view->setIcon(getIcon(tr(iconName)));
+        view->setIcon(getIcon(QObject::tr(iconName)));
         lineEdit->setEchoMode(echoMode);
     });
 

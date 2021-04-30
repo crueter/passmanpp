@@ -1,28 +1,23 @@
 #ifndef WelcomeWidget_H
 #define WelcomeWidget_H
+#include <passman/extra.hpp>
 
 #include "../database.hpp"
 #include "mainwindow.hpp"
 #include "base_widget.hpp"
+#include "password_widget.hpp"
 
 class QLabel;
 
 class VectorUnion;
 
 void createDatabase(Database *t_database, QString t_path = "");
+bool openDb(Database *t_database, const QString &path);
 
 class WelcomeWidget : public BaseWidget
 {
 public:
     WelcomeWidget(Database *t_database);
-
-    inline void openDb(const QString &path) {
-        database->path = path;
-
-        if (!database->open()) {
-            return;
-        }
-    }
 
     bool setup();
     void show();

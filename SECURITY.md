@@ -4,9 +4,9 @@
 
 | Version   | Supported          |
 | -------   | ------------------ |
+| 2.1.1     | :white_check_mark: |
 | 2.1.0     | :white_check_mark: |
-| 2.0.1     | :white_check_mark: |
-| 2.0.0     | Extended Support Only |
+| 2.0.0-2.0.1     | Extended Support Only |
 | 1.4.0p    | :white_check_mark:, LTS |
 | <= 1.3.0  | :x: |
 

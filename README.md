@@ -162,17 +162,18 @@ Stuff I previously planned to do and have already done:
 - Better CMakeLists.txt
 - MIME type and desktop files
 - Add a delay benchmark for hashing iterations
+- Create a libpassman as a base for third-party `.pdpp` file integration
 
 # 2.2 UPDATE
 - Allow for more stuff to be stored there, i.e. user-input attributes
 - When the computer is hibernated or put to sleep, close the app and deallocate all memory
-- Create a libpassman as a base for third-party `.pdpp` file integration
 - Allow for no password at all
 - Password health/entropy checker
 - Separate database creation and database configuration, plus a "simple" and "advanced" mode for each
 - Timer for when the database should be automatically locked, or if it should be locked upon losing focus of the main window
 - Global configuration
 - Display entropy in password generator
+- CLI application
 
 # 3.0 UPDATE
 Plans for the passman++ 3.0 update:
@@ -180,3 +181,4 @@ Plans for the passman++ 3.0 update:
 - Entry modification dates
 - pdb-to-pdpp file converter
 - Icons and attachments
+- some GPG stuff

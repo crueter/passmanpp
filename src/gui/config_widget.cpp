@@ -5,12 +5,15 @@
 #include <QMenuBar>
 #include <QDesktopServices>
 #include <QDialogButtonBox>
+#include <QFileDialog>
 
 #include <botan/auto_rng.h>
 
+#include <passman/pdpp_entry.hpp>
+
 #include "config_widget.hpp"
-#include "../entry.hpp"
 #include "../database.hpp"
+#include "../passman_constants.hpp"
 
 QComboBox *ConfigWidget::comboBox(QList<std::string> vec, const char *label, const int val) {
     QComboBox *box = new QComboBox;
@@ -116,7 +119,7 @@ bool ConfigWidget::setup() {
     }
 
     help->addAction(tr("Choosing Options"), this, []{
-        QDesktopServices::openUrl(QUrl(QString::fromStdString(Constants::github) + "blob/main/Choosing%20Options.md"));
+        QDesktopServices::openUrl(QUrl(QString::fromStdString(Constants::passmanGithub) + "blob/main/Choosing%20Options.md"));
     });
 
     metaTitle->setFont(bold);
@@ -138,9 +141,9 @@ bool ConfigWidget::setup() {
     encLayout->addRow(encTitle);
     encLayout->addRow(encDesc);
 
-    hmacBox = comboBox(Constants::hmacMatch, "\tHMAC Function:", database->hmac);
-    hashBox = comboBox(Constants::hashMatch, "\tPassword Hashing Function:  ", database->hash);
-    encryptionBox = comboBox(Constants::encryptionMatch, "\tData Encryption Function:", database->encryption);
+    hmacBox = comboBox(passman::Constants::hmacMatch, "\tHMAC Function:", database->hmac);
+    hashBox = comboBox(passman::Constants::hashMatch, "\tPassword Hashing Function:  ", database->hash);
+    encryptionBox = comboBox(passman::Constants::encryptionMatch, "\tData Encryption Function:", database->encryption);
 
     encWidget->setFrameStyle(QFrame::Panel | QFrame::Raised);
     encWidget->setLineWidth(2);
@@ -159,11 +162,10 @@ bool ConfigWidget::setup() {
     benchmarkBox->setToolTip(tr("Benchmark how many hashing iterations it would take to unlock the database in this many seconds."));
 
     QObject::connect(benchmark, &QPushButton::clicked, this, [this] {
-        KDF *kdf = database->makeKdf(static_cast<uint8_t>(hmacBox->currentIndex()), static_cast<uint8_t>(hashBox->currentIndex()), static_cast<uint8_t>(encryptionBox->currentIndex()), {}, {}, 4, static_cast<uint16_t>(memBox->value()));
+        passman::KDF *kdf = database->makeKdf(static_cast<uint8_t>(hmacBox->currentIndex()), static_cast<uint8_t>(hashBox->currentIndex()), static_cast<uint8_t>(encryptionBox->currentIndex()), {}, {}, 4, static_cast<uint16_t>(memBox->value()));
 
         setCursor(Qt::WaitCursor);
         int iters = kdf->benchmark(static_cast<int>(benchmarkBox->value() * 1000));
-        qDebug() << iters << kdf->toString();
         hashIterBox->setValue(iters);
         unsetCursor();
     });
@@ -211,11 +213,11 @@ bool ConfigWidget::setup() {
     keyEdit->setText(database->keyFilePath.asQStr());
 
     QObject::connect(newKf, &QPushButton::clicked, [this] {
-        keyEdit->setText(QFileDialog::getSaveFileName(nullptr, tr("New Key File"), "", Constants::keyExt));
+        keyEdit->setText(QFileDialog::getSaveFileName(nullptr, tr("New Key File"), "", passman::Constants::keyExt));
     });
 
     QObject::connect(getKf, &QPushButton::clicked, [this] {
-        keyEdit->setText(QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", Constants::keyExt));
+        keyEdit->setText(QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", passman::Constants::keyExt));
     });
 
     keyBox->addButton(newKf, QDialogButtonBox::ActionRole);
@@ -268,9 +270,9 @@ bool ConfigWidget::setup() {
             }
 
             if (create) {
-                Entry *entry = new Entry({}, database);
+                passman::PDPPEntry *entry = new passman::PDPPEntry({}, database);
 
-                for (Field *f : entry->fields()) {
+                for (passman::Field *f : entry->fields()) {
                     f->setData("EXAMPLE");
                 }
             }

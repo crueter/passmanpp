@@ -2,6 +2,8 @@
 #define EntryEditWidget_H
 #include <QWidget>
 
+#include <passman/pdpp_entry.hpp>
+
 #include "mainwindow.hpp"
 #include "base_widget.hpp"
 
@@ -14,19 +16,18 @@ class QDialogButtonBox;
 class QCheckBox;
 
 class Database;
-class Entry;
 
 class EntryEditWidget : public BaseWidget
 {
 public:
-    EntryEditWidget(Entry *t_entry);
+    EntryEditWidget(passman::PDPPEntry *t_entry);
 
     bool setup();
     void show();
 
     void addRow(const QString &t_label, QWidget *t_widget, const qsizetype t_index);
 
-    Entry *entry;
+    passman::PDPPEntry *entry;
 
     QString origPass;
     QString origName;

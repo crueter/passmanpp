@@ -5,11 +5,14 @@
 #include <QDialogButtonBox>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QFile>
+#include <QFileDialog>
+#include <QSqlRecord>
 
 #include "password_widget.hpp"
 #include "../database.hpp"
 
-PasswordWidget::PasswordWidget(Database *t_database, const PasswordOptionsFlag t_options)
+PasswordWidget::PasswordWidget(Database *t_database, const passman::PasswordOptionsFlag t_options)
     : options(t_options)
 
     , inputWidget(new QWidget)
@@ -19,23 +22,23 @@ PasswordWidget::PasswordWidget(Database *t_database, const PasswordOptionsFlag t
     , passEdit(new QLineEdit)
 
     , keyEdit(new QLineEdit)
-    , keyLabel(new QLabel(tr("\tKey File:")))
-    , getKf(new QPushButton(tr("Open")))
-    , keyBox(new QDialogButtonBox)
+    , keyLabel(new QLabel(tr("Key File:")))
+    , getKf(new QAction(getIcon(tr("document-open")), tr("Open")))
 
     , errLabel(new QLabel)
 {
+    inputLayout->setSpacing(10);
     database = t_database;
     window = t_database->window;
 
     buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, this);
     layout = new QGridLayout(this);
 
-    if (options & Convert) {
+    if (options & passman::Convert) {
         title = tr("Convert Database");
-    } else if (options & Open) {
+    } else if (options & passman::Open) {
         title = tr("Open Database");
-    } else if (options & Lock) {
+    } else if (options & passman::Lock) {
         title = tr("Unlock Database");
     }
     layout->setAlignment(Qt::AlignCenter);
@@ -53,20 +56,8 @@ PasswordWidget::PasswordWidget(Database *t_database, const PasswordOptionsFlag t
 }
 
 bool PasswordWidget::setup() {
-    if (options & Convert) {
-        QFile f(database->path.asQStr());
-        f.open(QIODevice::ReadOnly);
-        QTextStream pd(&f);
-        VectorUnion iv = pd.readLine();
-
-        VectorUnion ivd;
-        try {
-            ivd = iv.decoded();
-        } catch (...) {
-            return false;
-        }
-
-        if (ivd.size() != 12) {
+    if (options & passman::Convert) {
+        if (!database->isOld()) {
             return false;
         }
     }
@@ -75,13 +66,13 @@ bool PasswordWidget::setup() {
     passEdit->setCursorPosition(0);
 
     if (database->keyFile) {
-        QObject::connect(getKf, &QPushButton::clicked, [this]() mutable {
-            database->keyFilePath = QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", Constants::keyExt);
+        QObject::connect(getKf, &QAction::triggered, [this]() mutable {
+            database->keyFilePath = QFileDialog::getOpenFileName(nullptr, tr("Open Key File"), "", passman::Constants::keyExt);
             database->keyFile = !database->keyFilePath.empty();
             keyEdit->setText(database->keyFilePath.asQStr());
         });
 
-        keyBox->addButton(getKf, QDialogButtonBox::ActionRole);
+        keyEdit->addAction(getKf, QLineEdit::TrailingPosition);
     }
 
     errLabel->setFrameStyle(QFrame::Panel | QFrame::Raised);
@@ -110,18 +101,20 @@ bool PasswordWidget::setup() {
             return window->back();
         }
 
-        int ok = database->verify(pw, (options & Convert));
+        int ok = database->verify(pw);
 
-        if (ok == true) {
-            if (options & Open) {
-                for (const QString &line : database->stList.asQStr().split('\n')) {
-                    if (line.isEmpty()) {
-                        continue;
-                    }
+        if (ok) {
+            if (options & passman::Open) {
+                if (!(options & passman::Convert)) {
+                    for (const QString &line : database->stList.asQStr().split('\n')) {
+                        if (line.isEmpty()) {
+                            continue;
+                        }
 
-                    QSqlQuery q(db);
-                    if (!q.exec(line)) {
-                       displayErr("Warning: Error during database initialization: " + q.lastError().text());
+                        QSqlQuery q(passman::db);
+                        if (!q.exec(line)) {
+                           displayErr("Warning: Error during database initialization: " + q.lastError().text());
+                        }
                     }
                 }
                 database->get();
@@ -146,6 +139,7 @@ bool PasswordWidget::setup() {
         unsetCursor();
     });
 
+    inputLayout->setAlignment(Qt::AlignmentFlag::AlignRight);
     layout->addWidget(titleLabel, 1, 0);
     layout->addWidget(pathLabel, 2, 0);
     layout->addWidget(inputWidget, 3, 0);
@@ -154,11 +148,8 @@ bool PasswordWidget::setup() {
     if (database->keyFile) {
         inputLayout->addWidget(keyLabel, 2, 0);
         inputLayout->addWidget(keyEdit, 3, 0);
-        inputLayout->addWidget(keyBox, 3, 1);
-        inputLayout->addWidget(buttonBox, 4, 0);
-    } else {
-        layout->addWidget(buttonBox, 4, 0);
     }
+    layout->addWidget(buttonBox, 4, 0);
     return true;
 }
 

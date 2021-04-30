@@ -10,10 +10,11 @@
 #include <botan/bigint.h>
 #include <botan/auto_rng.h>
 
+#include <passman/extra.hpp>
+
 #include "password_generator_dialog.hpp"
 #include "../actions/password_visible_action.hpp"
-#include "../util/extra.hpp"
-#include "../constants.hpp"
+#include "../util.hpp"
 
 PasswordGeneratorDialog::Options PasswordGeneratorDialog::getOptions() {
     Options opt;
@@ -67,13 +68,13 @@ Group PasswordGeneratorDialog::getGroup() {
     options = getOptions();
 
     if (options & Lowers) {
-        groups.append(range<QChar>(97, 25));
+        groups.append(passman::range<QChar>(97, 25));
     }
     if (options & Uppers) {
-        groups.append(range<QChar>(65, 25));
+        groups.append(passman::range<QChar>(65, 25));
     }
     if (options & Numbers) {
-        groups.append(range<QChar>(48, 10));
+        groups.append(passman::range<QChar>(48, 10));
     }
     if (options & Braces) {
         groups.append(fromString("()[]{}"));
@@ -93,10 +94,10 @@ Group PasswordGeneratorDialog::getGroup() {
     if (options & EASCII) {
         // U+0080-U+009F are control characters, and
         // U+00A0 is a non-breaking space
-        groups.append(range<QChar>(161, 12));
+        groups.append(passman::range<QChar>(161, 12));
 
         // U+00AD is a soft hyphen
-        groups.append(range<QChar>(174, 82));
+        groups.append(passman::range<QChar>(174, 82));
     }
 
     for (const QChar &c : includes) {
