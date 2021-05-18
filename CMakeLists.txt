@@ -59,7 +59,7 @@ target_link_libraries(passman++ PRIVATE
         passman
 )
 
-target_compile_options(passman++ PUBLIC -O2 -march=native -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused -Wold-style-cast -Wconversion -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -pedantic -Wuseless-cast -DDEBUG)
+target_compile_options(passman++ PUBLIC -O2 -march=native -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused -Wold-style-cast -Wconversion -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -pedantic -Wuseless-cast)
 
 install(TARGETS passman++
     BUNDLE DESTINATION . COMPONENT Runtime

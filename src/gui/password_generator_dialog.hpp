@@ -10,6 +10,7 @@ class QDialogButtonBox;
 class QSpinBox;
 class QSlider;
 class QFrame;
+class QProgressBar;
 
 typedef QList<QChar> Group;
 
@@ -45,6 +46,9 @@ public:
     Group getGroup();
     Options getOptions();
 
+    double calcEntropy(const int t_passwordLength, const int t_setLength);
+    const QString getQuality(double t_entropy);
+
     Options options;
 
     int length;
@@ -57,6 +61,9 @@ public:
     QLineEdit *display;
     QAction *visible;
     QPushButton *regen;
+
+    QLabel *entropyLabel;
+    QProgressBar *entropyBar;
 
     QLabel *lengthLabel;
     QSlider *lengthSlider;

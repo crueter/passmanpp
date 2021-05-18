@@ -24,36 +24,14 @@ bool openDb(Database *t_database, const QString &path) {
     t_database->path = path;
 
     passman::PasswordOptions options = passman::Open;
-    int ok = t_database->parse();
 
-    switch (ok) {
-        case 2: {
+    try {
+        if (t_database->parse() == 2) {
             options = passman::PasswordOptions(passman::Convert | passman::Open);
-            break;
         }
-        case 3: {
-            displayErr(passman::tr("Invalid magic number. Should be PD++."));
-            return false;
-        }
-        case 4: {
-            displayErr(passman::tr("Invalid version number."));
-            return false;
-        }
-        case 5: {
-            displayErr(passman::tr("Invalid HMAC option."));
-            return false;
-        }
-        case 6: {
-            displayErr(passman::tr("Invalid hash option."));
-            return false;
-        }
-        case 7: {
-            displayErr(passman::tr("Invalid encryption option."));
-            return false;
-        }
-        default: {
-            break;
-        }
+    } catch (std::exception& e) {
+        displayErr(passman::tr(e.what()));
+        return false;
     }
 
     PasswordWidget *di = new PasswordWidget(t_database, options);

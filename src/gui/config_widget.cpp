@@ -115,7 +115,11 @@ ConfigWidget::ConfigWidget(Database *t_database, const bool t_create)
 
 bool ConfigWidget::setup() {
     if (!create) {
-        database->parse();
+        try {
+            database->parse();
+        } catch (std::exception& e) {
+            displayErr(passman::tr(e.what()));
+        }
     }
 
     help->addAction(tr("Choosing Options"), this, []{

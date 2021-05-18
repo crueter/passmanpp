@@ -6,6 +6,7 @@
 #include <QSpinBox>
 #include <QPushButton>
 #include <QSlider>
+#include <QProgressBar>
 
 #include <botan/bigint.h>
 #include <botan/auto_rng.h>
@@ -115,6 +116,21 @@ Group PasswordGeneratorDialog::getGroup() {
     return groups;
 }
 
+double PasswordGeneratorDialog::calcEntropy(const int t_passwordLength, const int t_setLength) {
+    return std::log2(std::pow(t_setLength, t_passwordLength));
+}
+
+const QString PasswordGeneratorDialog::getQuality(double t_entropy) {
+    if (t_entropy < 40) {
+        return "Poor";
+    } else if (t_entropy < 65) {
+        return "Weak";
+    } else if (t_entropy < 100) {
+        return "Good";
+    }
+    return "Excellent";
+}
+
 const QString PasswordGeneratorDialog::generate() {
     Group chars = getGroup();
 
@@ -132,27 +148,31 @@ const QString PasswordGeneratorDialog::generate() {
     return pass;
 }
 
-PasswordGeneratorDialog::PasswordGeneratorDialog() {
+PasswordGeneratorDialog::PasswordGeneratorDialog()
+    : display(new QLineEdit)
+    , visible(passwordVisibleAction(display, true))
+
+    , regen(new QPushButton(getIcon(tr("view-refresh")), ""))
+
+    , entropyLabel(new QLabel(tr("Entropy:")))
+    , entropyBar(new QProgressBar)
+
+    , lengthLabel(new QLabel(tr("Length:")))
+    , lengthSlider(new QSlider(Qt::Horizontal))
+    , lengthBox(new QSpinBox)
+
+    , buttonLabel(new QLabel(tr("Character Types")))
+
+    , buttonWidget(new QFrame)
+{
     layout = new QGridLayout(this);
 
-    display = new QLineEdit;
+    buttonLayout = new QGridLayout(buttonWidget);
 
-    visible = passwordVisibleAction(display, true);
-
-    regen = new QPushButton(getIcon(tr("view-refresh")), "");
-
-    lengthLabel = new QLabel(tr("Length:"));
-    lengthSlider = new QSlider(Qt::Horizontal);
-    lengthBox = new QSpinBox;
-
-    buttonLabel = new QLabel(tr("Character Types"));
     QFont font;
     font.setBold(true);
 
     buttonLabel->setFont(font);
-
-    buttonWidget = new QFrame;
-    buttonLayout = new QGridLayout(buttonWidget);
 
     auto optButton = [this](const char *text, const char *tooltip, int row, int col, bool on = false) -> QPushButton * {
         QPushButton *button = new QPushButton(tr(text));
@@ -191,6 +211,9 @@ void PasswordGeneratorDialog::setup() {
     visible->setCheckable(true);
     visible->setChecked(true);
 
+    entropyBar->setRange(0, 250);
+    entropyBar->setFormat("");
+
     connect(regen, &QPushButton::clicked, this, [this] {
         generate();
     });
@@ -224,6 +247,14 @@ void PasswordGeneratorDialog::setup() {
         generate();
     });
 
+    connect(display, &QLineEdit::textChanged, this, [this](const QString &text) {
+        double entropy = calcEntropy(text.length(), getGroup().length());
+        const QString quality = getQuality(entropy);
+
+        entropyLabel->setText(passman::tr("Entropy: %1 Bits (Quality: " + quality + ")").arg(entropy));
+        entropyBar->setValue(std::min(int(entropy), entropyBar->maximum()));
+    });
+
     QObject::connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     QObject::connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
@@ -238,19 +269,22 @@ void PasswordGeneratorDialog::setup() {
     layout->addWidget(display, 0, 0, 1, 4);
     layout->addWidget(regen, 0, 4);
 
-    layout->addWidget(lengthLabel, 1, 0);
-    layout->addWidget(lengthSlider, 1, 1, 1, 3);
-    layout->addWidget(lengthBox, 1, 4);
-    layout->addWidget(buttonLabel, 2, 0);
-    layout->addWidget(buttonWidget, 3, 0, 2, 5);
+    layout->addWidget(entropyBar, 1, 0, 1, 5);
+    layout->addWidget(entropyLabel, 2, 0);
 
-    layout->addWidget(includeLabel, 6, 2);
-    layout->addWidget(extraInclude, 6, 3, 1, 2);
+    layout->addWidget(lengthLabel, 3, 0);
+    layout->addWidget(lengthSlider, 3, 1, 1, 3);
+    layout->addWidget(lengthBox, 3, 4);
+    layout->addWidget(buttonLabel, 4, 0);
+    layout->addWidget(buttonWidget, 4, 0, 2, 5);
 
-    layout->addWidget(excludeLabel, 7, 2);
-    layout->addWidget(extraExclude, 7, 3, 1, 2);
+    layout->addWidget(includeLabel, 8, 2);
+    layout->addWidget(extraInclude, 8, 3, 1, 2);
 
-    layout->addWidget(buttonBox, 8, 3);
+    layout->addWidget(excludeLabel, 9, 2);
+    layout->addWidget(extraExclude, 9, 3, 1, 2);
+
+    layout->addWidget(buttonBox, 10, 3);
 
     generate();
 }
