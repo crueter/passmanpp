@@ -1,3 +1,6 @@
+# hi project dead
+see [#4](https://github.com/binex-dsk/passmanpp/issues/4) sorry was just too spaghetti
+
 # passman++
 An extremely simple, minimal, and easy-to-use yet just as secure and powerful GUI password manager.
 
